@@ -26,8 +26,8 @@ export default function ThankYou() {
             
             <div className="checkmark-icon">
               <svg width="60" height="60" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="30" cy="30" r="28" stroke="#2B5541" strokeWidth="2"/>
-                <path d="M18 30 L26 38 L42 22" stroke="#2B5541" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                <circle cx="30" cy="30" r="28" fill="#2B5541"/>
+                <path d="M18 30 L26 38 L42 22" stroke="#FFFFFF" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
               </svg>
             </div>
             

@@ -23,7 +23,7 @@ body {
     width: 42.5%;
     height: 100vh;
     position: relative;
-    background: #1a1a1a;
+    background: #000000;
     overflow: hidden;
 }
 
@@ -31,27 +31,29 @@ body {
     width: 100%;
     height: 100%;
     position: relative;
+    background: #000000;
 }
 
 .image-placeholder {
     width: 100%;
     height: 100%;
-    background: linear-gradient(135deg, #2d5016 0%, #4a7c2a 50%, #6b9f3d 100%);
-    background-image: url('/images/homepage-left-image.jpg');
+    background-image: url('/images/image 19.png');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
     position: absolute;
     opacity: 1;
-    /* Add your image as: /images/homepage-left-image.jpg */
-    /* If image doesn't exist, the gradient will show as fallback */
+    z-index: 1;
+    /* Homepage left section image with fragmented cutout effect */
 }
 
-/* Fragmented cutouts forming "46" shape */
+/* Fragmented cutouts forming "46" shape - these reveal the image */
 .image-fragment {
     position: absolute;
-    background: linear-gradient(135deg, rgba(45, 80, 22, 0.8) 0%, rgba(74, 124, 42, 0.8) 50%, rgba(107, 159, 61, 0.8) 100%);
-    clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%);
+    background-image: url('/images/image 19.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
     z-index: 2;
 }
 
@@ -99,7 +101,7 @@ body {
     left: 20px;
     font-family: var(--font-jost), 'Jost', sans-serif;
     font-size: 12px;
-    color: #2B5541;
+    color: #FFFFFF;
     z-index: 3;
 }
 
@@ -340,11 +342,11 @@ body {
     width: 100%;
     height: 100%;
     background: linear-gradient(135deg, #2d5016 0%, #4a7c2a 50%, #6b9f3d 100%);
-    background-image: url('/images/aerial-background.jpg');
+    background-image: url('/images/image 18.png');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
-    /* Add your image as: /images/aerial-background.jpg */
+    /* Aerial view background for waitlist and thank-you pages */
 }
 
 /* Form Overlay */
@@ -541,11 +543,11 @@ body {
 }
 
 .checkmark-icon circle {
-    stroke: #2B5541;
+    fill: #2B5541;
 }
 
 .checkmark-icon path {
-    stroke: #2B5541;
+    stroke: #FFFFFF;
 }
 
 .confirmation-messages {
