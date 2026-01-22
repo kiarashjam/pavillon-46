@@ -3,7 +3,8 @@
   "contentVersion": "1.0.0.0",
   "parameters": {
     "resourceGroupName": { "value": "rg-pavillon46" },
-    "location": { "value": "eastus" },
+    "location": { "value": "italynorth" },
+    "staticWebAppLocation": { "value": "westeurope" },
     "staticWebAppName": { "value": "pavillon46-swa" }
   }
 }

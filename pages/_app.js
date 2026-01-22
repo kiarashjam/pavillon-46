@@ -1,30 +1,30 @@
 import '../styles/globals.css'
-import { Jost, Playfair_Display, Dancing_Script } from 'next/font/google'
+import { Cormorant_Garamond, Great_Vibes, DM_Sans } from 'next/font/google'
 
-const jost = Jost({
-  subsets: ['latin'],
-  weight: ['400', '500', '600'],
-  variable: '--font-jost',
-  display: 'swap',
-})
-
-const playfair = Playfair_Display({
-  subsets: ['latin'],
-  weight: ['400', '500', '600'],
-  variable: '--font-playfair',
-  display: 'swap',
-})
-
-const dancingScript = Dancing_Script({
+const cormorant = Cormorant_Garamond({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700'],
-  variable: '--font-dancing',
+  variable: '--font-cormorant',
+  display: 'swap',
+})
+
+const greatVibes = Great_Vibes({
+  subsets: ['latin'],
+  weight: ['400'],
+  variable: '--font-script',
+  display: 'swap',
+})
+
+const dmSans = DM_Sans({
+  subsets: ['latin'],
+  weight: ['400', '500', '600'],
+  variable: '--font-sans',
   display: 'swap',
 })
 
 export default function App({ Component, pageProps }) {
   return (
-    <div className={`${jost.variable} ${playfair.variable} ${dancingScript.variable}`}>
+    <div className={`${cormorant.variable} ${greatVibes.variable} ${dmSans.variable}`}>
       <Component {...pageProps} />
     </div>
   )

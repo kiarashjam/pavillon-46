@@ -12,43 +12,41 @@ export default function Home() {
       </Head>
 
       <div className="container">
-        {/* Left Section: Image with fragmented cutouts */}
+        {/* Full-page: image 6 background */}
+        <div className="page-bg" aria-hidden="true" />
+        {/* Full-page: blur + dark overlay (makes background not clear) */}
+        <div className="page-overlay" aria-hidden="true" />
+
+        {/* Left Section: obscured background only */}
         <div className="left-section">
-          <div className="image-container">
-            <div className="image-fragment fragment-1"></div>
-            <div className="image-fragment fragment-2"></div>
-            <div className="image-fragment fragment-3"></div>
-            <div className="image-fragment fragment-4"></div>
-            {/* Placeholder for actual image - replace with your image */}
-            <div className="image-placeholder"></div>
+          <div className="legal-wrap">
+            <div className="legal-line" />
+            <div className="legal-text">Legal</div>
           </div>
-          <div className="legal-text">Legal</div>
         </div>
 
-        {/* Right Section: Content */}
+        {/* Right Section: image 4 on top + content */}
         <div className="right-section">
-          <div className="opening-date">Opening Summer 2027</div>
-          
-          <div className="welcome-text">Welcome to</div>
-          
-          <div className="logo-container">
-            <div className="logo-main">
-              <span className="logo-pavillon">PAVILLON</span>
-              <span className="logo-number">46</span>
+          <div className="right-image" aria-hidden="true" />
+          <div className="right-content">
+            <div className="opening-date">Opening Summer 2027</div>
+            <div className="welcome-text">Welcome to</div>
+            <div className="logo-container">
+              <div className="logo-main">
+                <span className="logo-pavillon">PAVILLON</span>
+                <span className="logo-number">46</span>
+              </div>
+              <div className="logo-subtitle">LA CROIX-SUR-LUTRY</div>
             </div>
-            <div className="logo-subtitle">LA CROIX-SUR-LUTRY</div>
+            <div className="slogan">
+              <span className="slogan-part1">Life in</span>
+              <span className="slogan-part2">Full Color</span>
+            </div>
+            <Link href="/waitlist" className="join-button">
+              <span className="button-text">Join the Waitlist</span>
+            </Link>
+            <p className="footer-text">Access i by invitation, with limited membership</p>
           </div>
-
-          <div className="slogan">
-            <span className="slogan-part1">Life in</span>
-            <span className="slogan-part2">Full Color</span>
-          </div>
-
-          <Link href="/waitlist" className="join-button">
-            <span className="button-text">Join the Waitlist</span>
-          </Link>
-
-          <p className="footer-text">Access i by invitation, with limited membership</p>
         </div>
       </div>
     </>

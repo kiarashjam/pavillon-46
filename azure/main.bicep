@@ -6,8 +6,11 @@ targetScope = 'subscription'
 @description('Name of the new resource group')
 param resourceGroupName string = 'rg-pavillon46'
 
-@description('Azure region for the resource group and Static Web App')
+@description('Azure region for the resource group (e.g. italynorth)')
 param location string = deployment().location
+
+@description('Azure region for the Static Web App. Must be a supported SWA region: westeurope, eastus2, westus2, centralus, eastasia.')
+param staticWebAppLocation string = 'westeurope'
 
 @description('Name of the Static Web App (website) in the resource group')
 param staticWebAppName string = 'pavillon46-swa'
@@ -17,18 +20,16 @@ resource rg 'Microsoft.Resources/resourceGroups@2024-03-01' = {
   location: location
 }
 
-resource swa 'Microsoft.Web/staticSites@2022-09-01' = {
+module swaModule 'static-web-app.bicep' = {
   scope: rg
-  name: staticWebAppName
-  location: location
-  sku: {
-    name: 'Free'
-    tier: 'Free'
+  name: 'deploy-swa'
+  params: {
+    staticWebAppName: staticWebAppName
+    location: staticWebAppLocation
   }
-  properties: {}
 }
 
 output resourceGroupName string = rg.name
-output staticWebAppName string = swa.name
-output defaultHostname string = swa.properties.defaultHostname
-output deploymentTokenHint string = 'Run: az staticwebapp secrets list --name <staticWebAppName> --resource-group <resourceGroupName> --query properties.apiKey -o tsv'
+output staticWebAppName string = swaModule.outputs.staticWebAppName
+output defaultHostname string = swaModule.outputs.defaultHostname
+output deploymentTokenHint string = 'Run: az staticwebapp secrets list -n <staticWebAppName> -g <resourceGroupName> --query properties.apiKey -o tsv'

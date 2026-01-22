@@ -40,26 +40,34 @@
    ✅ README.md
 ```
 
-## Ready to Push to GitHub! 🚀
+## Live site
 
-Your code is committed and ready. Follow the instructions in `GITHUB_SETUP.md` to publish to GitHub.
+**https://kind-hill-0e0617903.1.azurestaticapps.net/**
 
-## After GitHub Setup
+## Push to GitHub + deploy to Azure
 
-1. **Test Locally**:
+Follow **`GITHUB_AND_AZURE_SETUP.md`** to:
+
+1. Create a GitHub repo and add it as `origin` remote  
+2. Push your code (including `.github/workflows`)  
+3. Get the deployment token from Azure for the **kind-hill** Static Web App  
+4. Add `AZURE_STATIC_WEB_APPS_API_TOKEN` in GitHub Secrets  
+5. Push to `main` or `master` → **Publish to Azure Static Web App** workflow runs → site updates  
+
+## After GitHub + Azure setup
+
+1. **Test locally**:
    ```bash
    npm install
    npm run dev
    ```
 
-2. **Build for Production**:
+2. **Build for production**:
    ```bash
    npm run build
    ```
 
-3. **Deploy to Vercel** (Recommended):
-   - Connect your GitHub repository
-   - Vercel will auto-deploy
+3. **Deploy**: Push to `main`/`master` or run the workflow manually. Updates go to the URL above.
 
 ## Images to Add
 
