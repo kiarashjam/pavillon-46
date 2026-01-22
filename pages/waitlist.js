@@ -7,6 +7,7 @@ import Footer from '../components/Footer'
 
 export default function Waitlist() {
   const router = useRouter()
+  const [status, setStatus] = useState('idle')
   const [formData, setFormData] = useState({
     fullName: '',
     phoneNumber: '',
@@ -23,9 +24,29 @@ export default function Waitlist() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    // In a real application, you would send the data to a server here
-    // For now, we'll just redirect to the thank you page
-    router.push('/thank-you')
+    setStatus('loading')
+
+    try {
+      const res = await fetch('/api/send-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      })
+
+      if (res.ok) {
+        setStatus('success')
+        router.push('/thank-you')
+      } else {
+        setStatus('error')
+        alert('Something went wrong. Please try again.')
+      }
+    } catch (error) {
+      console.error(error)
+      setStatus('error')
+      alert('Error connecting to the server.')
+    }
   }
 
   return (
@@ -104,7 +125,9 @@ export default function Waitlist() {
                 />
               </div>
               
-              <button type="submit" className="submit-button">Join the Waitlist</button>
+              <button type="submit" className="submit-button" disabled={status === 'loading'}>
+                {status === 'loading' ? 'Joining...' : 'Join the Waitlist'}
+              </button>
             </form>
             
             <div className="form-links">
