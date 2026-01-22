@@ -569,70 +569,89 @@ html {
         color: rgba(255, 255, 255, 0.6);
     }
     
-    /* Waitlist/Thank You Pages */
+    /* Waitlist/Thank You Pages - Ultra Compact for Mobile */
+    .page-header {
+        padding: 12px 16px;
+    }
+    
+    .header-logo-image {
+        max-height: 28px;
+    }
+    
+    .opening-date-header {
+        font-size: 11px;
+    }
+    
     .form-overlay {
-        padding: 50px 12px 20px; /* Minimal padding to fit screen */
-        align-items: center;
-        min-height: calc(100vh - 60px); /* Account for footer/header space */
+        padding: 35px 10px 10px;
+        align-items: flex-start;
+        min-height: calc(100vh - 50px);
+        justify-content: flex-start;
+        padding-top: 50px; /* Account for smaller header */
     }
     
     .form-container {
-        padding: 24px 20px;
+        padding: 16px 16px;
         max-width: 100%;
-        margin: 0 auto;
-        border-radius: 12px;
+        margin: 0;
+        border-radius: 10px;
         width: 100%;
         background: rgba(252, 248, 247, 0.98);
     }
     
     .go-back-link {
-        font-size: 13px;
-        margin-bottom: 16px;
+        font-size: 12px;
+        margin-bottom: 10px;
         color: #8B4513;
         font-weight: 500;
         opacity: 0.8;
     }
     
     .form-heading {
-        font-size: 24px;
-        margin-bottom: 20px;
-        line-height: 1.2;
+        font-size: 20px;
+        margin-bottom: 14px;
+        line-height: 1.15;
         text-align: center;
     }
     
     .waitlist-form {
-        gap: 12px;
-        margin-bottom: 20px;
+        gap: 8px;
+        margin-bottom: 12px;
     }
     
     .form-input {
-        padding: 10px 14px;
-        font-size: 16px; 
-        min-height: 44px; /* Compact but touch-friendly */
-        border-radius: 8px;
+        padding: 8px 12px;
+        font-size: 15px; 
+        min-height: 40px;
+        border-radius: 6px;
         background: #FFFFFF;
     }
     
     .submit-button {
-        padding: 12px 24px;
-        font-size: 15px;
-        margin-top: 6px;
-        min-height: 44px;
+        padding: 10px 20px;
+        font-size: 14px;
+        margin-top: 4px;
+        min-height: 40px;
         font-weight: 600;
-        letter-spacing: 0.02em;
+        letter-spacing: 0.01em;
         background: #2B5541;
-        box-shadow: 0 4px 12px rgba(43, 85, 65, 0.2);
+        box-shadow: 0 3px 8px rgba(43, 85, 65, 0.2);
     }
     
     .form-links {
-        gap: 6px;
-        margin-top: 8px;
+        gap: 4px;
+        margin-top: 6px;
     }
     
     .form-link {
-        font-size: 12px;
-        min-height: 36px;
+        font-size: 11px;
+        min-height: 32px;
         color: #666666;
+    }
+    
+    .page-footer {
+        padding: 10px 16px;
+        display: none; /* Hide footer on mobile waitlist to save space */
     }
     
     .thank-you-container {
@@ -730,35 +749,53 @@ html {
         padding: 0 20px;
     }
     
-    /* Small Mobile Tweaks */
+    /* Small Mobile Tweaks - Ultra Compact */
     .form-overlay {
-        padding: 40px 10px 10px;
-        min-height: calc(100vh - 40px);
+        padding: 30px 8px 8px;
+        padding-top: 45px;
+        min-height: calc(100vh - 30px);
     }
     
     .form-container {
-        padding: 20px 16px;
+        padding: 14px 14px;
     }
     
     .form-heading {
-        font-size: 22px; 
-        margin-bottom: 16px;
+        font-size: 18px; 
+        margin-bottom: 12px;
+        line-height: 1.1;
+    }
+    
+    .go-back-link {
+        font-size: 11px;
+        margin-bottom: 8px;
     }
     
     .waitlist-form {
-        gap: 10px;
+        gap: 6px;
+        margin-bottom: 10px;
     }
     
     .form-input {
-        padding: 10px 14px;
-        font-size: 15px;
-        min-height: 40px;
+        padding: 7px 10px;
+        font-size: 14px;
+        min-height: 38px;
     }
     
     .submit-button {
-        padding: 12px 20px;
-        font-size: 14px;
-        min-height: 42px;
+        padding: 9px 18px;
+        font-size: 13px;
+        min-height: 38px;
+    }
+    
+    .form-links {
+        gap: 3px;
+        margin-top: 4px;
+    }
+    
+    .form-link {
+        font-size: 10px;
+        min-height: 28px;
     }
     
     .thank-you-container {
