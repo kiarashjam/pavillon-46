@@ -65,8 +65,8 @@ html {
     bottom: 0;
     z-index: 0;
     background-image: url('/images/image%204.png');
-    background-size: contain;
-    background-position: center right;
+    background-size: cover;
+    background-position: center center;
     background-repeat: no-repeat;
 }
 
@@ -299,88 +299,133 @@ html {
     
     .left-section {
         width: 100%;
-        height: 50vh;
-        min-height: 400px;
+        height: 45vh;
+        min-height: 350px;
     }
     
     .right-section {
         width: 100%;
         height: auto;
-        min-height: 50vh;
+        min-height: 55vh;
         align-items: center;
     }
     
     .right-content {
         width: 100%;
         min-height: auto;
-        padding: 40px 50px;
+        padding: 50px 60px;
+        max-width: 700px;
+        margin: 0 auto;
     }
     
     .left-image {
         background-position: center center;
+        background-size: cover;
     }
     
     .opening-date {
         position: static;
-        margin-bottom: 20px;
+        margin-bottom: 24px;
         text-align: center;
+        font-size: 13px;
     }
     
     .logo-pavillon {
-        font-size: 48px;
+        font-size: 52px;
     }
     
     .logo-number {
-        font-size: 56px;
+        font-size: 60px;
+    }
+    
+    .logo-subtitle {
+        font-size: 12px;
     }
     
     .slogan {
-        font-size: 24px;
-        margin-bottom: 40px;
+        font-size: 26px;
+        margin-bottom: 36px;
     }
     
     .join-button {
-        width: 200px;
-        margin-bottom: 60px;
+        width: 220px;
+        margin-bottom: 32px;
+        height: 44px;
     }
     
     .footer-text {
         position: static;
         left: auto;
         right: auto;
-        max-width: none;
-        transform: none;
-        width: 100%;
-        margin-top: 20px;
-        align-self: flex-start;
-        padding: 0;
+        max-width: 600px;
+        margin: 24px auto 0;
+        text-align: center;
+        padding: 0 20px;
+    }
+    
+    .legal-wrap {
+        padding: 0 0 20px 0;
+    }
+    
+    .legal-text {
+        padding-right: 20px;
     }
     
     /* Waitlist/Thank You Pages */
+    .form-overlay {
+        padding: 30px 20px;
+    }
+    
     .form-container {
-        padding: 40px 50px;
-        max-width: 600px;
+        padding: 45px 50px;
+        max-width: 580px;
+        width: 100%;
     }
     
     .form-heading {
-        font-size: 32px;
+        font-size: 34px;
+        margin-bottom: 36px;
+    }
+    
+    .waitlist-form {
+        gap: 18px;
+    }
+    
+    .form-input {
+        padding: 15px 18px;
+        font-size: 16px;
+    }
+    
+    .submit-button {
+        padding: 16px 24px;
+        font-size: 16px;
+        height: 48px;
     }
     
     .thank-you-container {
-        padding: 50px 60px;
-        max-width: 600px;
+        padding: 55px 60px;
+        max-width: 580px;
     }
     
     .thank-you-heading {
-        font-size: 36px;
+        font-size: 38px;
+        margin-bottom: 36px;
     }
     
     .page-header {
-        padding: 30px 40px;
+        padding: 24px 30px;
+    }
+    
+    .header-logo-image {
+        max-height: 36px;
+    }
+    
+    .opening-date-header {
+        font-size: 13px;
     }
     
     .page-footer {
-        padding: 25px 40px;
+        padding: 20px 30px;
     }
 }
 
@@ -393,88 +438,99 @@ html {
     
     .left-section {
         width: 100%;
-        height: 40vh;
-        min-height: 300px;
+        height: 38vh;
+        min-height: 280px;
     }
     
     .right-section {
         width: 100%;
         height: auto;
-        min-height: 60vh;
+        min-height: 62vh;
         align-items: center;
     }
     
     .right-content {
         width: 100%;
         min-height: auto;
-        padding: 30px 20px;
+        padding: 40px 24px;
+        max-width: 100%;
+    }
+    
+    .left-image {
+        background-size: cover;
+        background-position: center center;
     }
     
     .opening-date {
         position: static;
-        margin-bottom: 15px;
-        font-size: 12px;
+        margin-bottom: 20px;
+        font-size: 13px;
         text-align: center;
     }
     
     .welcome-text {
         font-size: 16px;
-        margin-bottom: 8px;
+        margin-bottom: 10px;
     }
     
     .logo-container {
-        margin-bottom: 20px;
+        margin-bottom: 24px;
     }
     
     .logo-pavillon {
-        font-size: 36px;
-        letter-spacing: 1px;
+        font-size: 40px;
+        letter-spacing: 0.5px;
     }
     
     .logo-number {
-        font-size: 42px;
-        left: -10px;
+        font-size: 46px;
+        left: -12px;
     }
     
     .logo-subtitle {
-        font-size: 12px;
+        font-size: 11px;
+        letter-spacing: 0.15em;
     }
     
     .slogan {
-        font-size: 20px;
-        margin-bottom: 30px;
+        font-size: 22px;
+        margin-bottom: 32px;
+        line-height: 1.3;
     }
     
     .join-button {
         width: 100%;
-        max-width: 280px;
-        margin-bottom: 40px;
+        max-width: 300px;
+        margin-bottom: 32px;
+        height: 48px;
     }
     
     .button-text {
-        font-size: 15px;
+        font-size: 16px;
     }
     
     .footer-text {
         position: static;
         left: auto;
         right: auto;
-        max-width: none;
+        max-width: 100%;
         transform: none;
         width: 100%;
-        font-size: 14px;
-        line-height: 22px;
-        margin-top: 20px;
-        padding: 0;
-        align-self: flex-start;
+        font-size: 13px;
+        line-height: 20px;
+        margin-top: 24px;
+        padding: 0 24px;
+        text-align: center;
     }
     
     .legal-wrap {
-        padding: 0 0 15px 15px;
+        padding: 0 0 20px 0;
+        width: 100%;
     }
     
     .legal-text {
         font-size: 10px;
+        padding-right: 20px;
     }
     
     /* Waitlist/Thank You Pages */
@@ -483,8 +539,8 @@ html {
     }
     
     .page-header {
-        padding: 20px 15px;
-        flex-wrap: wrap;
+        padding: 18px 20px;
+        flex-wrap: nowrap;
     }
     
     .header-logo-image {
@@ -496,37 +552,40 @@ html {
     }
     
     .form-overlay {
-        padding: 20px 15px;
-        align-items: flex-start;
-        padding-top: 80px;
+        padding: 20px 16px;
+        align-items: center;
+        padding-top: 70px;
+        padding-bottom: 80px;
     }
     
     .form-container {
-        padding: 30px 25px;
+        padding: 32px 24px;
         max-width: 100%;
-        margin: 0;
-        border-radius: 12px;
+        margin: 0 auto;
+        border-radius: 14px;
+        width: 100%;
     }
     
     .go-back-link {
-        font-size: 13px;
-        margin-bottom: 20px;
+        font-size: 14px;
+        margin-bottom: 24px;
     }
     
     .form-heading {
-        font-size: 24px;
-        margin-bottom: 30px;
+        font-size: 26px;
+        margin-bottom: 32px;
         line-height: 1.3;
     }
     
     .waitlist-form {
-        gap: 15px;
-        margin-bottom: 25px;
+        gap: 18px;
+        margin-bottom: 28px;
     }
     
     .form-input {
-        padding: 12px 16px;
-        font-size: 15px;
+        padding: 14px 18px;
+        font-size: 16px;
+        min-height: 48px;
     }
     
     .form-input::placeholder {
@@ -534,99 +593,172 @@ html {
     }
     
     .submit-button {
-        padding: 14px 20px;
-        font-size: 15px;
-        margin-top: 5px;
+        padding: 16px 24px;
+        font-size: 16px;
+        margin-top: 8px;
+        min-height: 48px;
     }
     
     .form-links {
-        gap: 10px;
+        gap: 12px;
     }
     
     .form-link {
-        font-size: 13px;
+        font-size: 14px;
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
     }
     
     .thank-you-container {
-        padding: 40px 30px;
+        padding: 44px 28px;
         max-width: 100%;
-        margin: 0;
+        margin: 0 auto;
+        border-radius: 14px;
+        width: 100%;
+    }
+    
+    .thank-you-heading {
+        font-size: 28px;
+        margin-bottom: 32px;
+        line-height: 1.3;
+    }
+    
+    .checkmark-icon {
+        margin: 24px auto 32px;
+        width: 56px;
+        height: 56px;
+    }
+    
+    .checkmark-svg {
+        width: 56px;
+        height: 56px;
+    }
+    
+    .confirmation-text {
+        font-size: 15px;
+        line-height: 1.5;
+    }
+    
+    .page-footer {
+        padding: 18px 20px;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    
+    .footer-link {
+        font-size: 13px;
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+    }
+    
+    .footer-separator {
+        font-size: 13px;
+    }
+}
+
+/* Small Mobile (320px - 479px) */
+@media (max-width: 479px) {
+    .left-section {
+        height: 35vh;
+        min-height: 250px;
+    }
+    
+    .right-content {
+        padding: 32px 20px;
+    }
+    
+    .opening-date {
+        font-size: 12px;
+        margin-bottom: 18px;
+    }
+    
+    .logo-pavillon {
+        font-size: 36px;
+    }
+    
+    .logo-number {
+        font-size: 42px;
+        left: -10px;
+    }
+    
+    .logo-subtitle {
+        font-size: 10px;
+    }
+    
+    .slogan {
+        font-size: 20px;
+        margin-bottom: 28px;
+    }
+    
+    .join-button {
+        max-width: 100%;
+        height: 48px;
+    }
+    
+    .footer-text {
+        font-size: 12px;
+        padding: 0 20px;
+    }
+    
+    .form-overlay {
+        padding: 16px 12px;
+        padding-top: 65px;
+        padding-bottom: 70px;
+    }
+    
+    .form-container {
+        padding: 28px 20px;
+        border-radius: 12px;
+    }
+    
+    .form-heading {
+        font-size: 24px;
+        margin-bottom: 28px;
+    }
+    
+    .waitlist-form {
+        gap: 16px;
+    }
+    
+    .form-input {
+        padding: 13px 16px;
+        font-size: 15px;
+    }
+    
+    .submit-button {
+        padding: 15px 20px;
+        font-size: 15px;
+    }
+    
+    .thank-you-container {
+        padding: 36px 24px;
         border-radius: 12px;
     }
     
     .thank-you-heading {
         font-size: 26px;
-        margin-bottom: 30px;
-        line-height: 1.3;
+        margin-bottom: 28px;
     }
     
     .checkmark-icon {
-        margin: 20px auto 30px;
-        width: 50px;
-        height: 50px;
+        margin: 20px auto 28px;
+        width: 52px;
+        height: 52px;
     }
     
-    .checkmark-icon svg {
-        width: 50px;
-        height: 50px;
+    .checkmark-svg {
+        width: 52px;
+        height: 52px;
     }
     
     .confirmation-text {
         font-size: 14px;
     }
     
-    .page-footer {
-        padding: 15px 20px;
-        flex-wrap: wrap;
-        gap: 6px;
-    }
-    
-    .footer-link {
-        font-size: 12px;
-    }
-    
-    .footer-separator {
-        font-size: 12px;
-    }
-}
-
-/* Small Mobile (320px - 479px) */
-@media (max-width: 479px) {
-    .right-content {
-        padding: 25px 15px;
-    }
-    
-    .logo-pavillon {
-        font-size: 32px;
-    }
-    
-    .logo-number {
-        font-size: 40px;
-        left: -8px;
-    }
-    
-    .slogan {
-        font-size: 18px;
-    }
-    
-    .form-heading {
-        font-size: 22px;
-    }
-    
-    .thank-you-heading {
-        font-size: 24px;
-    }
-    
-    .form-container {
-        padding: 25px 20px;
-    }
-    
-    .thank-you-container {
-        padding: 35px 25px;
-    }
-    
     .page-header {
-        padding: 15px 12px;
+        padding: 16px 16px;
     }
     
     .header-logo-image {
@@ -635,6 +767,18 @@ html {
     
     .opening-date-header {
         font-size: 11px;
+    }
+    
+    .page-footer {
+        padding: 16px 16px;
+    }
+    
+    .footer-link {
+        font-size: 12px;
+    }
+    
+    .footer-separator {
+        font-size: 12px;
     }
 }
 
@@ -661,7 +805,7 @@ html {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 40px 60px;
+    padding: 20px 30px;
     z-index: 10;
 }
 
@@ -706,11 +850,11 @@ html {
     width: 100%;
     height: 100%;
     background: linear-gradient(135deg, #2d5016 0%, #4a7c2a 50%, #6b9f3d 100%);
-    background-image: url('/images/image%2018.png');
+    background-image: url('/images/image%206.png');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
-    /* Aerial view background for waitlist and thank-you pages */
+    /* Same background as homepage for waitlist and thank-you pages */
 }
 
 /* Form Overlay */
@@ -738,6 +882,7 @@ html {
     max-width: 520px;
     width: 100%;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    margin: 0 auto; /* Ensure centered */
 }
 
 .go-back-link {
