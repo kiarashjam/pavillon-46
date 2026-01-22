@@ -7,6 +7,8 @@ This folder contains Bicep to create a **new resource group** (North Italy) and 
 
 **Resource:** `pavillon46-swa` in `rg-pavillon46` (West Europe).
 
+**Deploy fails with "deployment_token was not provided"?** → Get the token (§2 below), add it as `AZURE_STATIC_WEB_APPS_API_TOKEN` at [GitHub Secrets](https://github.com/kiarashjam/pavillon-46/settings/secrets/actions), then re-run the workflow.
+
 **GitHub → Actions → publish:** See **`GITHUB_AND_AZURE_SETUP.md`** in the project root for step‑by‑step: add GitHub remote, push, get deployment token for the *kind-hill* SWA, add `AZURE_STATIC_WEB_APPS_API_TOKEN`, then push to `main`/`master` to deploy.
 
 **Regions:** The resource group uses **North Italy (italynorth)**. Static Web Apps only support `westeurope`, `eastus2`, `westus2`, `centralus`, `eastasia`, so the SWA is deployed in **West Europe** (closest to Italy).
@@ -47,14 +49,15 @@ az staticwebapp secrets list \
 
 ## 3. Add the token as a GitHub secret
 
-**If your Actions run fails with "deployment_token was not provided":** add this secret.
+**If your Actions run fails with "deployment_token was not provided":** add this secret so the workflow can publish to Azure.
 
-1. GitHub repo → **Settings** → **Secrets and variables** → **Actions**
-2. **New repository secret**
-3. Name: `AZURE_STATIC_WEB_APPS_API_TOKEN`
-4. Value: paste the token from step 2
+1. Open **https://github.com/kiarashjam/pavillon-46/settings/secrets/actions**
+2. Click **New repository secret**
+3. **Name:** `AZURE_STATIC_WEB_APPS_API_TOKEN` (exactly)
+4. **Value:** paste the token from step 2 (Azure Portal or `az staticwebapp secrets list` output)
+5. Click **Add secret**
 
-Once you add the secret, push to `main`/`master` or run the workflow manually to deploy.
+Then push to `main`/`master` or run the workflow manually (**Actions** → **Publish to Azure Static Web App** → **Run workflow**) to deploy.
 
 ## 4. Publish via GitHub Actions
 
