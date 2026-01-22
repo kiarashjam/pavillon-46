@@ -108,8 +108,8 @@ export default function Waitlist() {
             </form>
             
             <div className="form-links">
-              <a href="#" className="form-link">I have a code</a>
-              <a href="#" className="form-link">Already a member?</a>
+              <a href="#" className="form-link" onClick={(e) => e.preventDefault()}>I have a code</a>
+              <a href="#" className="form-link" onClick={(e) => e.preventDefault()}>Already a member?</a>
             </div>
           </div>
         </div>
