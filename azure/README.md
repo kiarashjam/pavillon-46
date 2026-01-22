@@ -44,10 +44,14 @@ az staticwebapp secrets list \
 
 ## 3. Add the token as a GitHub secret
 
+**If your Actions run fails with "deployment_token was not provided":** add this secret.
+
 1. GitHub repo → **Settings** → **Secrets and variables** → **Actions**
 2. **New repository secret**
 3. Name: `AZURE_STATIC_WEB_APPS_API_TOKEN`
 4. Value: paste the token from step 2
+
+The workflow uses `skip_deploy_on_missing_secrets: true`, so it won’t fail when the token is missing—it will skip deploy. Once you add the secret, the next run will deploy.
 
 ## 4. Publish via GitHub Actions
 

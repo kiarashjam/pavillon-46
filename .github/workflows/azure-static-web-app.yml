@@ -38,3 +38,5 @@ jobs:
           action: 'upload'
           app_location: 'out'
           skip_app_build: true
+          # Skips deploy only when token missing; deploy runs once secret is added (see azure/README.md)
+          skip_deploy_on_missing_secrets: true
