@@ -649,11 +649,7 @@ html {
         color: #666666;
     }
     
-    .page-footer {
-        padding: 10px 16px;
-        display: none; /* Hide footer on mobile waitlist to save space */
-    }
-    
+    /* Thank You Page - Mobile */
     .thank-you-container {
         padding: 44px 28px;
         max-width: 100%;
@@ -684,8 +680,10 @@ html {
         line-height: 1.5;
     }
     
+    /* Footer - Mobile Waitlist/Thank You */
     .page-footer {
-        padding: 18px 20px;
+        padding: 10px 16px;
+        display: none; /* Hide footer on mobile waitlist to save space */
         flex-wrap: wrap;
         gap: 8px;
     }
@@ -704,7 +702,7 @@ html {
 
 /* Small Mobile (320px - 479px) */
 @media (max-width: 479px) {
-    /* Immersive Layout Adjustments */
+    /* Homepage - Small Mobile Adjustments */
     .left-section {
         position: absolute;
         bottom: 0;
@@ -749,7 +747,19 @@ html {
         padding: 0 20px;
     }
     
-    /* Small Mobile Tweaks - Ultra Compact */
+    /* Waitlist Page - Small Mobile Ultra Compact */
+    .page-header {
+        padding: 16px 16px;
+    }
+    
+    .header-logo-image {
+        max-height: 28px;
+    }
+    
+    .opening-date-header {
+        font-size: 11px;
+    }
+    
     .form-overlay {
         padding: 30px 8px 8px;
         padding-top: 45px;
@@ -760,15 +770,15 @@ html {
         padding: 14px 14px;
     }
     
+    .go-back-link {
+        font-size: 11px;
+        margin-bottom: 8px;
+    }
+    
     .form-heading {
         font-size: 18px; 
         margin-bottom: 12px;
         line-height: 1.1;
-    }
-    
-    .go-back-link {
-        font-size: 11px;
-        margin-bottom: 8px;
     }
     
     .waitlist-form {
@@ -798,6 +808,7 @@ html {
         min-height: 28px;
     }
     
+    /* Thank You Page - Small Mobile */
     .thank-you-container {
         padding: 36px 24px;
         border-radius: 12px;
@@ -823,20 +834,10 @@ html {
         font-size: 14px;
     }
     
-    .page-header {
-        padding: 16px 16px;
-    }
-    
-    .header-logo-image {
-        max-height: 28px;
-    }
-    
-    .opening-date-header {
-        font-size: 11px;
-    }
-    
+    /* Footer - Small Mobile */
     .page-footer {
         padding: 16px 16px;
+        display: none; /* Hide footer on small mobile to save space */
     }
     
     .footer-link {
@@ -849,9 +850,10 @@ html {
 }
 
 /* ============================================
-   WAITLIST PAGE STYLES
+   WAITLIST PAGE STYLES (Desktop Default)
    ============================================ */
 
+/* Waitlist Page Container */
 .waitlist-page {
     position: relative;
     width: 100%;
@@ -862,7 +864,7 @@ html {
     isolation: isolate;
 }
 
-/* Header */
+/* Header - Waitlist/Thank You Pages */
 .page-header {
     position: absolute;
     top: 0;
@@ -923,7 +925,7 @@ html {
     /* Same background as homepage for waitlist and thank-you pages */
 }
 
-/* Form Overlay */
+/* Form Overlay - Desktop */
 .form-overlay {
     position: relative;
     min-height: 100vh;
@@ -936,6 +938,7 @@ html {
     margin: 0;
 }
 
+/* Form Container - Desktop */
 .form-container {
     background: rgba(252, 248, 247, 0.95);
     backdrop-filter: blur(10px);
@@ -984,6 +987,7 @@ html {
     width: 100%;
 }
 
+/* Form Input Fields - Desktop */
 .form-input {
     width: 100%;
     padding: 14px 18px;
@@ -1007,6 +1011,7 @@ html {
     box-shadow: 0 0 0 3px rgba(139, 69, 19, 0.1);
 }
 
+/* Submit Button - Desktop */
 .submit-button {
     width: 100%;
     padding: 16px 24px;
@@ -1050,7 +1055,7 @@ html {
     color: #2B5541;
 }
 
-/* Footer */
+/* Footer - Waitlist/Thank You Pages */
 .page-footer {
     position: absolute;
     bottom: 0;
