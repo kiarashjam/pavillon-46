@@ -1,4 +1,5 @@
 import Head from 'next/head'
+import Image from 'next/image'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
 
@@ -25,10 +26,13 @@ export default function ThankYou() {
             <h1 className="thank-you-heading">Thank you for your inquiry</h1>
             
             <div className="checkmark-icon">
-              <svg width="60" height="60" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="30" cy="30" r="28" fill="#2B5541"/>
-                <path d="M18 30 L26 38 L42 22" stroke="#FFFFFF" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-              </svg>
+              <Image 
+                src="/images/Frame%201000004712.svg" 
+                alt="Success" 
+                width={60} 
+                height={60}
+                className="checkmark-svg"
+              />
             </div>
             
             <div className="confirmation-messages">

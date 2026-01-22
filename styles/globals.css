@@ -27,8 +27,8 @@ html {
     overflow-x: hidden;
 }
 
-/* Full-page background: image 6 */
-.page-bg {
+/* Full-page background: image 6 - ONLY for homepage */
+.container .page-bg {
     position: fixed;
     inset: 0;
     z-index: 0;
@@ -38,8 +38,8 @@ html {
     background-repeat: no-repeat;
 }
 
-/* Full-page overlay: blur + dark (makes background not clear) */
-.page-overlay {
+/* Full-page overlay: blur + dark (makes background not clear) - ONLY for homepage */
+.container .page-overlay {
     position: fixed;
     inset: 0;
     z-index: 1;
@@ -105,7 +105,7 @@ html {
     background-repeat: no-repeat;
 }
 
-/* Beige content panel – left portion so image 4 shows on right */
+/* Beige content panel – positioned in right half of page */
 .right-content {
     position: relative;
     z-index: 1;
@@ -117,6 +117,7 @@ html {
     align-items: center;
     padding: 60px 48px 88px 80px;
     background: #F8F7F2;
+    margin-left: auto; /* Push to right side of right-section */
 }
 
 .opening-date {
@@ -478,14 +479,8 @@ html {
         flex-wrap: wrap;
     }
     
-    .logo-text {
-        font-size: 16px;
-    }
-    
-    .logo-icon {
-        width: 20px;
-        height: 20px;
-        font-size: 12px;
+    .header-logo-image {
+        max-height: 32px;
     }
     
     .opening-date-header {
@@ -626,8 +621,8 @@ html {
         padding: 15px 12px;
     }
     
-    .logo-text {
-        font-size: 14px;
+    .header-logo-image {
+        max-height: 28px;
     }
     
     .opening-date-header {
@@ -645,6 +640,8 @@ html {
     max-width: 100vw;
     min-height: 100vh;
     overflow-x: hidden;
+    /* Ensure homepage backgrounds don't leak through */
+    isolation: isolate;
 }
 
 /* Header */
@@ -669,29 +666,15 @@ html {
     display: flex;
     align-items: center;
     text-decoration: none;
-    gap: 8px;
+    gap: 0;
 }
 
-.logo-icon {
-    width: 24px;
-    height: 24px;
-    background: #2B5541;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-family: var(--font-sans), 'DM Sans', sans-serif;
-    font-size: 14px;
-    font-weight: 600;
-}
-
-.logo-text {
-    font-family: var(--font-sans), 'DM Sans', sans-serif;
-    font-size: 18px;
-    font-weight: 500;
-    color: #FFFFFF;
-    letter-spacing: 1px;
+.header-logo-image {
+    height: auto;
+    width: auto;
+    max-height: 40px;
+    object-fit: contain;
+    filter: brightness(0) invert(1);
 }
 
 .opening-date-header {
@@ -701,8 +684,8 @@ html {
     font-weight: 400;
 }
 
-/* Background Container */
-.background-container {
+/* Background Container - ONLY for waitlist and thank-you pages */
+.waitlist-page .background-container {
     position: absolute;
     top: 0;
     left: 0;
@@ -711,7 +694,7 @@ html {
     z-index: 1;
 }
 
-.background-image {
+.waitlist-page .background-image {
     width: 100%;
     height: 100%;
     background: linear-gradient(135deg, #2d5016 0%, #4a7c2a 50%, #6b9f3d 100%);
@@ -740,6 +723,7 @@ html {
     background: rgba(252, 248, 247, 0.95);
     backdrop-filter: blur(10px);
     border-radius: 16px;
+    border: 1px solid #C8A882;
     padding: 50px 60px;
     max-width: 520px;
     width: 100%;
@@ -785,12 +769,13 @@ html {
 .form-input {
     width: 100%;
     padding: 14px 18px;
-    border: 1px solid #E0E0E0;
+    border: 1px solid #C8A882;
     border-radius: 8px;
     font-family: var(--font-sans), 'DM Sans', sans-serif;
     font-size: 16px;
     color: #333333;
-    background: #FCF8F7;
+    background: #FFFFFF;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
     transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
@@ -800,8 +785,8 @@ html {
 
 .form-input:focus {
     outline: none;
-    border-color: #2B5541;
-    box-shadow: 0 0 0 3px rgba(43, 85, 65, 0.1);
+    border-color: #8B4513;
+    box-shadow: 0 0 0 3px rgba(139, 69, 19, 0.1);
 }
 
 .submit-button {
@@ -886,6 +871,7 @@ html {
     background: rgba(252, 248, 247, 0.95);
     backdrop-filter: blur(10px);
     border-radius: 16px;
+    border: 1px solid #C8A882;
     padding: 60px 70px;
     max-width: 560px;
     width: 100%;
@@ -912,17 +898,10 @@ html {
     justify-content: center;
 }
 
-.checkmark-icon svg {
-    width: 100%;
-    height: 100%;
-}
-
-.checkmark-icon circle {
-    fill: #2B5541;
-}
-
-.checkmark-icon path {
-    stroke: #FFFFFF;
+.checkmark-svg {
+    width: 60px;
+    height: 60px;
+    object-fit: contain;
 }
 
 .confirmation-messages {
@@ -941,7 +920,7 @@ html {
 
 /* Additional responsive utilities */
 @media (max-width: 1023px) {
-    .background-image {
+    .waitlist-page .background-image {
         background-attachment: scroll;
     }
 }

@@ -3,6 +3,9 @@
 This folder contains Bicep to create a **new resource group** (North Italy) and the **cheapest** Azure web resource (**Static Web App** Free tier) in it, plus instructions to publish via GitHub Actions.
 
 **Live site:** **https://kind-hill-0e0617903.1.azurestaticapps.net/**  
+**Custom domain:** **https://pavillon46.ch**
+
+**Resource:** `pavillon46-swa` in `rg-pavillon46` (West Europe).
 
 **GitHub → Actions → publish:** See **`GITHUB_AND_AZURE_SETUP.md`** in the project root for step‑by‑step: add GitHub remote, push, get deployment token for the *kind-hill* SWA, add `AZURE_STATIC_WEB_APPS_API_TOKEN`, then push to `main`/`master` to deploy.
 
@@ -51,7 +54,7 @@ az staticwebapp secrets list \
 3. Name: `AZURE_STATIC_WEB_APPS_API_TOKEN`
 4. Value: paste the token from step 2
 
-The workflow uses `skip_deploy_on_missing_secrets: true`, so it won’t fail when the token is missing—it will skip deploy. Once you add the secret, the next run will deploy.
+Once you add the secret, push to `main`/`master` or run the workflow manually to deploy.
 
 ## 4. Publish via GitHub Actions
 
