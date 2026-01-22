@@ -48,12 +48,26 @@ html {
     backdrop-filter: blur(10px);
 }
 
-/* Left Section: obscured background only (~45–50% width) */
+/* Left Section: image 4 (46 cutout) + legal (~45–50% width) */
 .left-section {
     width: 48%;
     min-height: 100vh;
     position: relative;
     z-index: 2;
+}
+
+/* Image 4 layer (46 cutout) – in left section */
+.left-image {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 0;
+    background-image: url('/images/image%204.png');
+    background-size: contain;
+    background-position: center right;
+    background-repeat: no-repeat;
 }
 
 .legal-wrap {
@@ -70,6 +84,7 @@ html {
     width: 100%;
     background: rgba(255, 255, 255, 0.6);
     margin-bottom: 10px;
+    /* Full line above legal text */
 }
 
 .legal-text {
@@ -94,22 +109,13 @@ html {
     overflow-y: auto;
 }
 
-/* Image 4 layer (46 cutout) – fills right section, visible on right */
-.right-image {
-    position: absolute;
-    inset: 0;
-    z-index: 0;
-    background-image: url('/images/image%204.png');
-    background-size: contain;
-    background-position: center right;
-    background-repeat: no-repeat;
-}
+/* Right section no longer has the image - it's now in left section */
 
-/* Beige content panel – positioned in right half of page */
+/* Beige content panel – fills entire right section */
 .right-content {
     position: relative;
     z-index: 1;
-    width: 54%;
+    width: 100%;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
@@ -117,7 +123,6 @@ html {
     align-items: center;
     padding: 60px 48px 88px 80px;
     background: #F8F7F2;
-    margin-left: auto; /* Push to right side of right-section */
 }
 
 .opening-date {
@@ -308,7 +313,7 @@ html {
         padding: 40px 50px;
     }
     
-    .right-image {
+    .left-image {
         background-position: center center;
     }
     

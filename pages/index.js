@@ -17,17 +17,17 @@ export default function Home() {
         {/* Full-page: blur + dark overlay (makes background not clear) */}
         <div className="page-overlay" aria-hidden="true" />
 
-        {/* Left Section: obscured background only */}
+        {/* Left Section: image 4 + legal */}
         <div className="left-section">
+          <div className="left-image" aria-hidden="true" />
           <div className="legal-wrap">
             <div className="legal-line" />
             <div className="legal-text">Legal</div>
           </div>
         </div>
 
-        {/* Right Section: image 4 on top + content */}
+        {/* Right Section: content */}
         <div className="right-section">
-          <div className="right-image" aria-hidden="true" />
           <div className="right-content">
             <div className="opening-date">Opening Summer 2027</div>
             <div className="welcome-text">Welcome to</div>
