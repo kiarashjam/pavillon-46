@@ -1,3 +1,41 @@
+/* Primary Font: Sogo (local font via @font-face) */
+@font-face {
+    font-family: 'Sogo';
+    src: url('/fonts/Sogo-Regular.woff2') format('woff2');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Sogo';
+    src: url('/fonts/Sogo-Medium.woff2') format('woff2');
+    font-weight: 500;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Sogo';
+    src: url('/fonts/Sogo-SemiBold.woff2') format('woff2');
+    font-weight: 600;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Sogo';
+    src: url('/fonts/Sogo-Bold.woff2') format('woff2');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+}
+
+/* CSS Variable for Primary Font */
+:root {
+    --font-primary: 'Sogo', Arial, sans-serif;
+}
+
 /* Reset and base styles */
 * {
     margin: 0;
@@ -6,7 +44,7 @@
 }
 
 body {
-    font-family: var(--font-sans), 'DM Sans', sans-serif;
+    font-family: var(--font-primary);
     overflow-x: hidden;
     height: 100vh;
     -webkit-font-smoothing: antialiased;
@@ -16,6 +54,21 @@ body {
 html {
     overflow-x: hidden;
     scroll-behavior: smooth;
+}
+
+/* Smooth transitions for all interactive elements */
+a, button, input, textarea, select {
+    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* Prevent layout shift during animations */
+* {
+    will-change: auto;
+}
+
+/* Smooth image loading */
+img {
+    transition: opacity 0.3s ease;
 }
 
 .container {
@@ -36,6 +89,16 @@ html {
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
+    animation: subtleZoom 20s ease-in-out infinite alternate;
+}
+
+@keyframes subtleZoom {
+    0% {
+        transform: scale(1);
+    }
+    100% {
+        transform: scale(1.05);
+    }
 }
 
 /* Full-page overlay: blur + dark (makes background not clear) - ONLY for homepage */
@@ -68,6 +131,7 @@ html {
     background-size: cover;
     background-position: left;
     background-repeat: no-repeat;
+    transition: opacity 0.6s ease, transform 0.6s ease;
 }
 
 .legal-wrap {
@@ -89,7 +153,7 @@ html {
 }
 
 .legal-text {
-    font-family: var(--font-sans), 'DM Sans', sans-serif;
+    font-family: var(--font-primary);
     font-size: 11px;
     font-weight: 500;
     letter-spacing: 0.08em;
@@ -134,7 +198,7 @@ html {
     right: 48px;
     left: auto;
     text-align: right;
-    font-family: var(--font-cormorant), 'Cormorant Garamond', serif;
+    font-family: var(--font-secondary), 'Jost', sans-serif;
     font-size: 14px;
     color: #5a7a6e;
     font-weight: 500;
@@ -142,7 +206,7 @@ html {
 }
 
 .welcome-text {
-    font-family: var(--font-sans), 'DM Sans', sans-serif;
+    font-family: var(--font-primary);
     font-size: 17px;
     color: #5a7a6e;
     font-weight: 500;
@@ -158,14 +222,22 @@ html {
 
 .logo-main {
     display: flex;
-    align-items: baseline;
+    align-items: center;
     justify-content: center;
     gap: 0;
     margin-bottom: 8px;
 }
 
+.logo-image {
+    height: auto;
+    width: auto;
+    max-width: 400px;
+    max-height: 160px;
+    object-fit: contain;
+}
+
 .logo-pavillon {
-    font-family: var(--font-cormorant), 'Cormorant Garamond', serif;
+    font-family: var(--font-secondary), 'Jost', sans-serif;
     font-size: 64px;
     font-weight: 600;
     color: #000000;
@@ -184,7 +256,7 @@ html {
 }
 
 .logo-subtitle {
-    font-family: var(--font-sans), 'DM Sans', sans-serif;
+    font-family: var(--font-primary);
     font-size: 13px;
     color: #000000;
     letter-spacing: 0.2em;
@@ -200,13 +272,13 @@ html {
 }
 
 .slogan-part1 {
-    font-family: var(--font-sans), 'DM Sans', sans-serif;
+    font-family: var(--font-primary);
     color: #5a7a6e;
     font-weight: 500;
 }
 
 .slogan-part2 {
-    font-family: var(--font-sans), 'DM Sans', sans-serif;
+    font-family: var(--font-primary);
     color: #c76b4a;
     font-weight: 500;
     margin-left: 6px;
@@ -226,21 +298,26 @@ html {
     border-radius: 8px;
     border: none;
     cursor: pointer;
-    transition: background-color 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
     margin-bottom: 24px;
     text-decoration: none;
+    transform: translateY(0);
 }
 
 .join-button:hover {
     background: #B8A0D0;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(201, 178, 227, 0.4);
 }
 
 .join-button:active {
     background: #A58BC5;
+    transform: translateY(0);
+    box-shadow: 0 2px 6px rgba(201, 178, 227, 0.3);
 }
 
 .button-text {
-    font-family: var(--font-sans), 'DM Sans', sans-serif;
+    font-family: var(--font-primary);
     font-weight: 500;
     font-size: 15px;
     letter-spacing: 0.04em;
@@ -256,7 +333,7 @@ html {
     left: auto;
     right: 48px;
     max-width: 320px;
-    font-family: var(--font-cormorant), 'Cormorant Garamond', serif;
+    font-family: var(--font-secondary), 'Jost', sans-serif;
     font-size: 13px;
     font-weight: 400;
     letter-spacing: 0.02em;
@@ -377,29 +454,31 @@ html {
     }
     
     .form-container {
-        padding: 45px 50px;
+        padding: 32px 40px;
         max-width: 580px;
         width: 100%;
     }
     
     .form-heading {
         font-size: 34px;
-        margin-bottom: 36px;
+        margin-bottom: 22px;
     }
     
     .waitlist-form {
-        gap: 18px;
+        gap: 12px;
+        margin-bottom: 18px;
     }
     
     .form-input {
-        padding: 15px 18px;
+        padding: 12px 16px;
         font-size: 16px;
     }
     
     .submit-button {
-        padding: 16px 24px;
+        padding: 14px 24px;
         font-size: 16px;
         height: 48px;
+        margin-top: 2px;
     }
     
     .thank-you-container {
@@ -508,6 +587,12 @@ html {
         font-size: 48px;
         left: -12px;
         color: #FFFFFF;
+    }
+    
+    .logo-image {
+        max-width: 320px;
+        max-height: 128px;
+        height: auto;
     }
     
     .logo-subtitle {
@@ -728,6 +813,12 @@ html {
         left: -10px;
     }
     
+    .logo-image {
+        max-width: 280px;
+        max-height: 112px;
+        height: auto;
+    }
+    
     .logo-subtitle {
         font-size: 10px;
     }
@@ -898,10 +989,50 @@ html {
 }
 
 .opening-date-header {
-    font-family: var(--font-sans), 'DM Sans', sans-serif;
+    font-family: var(--font-primary);
     font-size: 14px;
-    color: #FFFFFF;
+    color: #4a7c2a;
     font-weight: 400;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.language-switcher {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.lang-button {
+    background: transparent;
+    border: none;
+    color: #4a7c2a;
+    font-family: var(--font-primary);
+    font-size: 14px;
+    font-weight: 400;
+    cursor: pointer;
+    padding: 4px 8px;
+    transition: opacity 0.2s ease;
+    opacity: 0.6;
+}
+
+.lang-button:hover {
+    opacity: 0.9;
+}
+
+.lang-button.active {
+    opacity: 1;
+    font-weight: 600;
+}
+
+.lang-separator {
+    color: #4a7c2a;
+    opacity: 0.4;
+    font-size: 14px;
 }
 
 /* Background Container - ONLY for waitlist and thank-you pages */
@@ -923,6 +1054,16 @@ html {
     background-position: center;
     background-repeat: no-repeat;
     /* Same background as homepage for waitlist and thank-you pages */
+    animation: subtleZoom 20s ease-in-out infinite alternate;
+}
+
+@keyframes subtleZoom {
+    0% {
+        transform: scale(1);
+    }
+    100% {
+        transform: scale(1.05);
+    }
 }
 
 /* Form Overlay - Desktop */
@@ -934,7 +1075,7 @@ html {
     justify-content: center;
     align-items: center;
     z-index: 5;
-    padding: 100px 40px 80px; /* Added top/bottom padding to clear header/footer */
+    padding: 80px 40px 60px; /* Added top/bottom padding to clear header/footer */
     margin: 0;
 }
 
@@ -944,7 +1085,7 @@ html {
     backdrop-filter: blur(10px);
     border-radius: 16px;
     border: 1px solid #C8A882;
-    padding: 50px 60px;
+    padding: 35px 45px;
     max-width: 520px;
     width: 100%;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
@@ -953,25 +1094,27 @@ html {
 
 .go-back-link {
     display: inline-block;
-    font-family: var(--font-sans), 'DM Sans', sans-serif;
+    font-family: var(--font-primary);
     font-size: 14px;
     color: #8B4513;
     text-decoration: none;
-    margin-bottom: 30px;
-    transition: color 0.3s ease;
+    margin-bottom: 16px;
+    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    transform: translateX(0);
 }
 
 .go-back-link:hover {
     color: #6B3410;
+    transform: translateX(-4px);
 }
 
 .form-heading {
-    font-family: var(--font-cormorant), 'Cormorant Garamond', serif;
+    font-family: var(--font-secondary), 'Jost', sans-serif;
     font-size: 36px;
     font-weight: 500;
     letter-spacing: 0.02em;
     color: #8B4513;
-    margin-bottom: 40px;
+    margin-bottom: 24px;
     line-height: 1.2;
 }
 
@@ -979,8 +1122,8 @@ html {
 .waitlist-form {
     display: flex;
     flex-direction: column;
-    gap: 20px;
-    margin-bottom: 30px;
+    gap: 14px;
+    margin-bottom: 20px;
 }
 
 .form-group {
@@ -990,69 +1133,103 @@ html {
 /* Form Input Fields - Desktop */
 .form-input {
     width: 100%;
-    padding: 14px 18px;
+    padding: 12px 16px;
     border: 1px solid #C8A882;
     border-radius: 8px;
-    font-family: var(--font-sans), 'DM Sans', sans-serif;
+    font-family: var(--font-primary);
     font-size: 16px;
     color: #333333;
     background: #FFFFFF;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    transform: scale(1);
 }
 
 .form-input::placeholder {
     color: #8B7355;
+    transition: opacity 0.3s ease;
 }
 
 .form-input:focus {
     outline: none;
     border-color: #8B4513;
-    box-shadow: 0 0 0 3px rgba(139, 69, 19, 0.1);
+    box-shadow: 0 0 0 3px rgba(139, 69, 19, 0.1), 0 4px 12px rgba(0, 0, 0, 0.08);
+    transform: scale(1.01);
+}
+
+.form-input:hover:not(:focus) {
+    border-color: #A68F6F;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 /* Submit Button - Desktop */
 .submit-button {
     width: 100%;
-    padding: 16px 24px;
+    padding: 14px 24px;
     background: #2B5541;
     color: #FFFFFF;
     border: none;
     border-radius: 8px;
-    font-family: var(--font-sans), 'DM Sans', sans-serif;
+    font-family: var(--font-primary);
     font-size: 16px;
     font-weight: 500;
     cursor: pointer;
-    transition: background-color 0.3s ease, transform 0.2s ease;
-    margin-top: 10px;
+    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    margin-top: 4px;
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(43, 85, 65, 0.2);
 }
 
 .submit-button:hover {
     background: #1e3d2e;
-    transform: translateY(-1px);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(43, 85, 65, 0.3);
 }
 
 .submit-button:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(43, 85, 65, 0.2);
+}
+
+.submit-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
     transform: translateY(0);
 }
 
 .form-links {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 8px;
     align-items: center;
 }
 
 .form-link {
-    font-family: var(--font-sans), 'DM Sans', sans-serif;
+    font-family: var(--font-primary);
     font-size: 14px;
     color: #666666;
     text-decoration: none;
-    transition: color 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    position: relative;
+}
+
+.form-link::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 0;
+    height: 1px;
+    background: #2B5541;
+    transition: width 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 .form-link:hover {
     color: #2B5541;
+}
+
+.form-link:hover::after {
+    width: 100%;
 }
 
 /* Footer - Waitlist/Thank You Pages */
@@ -1084,20 +1261,90 @@ html {
 }
 
 .footer-link {
-    font-family: var(--font-sans), 'DM Sans', sans-serif;
+    font-family: var(--font-primary);
     font-size: 14px;
     color: #FFFFFF;
     text-decoration: none;
-    transition: opacity 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    position: relative;
+}
+
+.footer-link::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 0;
+    height: 1px;
+    background: #FFFFFF;
+    transition: width 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 .footer-link:hover {
     opacity: 0.8;
 }
 
+.footer-link:hover::after {
+    width: 100%;
+}
+
 .footer-separator {
     color: #FFFFFF;
     font-size: 14px;
+}
+
+/* Language Notification */
+.language-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 12px;
+    padding: 16px 24px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    min-width: 280px;
+}
+
+.language-notification-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.language-notification-icon {
+    font-size: 24px;
+    line-height: 1;
+}
+
+.language-notification-text {
+    font-family: var(--font-primary);
+    font-size: 14px;
+    font-weight: 500;
+    color: #2B5541;
+    letter-spacing: 0.02em;
+}
+
+/* Responsive: Language Notification */
+@media (max-width: 768px) {
+    .language-notification {
+        top: 10px;
+        right: 10px;
+        left: 10px;
+        min-width: auto;
+        padding: 12px 20px;
+    }
+
+    .language-notification-text {
+        font-size: 13px;
+    }
+
+    .language-notification-icon {
+        font-size: 20px;
+    }
 }
 
 /* ============================================
@@ -1117,7 +1364,7 @@ html {
 }
 
 .thank-you-heading {
-    font-family: var(--font-cormorant), 'Cormorant Garamond', serif;
+    font-family: var(--font-secondary), 'Jost', sans-serif;
     font-size: 40px;
     font-weight: 500;
     letter-spacing: 0.02em;
@@ -1148,7 +1395,7 @@ html {
 }
 
 .confirmation-text {
-    font-family: var(--font-sans), 'DM Sans', sans-serif;
+    font-family: var(--font-primary);
     font-size: 16px;
     color: #999999;
     line-height: 1.5;
