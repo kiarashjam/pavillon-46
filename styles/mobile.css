@@ -346,20 +346,37 @@
         padding: 40px 24px;
         max-width: 100%;
         margin: 0 16px;
-        border-radius: 14px;
+        border-radius: 20px;
         width: calc(100% - 32px);
         max-height: calc(100vh - 80px);
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
-        background: rgba(252, 248, 247, 0.95);
-        backdrop-filter: blur(10px);
-        border: 1px solid #C8A882;
+        background: rgba(252, 248, 247, 0.65);
+        backdrop-filter: blur(20px) saturate(180%);
+        -webkit-backdrop-filter: blur(20px) saturate(180%);
+        border: 1px solid rgba(200, 168, 130, 0.3);
+        box-shadow: 
+            0 20px 60px rgba(0, 0, 0, 0.12),
+            0 8px 24px rgba(0, 0, 0, 0.08),
+            inset 0 1px 0 rgba(255, 255, 255, 0.5);
     }
     
     .legal-privacy-header {
         margin-bottom: 32px;
-        border-bottom: 1px solid rgba(200, 168, 130, 0.3);
+        border-bottom: 2px solid rgba(200, 168, 130, 0.2);
         padding-bottom: 24px;
+        position: relative;
+    }
+    
+    .legal-privacy-header::after {
+        content: '';
+        position: absolute;
+        bottom: -2px;
+        left: 0;
+        width: 60px;
+        height: 2px;
+        background: linear-gradient(90deg, #8B4513, rgba(139, 69, 19, 0.3));
+        border-radius: 2px;
     }
     
     .back-link {
@@ -370,6 +387,7 @@
         text-decoration: none;
         margin-bottom: 18px;
         transition: all 0.3s ease;
+        font-weight: 500;
     }
     
     .back-link:hover {
@@ -400,16 +418,56 @@
         gap: 28px;
     }
     
+    .legal-privacy-intro-wrapper {
+        background: rgba(255, 255, 255, 0.4);
+        backdrop-filter: blur(10px);
+        border-radius: 12px;
+        padding: 20px 24px;
+        margin-bottom: 8px;
+        border-left: 3px solid #8B4513;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+    
     .legal-privacy-intro {
         font-family: var(--font-primary);
         font-size: 16px;
         color: #333333;
         line-height: 1.7;
         margin: 0;
+        font-weight: 400;
     }
     
     .legal-privacy-section {
         margin: 0;
+        padding: 24px 0;
+        border-bottom: 1px solid rgba(200, 168, 130, 0.15);
+    }
+    
+    .legal-privacy-section:last-of-type {
+        border-bottom: none;
+    }
+    
+    .section-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 14px;
+    }
+    
+    .section-number {
+        font-family: var(--font-secondary), 'Jost', sans-serif;
+        font-size: 14px;
+        font-weight: 600;
+        color: rgba(139, 69, 19, 0.4);
+        background: rgba(139, 69, 19, 0.08);
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        border: 1px solid rgba(139, 69, 19, 0.15);
     }
     
     .legal-privacy-section-title {
@@ -417,22 +475,89 @@
         font-size: 20px;
         font-weight: 500;
         color: #8B4513;
-        margin: 0 0 12px 0;
+        margin: 0;
         line-height: 1.3;
+        flex: 1;
+    }
+    
+    .section-content-wrapper {
+        padding-left: 48px;
+        position: relative;
+    }
+    
+    .section-content-wrapper::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: linear-gradient(180deg, rgba(139, 69, 19, 0.2), rgba(139, 69, 19, 0.05));
+        border-radius: 2px;
     }
     
     .legal-privacy-section-content {
         font-family: var(--font-primary);
         font-size: 15px;
-        color: #666666;
+        color: #555555;
         line-height: 1.7;
         margin: 0;
+    }
+    
+    .legal-privacy-section-contact .section-content-wrapper {
+        padding-left: 48px;
+    }
+    
+    .contact-info {
+        margin-top: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding: 20px;
+        background: rgba(255, 255, 255, 0.5);
+        backdrop-filter: blur(8px);
+        border-radius: 10px;
+        border: 1px solid rgba(200, 168, 130, 0.2);
+    }
+    
+    .contact-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 14px;
+        background: rgba(139, 69, 19, 0.08);
+        border-radius: 8px;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        color: #8B4513;
+        font-weight: 500;
+        font-size: 14px;
+    }
+    
+    .contact-link:hover {
+        background: rgba(139, 69, 19, 0.15);
+        text-decoration: none;
+    }
+    
+    .contact-location {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 14px;
+        color: #666666;
+        font-size: 14px;
+    }
+    
+    .contact-icon {
+        font-size: 16px;
+        opacity: 0.7;
     }
     
     .legal-privacy-link {
         color: #8B4513;
         text-decoration: none;
         transition: all 0.3s ease;
+        font-weight: 500;
     }
     
     .legal-privacy-link:hover {
@@ -689,12 +814,18 @@
     .legal-privacy-container {
         padding: 32px 20px;
         max-height: 80vh;
-        border-radius: 12px;
+        border-radius: 18px;
+        margin: 0 12px;
+        width: calc(100% - 24px);
     }
     
     .legal-privacy-header {
         margin-bottom: 28px;
         padding-bottom: 20px;
+    }
+    
+    .legal-privacy-header::after {
+        width: 50px;
     }
     
     .back-link {
@@ -715,19 +846,58 @@
         gap: 24px;
     }
     
+    .legal-privacy-intro-wrapper {
+        padding: 18px 20px;
+    }
+    
     .legal-privacy-intro {
         font-size: 15px;
         line-height: 1.6;
     }
     
+    .legal-privacy-section {
+        padding: 20px 0;
+    }
+    
+    .section-header {
+        gap: 10px;
+        margin-bottom: 12px;
+    }
+    
+    .section-number {
+        width: 32px;
+        height: 32px;
+        font-size: 12px;
+        border-radius: 8px;
+    }
+    
     .legal-privacy-section-title {
         font-size: 18px;
-        margin-bottom: 10px;
+        margin-bottom: 0;
+    }
+    
+    .section-content-wrapper {
+        padding-left: 42px;
     }
     
     .legal-privacy-section-content {
         font-size: 14px;
         line-height: 1.6;
+    }
+    
+    .contact-info {
+        padding: 16px;
+        gap: 10px;
+    }
+    
+    .contact-link,
+    .contact-location {
+        padding: 8px 12px;
+        font-size: 13px;
+    }
+    
+    .contact-icon {
+        font-size: 14px;
     }
     
     /* Footer - Small Mobile */

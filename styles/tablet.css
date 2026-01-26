@@ -133,22 +133,72 @@
         padding: 50px 50px;
         max-width: 700px;
         max-height: 75vh;
+        background: rgba(252, 248, 247, 0.65);
+        backdrop-filter: blur(20px) saturate(180%);
+        -webkit-backdrop-filter: blur(20px) saturate(180%);
+        border-radius: 24px;
+        border: 1px solid rgba(200, 168, 130, 0.3);
+    }
+    
+    .legal-privacy-header {
+        margin-bottom: 40px;
+        padding-bottom: 28px;
     }
     
     .legal-privacy-heading {
         font-size: 36px;
     }
     
+    .legal-privacy-content {
+        gap: 32px;
+    }
+    
+    .legal-privacy-intro-wrapper {
+        padding: 24px 28px;
+        margin-bottom: 8px;
+    }
+    
     .legal-privacy-intro {
         font-size: 17px;
+    }
+    
+    .legal-privacy-section {
+        padding: 28px 0;
+    }
+    
+    .section-header {
+        gap: 16px;
+        margin-bottom: 16px;
+    }
+    
+    .section-number {
+        width: 40px;
+        height: 40px;
+        font-size: 16px;
+        border-radius: 10px;
     }
     
     .legal-privacy-section-title {
         font-size: 22px;
     }
     
+    .section-content-wrapper {
+        padding-left: 56px;
+    }
+    
     .legal-privacy-section-content {
         font-size: 15px;
+    }
+    
+    .contact-info {
+        padding: 20px;
+        gap: 14px;
+    }
+    
+    .contact-link,
+    .contact-location {
+        padding: 10px 14px;
+        font-size: 14px;
     }
     
     .page-header {

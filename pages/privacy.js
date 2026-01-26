@@ -48,59 +48,110 @@ export default function Privacy() {
                 initial="hidden"
                 animate="visible"
               >
-                <motion.p className="legal-privacy-intro" variants={animationVariants.itemSmall}>
-                  {t.intro}
-                </motion.p>
+                <motion.div className="legal-privacy-intro-wrapper" variants={animationVariants.itemSmall}>
+                  <p className="legal-privacy-intro">{t.intro}</p>
+                </motion.div>
 
                 <motion.section className="legal-privacy-section" variants={animationVariants.itemSmall}>
-                  <h2 className="legal-privacy-section-title">{t.section1Title}</h2>
-                  <p className="legal-privacy-section-content">{t.section1Content}</p>
+                  <div className="section-header">
+                    <div className="section-number">01</div>
+                    <h2 className="legal-privacy-section-title">{t.section1Title}</h2>
+                  </div>
+                  <div className="section-content-wrapper">
+                    <p className="legal-privacy-section-content">{t.section1Content}</p>
+                  </div>
                 </motion.section>
 
                 <motion.section className="legal-privacy-section" variants={animationVariants.itemSmall}>
-                  <h2 className="legal-privacy-section-title">{t.section2Title}</h2>
-                  <p className="legal-privacy-section-content">{t.section2Content}</p>
+                  <div className="section-header">
+                    <div className="section-number">02</div>
+                    <h2 className="legal-privacy-section-title">{t.section2Title}</h2>
+                  </div>
+                  <div className="section-content-wrapper">
+                    <p className="legal-privacy-section-content">{t.section2Content}</p>
+                  </div>
                 </motion.section>
 
                 <motion.section className="legal-privacy-section" variants={animationVariants.itemSmall}>
-                  <h2 className="legal-privacy-section-title">{t.section3Title}</h2>
-                  <p className="legal-privacy-section-content">{t.section3Content}</p>
+                  <div className="section-header">
+                    <div className="section-number">03</div>
+                    <h2 className="legal-privacy-section-title">{t.section3Title}</h2>
+                  </div>
+                  <div className="section-content-wrapper">
+                    <p className="legal-privacy-section-content">{t.section3Content}</p>
+                  </div>
                 </motion.section>
 
                 <motion.section className="legal-privacy-section" variants={animationVariants.itemSmall}>
-                  <h2 className="legal-privacy-section-title">{t.section4Title}</h2>
-                  <p className="legal-privacy-section-content">{t.section4Content}</p>
+                  <div className="section-header">
+                    <div className="section-number">04</div>
+                    <h2 className="legal-privacy-section-title">{t.section4Title}</h2>
+                  </div>
+                  <div className="section-content-wrapper">
+                    <p className="legal-privacy-section-content">{t.section4Content}</p>
+                  </div>
                 </motion.section>
 
                 <motion.section className="legal-privacy-section" variants={animationVariants.itemSmall}>
-                  <h2 className="legal-privacy-section-title">{t.section5Title}</h2>
-                  <p className="legal-privacy-section-content">{t.section5Content}</p>
+                  <div className="section-header">
+                    <div className="section-number">05</div>
+                    <h2 className="legal-privacy-section-title">{t.section5Title}</h2>
+                  </div>
+                  <div className="section-content-wrapper">
+                    <p className="legal-privacy-section-content">{t.section5Content}</p>
+                  </div>
                 </motion.section>
 
                 <motion.section className="legal-privacy-section" variants={animationVariants.itemSmall}>
-                  <h2 className="legal-privacy-section-title">{t.section6Title}</h2>
-                  <p className="legal-privacy-section-content">{t.section6Content}</p>
+                  <div className="section-header">
+                    <div className="section-number">06</div>
+                    <h2 className="legal-privacy-section-title">{t.section6Title}</h2>
+                  </div>
+                  <div className="section-content-wrapper">
+                    <p className="legal-privacy-section-content">{t.section6Content}</p>
+                  </div>
                 </motion.section>
 
                 <motion.section className="legal-privacy-section" variants={animationVariants.itemSmall}>
-                  <h2 className="legal-privacy-section-title">{t.section7Title}</h2>
-                  <p className="legal-privacy-section-content">{t.section7Content}</p>
+                  <div className="section-header">
+                    <div className="section-number">07</div>
+                    <h2 className="legal-privacy-section-title">{t.section7Title}</h2>
+                  </div>
+                  <div className="section-content-wrapper">
+                    <p className="legal-privacy-section-content">{t.section7Content}</p>
+                  </div>
                 </motion.section>
 
                 <motion.section className="legal-privacy-section" variants={animationVariants.itemSmall}>
-                  <h2 className="legal-privacy-section-title">{t.section8Title}</h2>
-                  <p className="legal-privacy-section-content">{t.section8Content}</p>
+                  <div className="section-header">
+                    <div className="section-number">08</div>
+                    <h2 className="legal-privacy-section-title">{t.section8Title}</h2>
+                  </div>
+                  <div className="section-content-wrapper">
+                    <p className="legal-privacy-section-content">{t.section8Content}</p>
+                  </div>
                 </motion.section>
 
-                <motion.section className="legal-privacy-section" variants={animationVariants.itemSmall}>
-                  <h2 className="legal-privacy-section-title">{t.section9Title}</h2>
-                  <p className="legal-privacy-section-content">
-                    {t.section9Content}
-                    <br />
-                    <a href={`mailto:${t.contactEmail}`} className="legal-privacy-link">{t.contactEmail}</a>
-                    <br />
-                    {t.location}
-                  </p>
+                <motion.section className="legal-privacy-section legal-privacy-section-contact" variants={animationVariants.itemSmall}>
+                  <div className="section-header">
+                    <div className="section-number">09</div>
+                    <h2 className="legal-privacy-section-title">{t.section9Title}</h2>
+                  </div>
+                  <div className="section-content-wrapper">
+                    <p className="legal-privacy-section-content">
+                      {t.section9Content}
+                    </p>
+                    <div className="contact-info">
+                      <a href={`mailto:${t.contactEmail}`} className="legal-privacy-link contact-link">
+                        <span className="contact-icon">✉</span>
+                        {t.contactEmail}
+                      </a>
+                      <div className="contact-location">
+                        <span className="contact-icon">📍</span>
+                        {t.location}
+                      </div>
+                    </div>
+                  </div>
                 </motion.section>
               </motion.div>
             </motion.div>
