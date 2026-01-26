@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { useLanguage } from '../contexts/LanguageContext'
 import { useTranslations } from '../lib/translations'
@@ -26,9 +27,9 @@ export default function Footer() {
       animate="visible"
     >
       <div className="footer-links-container">
-        <a href="#" className="footer-link" onClick={(e) => e.preventDefault()}>{t.legal}</a>
+        <Link href="/legal" className="footer-link">{t.legal}</Link>
         <span className="footer-separator">•</span>
-        <a href="#" className="footer-link" onClick={(e) => e.preventDefault()}>{t.privacy}</a>
+        <Link href="/privacy" className="footer-link">{t.privacy}</Link>
       </div>
     </motion.footer>
   )

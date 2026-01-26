@@ -556,6 +556,107 @@
     margin: 0;
 }
 
+/* ============================================
+   LEGAL & PRIVACY PAGES STYLES
+   ============================================ */
+
+.legal-privacy-container {
+    background: rgba(252, 248, 247, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 16px;
+    border: 1px solid #C8A882;
+    padding: 60px 70px;
+    max-width: 900px;
+    width: 100%;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    max-height: 85vh;
+    overflow-y: auto;
+}
+
+.legal-privacy-header {
+    margin-bottom: 40px;
+    border-bottom: 1px solid rgba(200, 168, 130, 0.3);
+    padding-bottom: 30px;
+}
+
+.back-link {
+    display: inline-block;
+    font-family: var(--font-primary);
+    font-size: 14px;
+    color: #8B4513;
+    text-decoration: none;
+    margin-bottom: 20px;
+    transition: all 0.3s ease;
+}
+
+.back-link:hover {
+    color: #6B3410;
+    text-decoration: underline;
+}
+
+.legal-privacy-heading {
+    font-family: var(--font-secondary), 'Jost', sans-serif;
+    font-size: 40px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    color: #8B4513;
+    margin: 0 0 10px 0;
+    line-height: 1.2;
+}
+
+.legal-privacy-updated {
+    font-family: var(--font-primary);
+    font-size: 14px;
+    color: #999999;
+    margin: 0;
+}
+
+.legal-privacy-content {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+.legal-privacy-intro {
+    font-family: var(--font-primary);
+    font-size: 18px;
+    color: #333333;
+    line-height: 1.7;
+    margin: 0;
+}
+
+.legal-privacy-section {
+    margin: 0;
+}
+
+.legal-privacy-section-title {
+    font-family: var(--font-secondary), 'Jost', sans-serif;
+    font-size: 24px;
+    font-weight: 500;
+    color: #8B4513;
+    margin: 0 0 12px 0;
+    line-height: 1.3;
+}
+
+.legal-privacy-section-content {
+    font-family: var(--font-primary);
+    font-size: 16px;
+    color: #666666;
+    line-height: 1.7;
+    margin: 0;
+}
+
+.legal-privacy-link {
+    color: #8B4513;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.legal-privacy-link:hover {
+    color: #6B3410;
+    text-decoration: underline;
+}
+
 /* Additional responsive utilities */
 @media (max-width: 1023px) {
     .waitlist-page .background-image {

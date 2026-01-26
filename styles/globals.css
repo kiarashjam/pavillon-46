@@ -424,9 +424,6 @@ img {
     border-radius: 6px;
     transition: all 0.3s ease;
     opacity: 0.6;
-    text-decoration: line-through;
-    text-decoration-color: rgba(0, 0, 0, 0.4);
-    text-decoration-thickness: 1px;
 }
 
 .lang-button:hover {

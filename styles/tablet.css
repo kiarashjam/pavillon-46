@@ -128,6 +128,29 @@
         margin-bottom: 36px;
     }
     
+    /* Legal & Privacy Pages */
+    .legal-privacy-container {
+        padding: 50px 50px;
+        max-width: 700px;
+        max-height: 75vh;
+    }
+    
+    .legal-privacy-heading {
+        font-size: 36px;
+    }
+    
+    .legal-privacy-intro {
+        font-size: 17px;
+    }
+    
+    .legal-privacy-section-title {
+        font-size: 22px;
+    }
+    
+    .legal-privacy-section-content {
+        font-size: 15px;
+    }
+    
     .page-header {
         padding: 14px 30px;
     }

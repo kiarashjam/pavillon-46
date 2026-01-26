@@ -341,6 +341,105 @@
         width: 100%;
     }
     
+    /* Legal & Privacy Pages */
+    .legal-privacy-container {
+        padding: 40px 24px;
+        max-width: 100%;
+        margin: 0 16px;
+        border-radius: 14px;
+        width: calc(100% - 32px);
+        max-height: calc(100vh - 80px);
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        background: rgba(252, 248, 247, 0.95);
+        backdrop-filter: blur(10px);
+        border: 1px solid #C8A882;
+    }
+    
+    .legal-privacy-header {
+        margin-bottom: 32px;
+        border-bottom: 1px solid rgba(200, 168, 130, 0.3);
+        padding-bottom: 24px;
+    }
+    
+    .back-link {
+        display: inline-block;
+        font-family: var(--font-primary);
+        font-size: 14px;
+        color: #8B4513;
+        text-decoration: none;
+        margin-bottom: 18px;
+        transition: all 0.3s ease;
+    }
+    
+    .back-link:hover {
+        color: #6B3410;
+        text-decoration: underline;
+    }
+    
+    .legal-privacy-heading {
+        font-family: var(--font-secondary), 'Jost', sans-serif;
+        font-size: 32px;
+        font-weight: 500;
+        letter-spacing: 0.02em;
+        color: #8B4513;
+        margin: 0 0 10px 0;
+        line-height: 1.2;
+    }
+    
+    .legal-privacy-updated {
+        font-family: var(--font-primary);
+        font-size: 13px;
+        color: #999999;
+        margin: 0;
+    }
+    
+    .legal-privacy-content {
+        display: flex;
+        flex-direction: column;
+        gap: 28px;
+    }
+    
+    .legal-privacy-intro {
+        font-family: var(--font-primary);
+        font-size: 16px;
+        color: #333333;
+        line-height: 1.7;
+        margin: 0;
+    }
+    
+    .legal-privacy-section {
+        margin: 0;
+    }
+    
+    .legal-privacy-section-title {
+        font-family: var(--font-secondary), 'Jost', sans-serif;
+        font-size: 20px;
+        font-weight: 500;
+        color: #8B4513;
+        margin: 0 0 12px 0;
+        line-height: 1.3;
+    }
+    
+    .legal-privacy-section-content {
+        font-family: var(--font-primary);
+        font-size: 15px;
+        color: #666666;
+        line-height: 1.7;
+        margin: 0;
+    }
+    
+    .legal-privacy-link {
+        color: #8B4513;
+        text-decoration: none;
+        transition: all 0.3s ease;
+    }
+    
+    .legal-privacy-link:hover {
+        color: #6B3410;
+        text-decoration: underline;
+    }
+    
     .thank-you-heading {
         font-size: 28px;
         margin-bottom: 32px;
@@ -584,6 +683,51 @@
     
     .confirmation-text {
         font-size: 14px;
+    }
+    
+    /* Legal & Privacy Pages - Small Mobile */
+    .legal-privacy-container {
+        padding: 32px 20px;
+        max-height: 80vh;
+        border-radius: 12px;
+    }
+    
+    .legal-privacy-header {
+        margin-bottom: 28px;
+        padding-bottom: 20px;
+    }
+    
+    .back-link {
+        font-size: 13px;
+        margin-bottom: 16px;
+    }
+    
+    .legal-privacy-heading {
+        font-size: 28px;
+        margin-bottom: 8px;
+    }
+    
+    .legal-privacy-updated {
+        font-size: 12px;
+    }
+    
+    .legal-privacy-content {
+        gap: 24px;
+    }
+    
+    .legal-privacy-intro {
+        font-size: 15px;
+        line-height: 1.6;
+    }
+    
+    .legal-privacy-section-title {
+        font-size: 18px;
+        margin-bottom: 10px;
+    }
+    
+    .legal-privacy-section-content {
+        font-size: 14px;
+        line-height: 1.6;
     }
     
     /* Footer - Small Mobile */
