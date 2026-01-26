@@ -82,10 +82,6 @@ export default function Waitlist() {
               initial="hidden"
               animate="visible"
             >
-              <motion.div variants={animationVariants.itemSmall}>
-                <Link href="/" className="go-back-link">{tCommon.goBack}</Link>
-              </motion.div>
-              
               <motion.h1 className="form-heading" variants={animationVariants.itemSmall}>
                 {t.heading}
               </motion.h1>

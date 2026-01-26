@@ -3,15 +3,20 @@ import { createContext, useContext, useState, useEffect, useRef } from 'react'
 const LanguageContext = createContext()
 
 export function LanguageProvider({ children }) {
-  const [language, setLanguage] = useState('fr') // Default to French
+  // Default to French for all new visitors
+  const [language, setLanguage] = useState('fr')
   const [languageChanged, setLanguageChanged] = useState(false)
   const isInitialMount = useRef(true)
 
   // Load language preference from localStorage on mount
+  // Only use saved preference if it exists, otherwise default to French
   useEffect(() => {
     const savedLanguage = localStorage.getItem('pavillon46-language')
     if (savedLanguage && (savedLanguage === 'fr' || savedLanguage === 'en')) {
       setLanguage(savedLanguage)
+    } else {
+      // Ensure French is set for new visitors (no saved preference)
+      setLanguage('fr')
     }
     isInitialMount.current = false
   }, [])
