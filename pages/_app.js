@@ -1,9 +1,13 @@
 import '../styles/globals.css'
+import '../styles/desktop.css'
+import '../styles/tablet.css'
+import '../styles/mobile.css'
 import { Jost, Great_Vibes } from 'next/font/google'
 import { LanguageProvider } from '../contexts/LanguageContext'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useRouter } from 'next/router'
 import LanguageNotification from '../components/LanguageNotification'
+import { animationVariants } from '../lib/constants'
 
 // Secondary Font: Jost (Google Fonts)
 const jost = Jost({
@@ -20,29 +24,6 @@ const greatVibes = Great_Vibes({
   display: 'swap',
 })
 
-const pageVariants = {
-  initial: {
-    opacity: 0,
-    y: 20,
-  },
-  enter: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: 0.5,
-      ease: [0.25, 0.46, 0.45, 0.94],
-    },
-  },
-  exit: {
-    opacity: 0,
-    y: -20,
-    transition: {
-      duration: 0.4,
-      ease: [0.25, 0.46, 0.45, 0.94],
-    },
-  },
-}
-
 export default function App({ Component, pageProps }) {
   const router = useRouter()
 
@@ -56,7 +37,7 @@ export default function App({ Component, pageProps }) {
             initial="initial"
             animate="enter"
             exit="exit"
-            variants={pageVariants}
+            variants={animationVariants.page}
           >
             <Component {...pageProps} />
           </motion.div>

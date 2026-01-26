@@ -1,41 +1,26 @@
 # Images Directory
 
-Place your images in this directory.
+This directory contains all image assets for the Pavillon 46 website.
 
-## Required Images
+## Currently Used Images
 
-### Homepage
-- **homepage-left-image.jpg** (or .png, .webp)
-  - For the left section of the homepage
-  - Recommended size: 800x1200px or larger
-  - This will be used in the fragmented cutout effect
+- **`logo.png`** - Main logo used in header and homepage
+- **`image 4.png`** - Left section image on homepage (fragmented cutout effect)
+- **`image 6.png`** - Background image for homepage
+- **`Frame 1000004712.svg`** - Checkmark icon for thank you page
 
-### Waitlist & Thank You Pages
-- **aerial-background.jpg** (or .png, .webp)
-  - Full-screen background image
-  - Recommended size: 1920x1080px or larger
-  - Aerial view of the resort complex
+## Image Formats
 
-## Image Formats Supported
-- .jpg / .jpeg
-- .png
-- .webp
+Supported formats: `.png`, `.jpg`, `.jpeg`, `.webp`, `.svg`
 
-## How to Use
+## Adding New Images
 
-1. Add your images to this `public/images/` directory
-2. Update the CSS or component files to reference your images
-3. For Next.js, images in `public/` can be referenced as `/images/filename.jpg`
+1. Place images in this `public/images/` directory
+2. Reference them in code as `/images/filename.ext`
+3. For Next.js Image component: `src="/images/filename.ext"`
 
-## Example Usage
+## Optimization
 
-In CSS:
-```css
-background-image: url('/images/aerial-background.jpg');
-```
-
-In Next.js Image component:
-```jsx
-import Image from 'next/image'
-<Image src="/images/homepage-left-image.jpg" alt="Description" />
-```
+- Use WebP format when possible for better compression
+- Optimize images before adding (recommended max: 500KB per image)
+- Use images at least 2x display size for retina displays

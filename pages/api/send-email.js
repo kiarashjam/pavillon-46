@@ -1,196 +1,255 @@
-import sgMail from '@sendgrid/mail';
+import sgMail from '@sendgrid/mail'
+import { translations } from '../../lib/translations'
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
-    return res.status(405).json({ message: 'Method not allowed' });
+    return res.status(405).json({ message: 'Method not allowed' })
   }
 
-  const { fullName, phoneNumber, emailAddress, postalCode, language = 'fr' } = req.body;
+  const { fullName, phoneNumber, emailAddress, postalCode, language = 'fr' } = req.body
 
   if (!process.env.SENDGRID_API_KEY) {
-    console.error('SENDGRID_API_KEY is not defined');
-    return res.status(500).json({ message: 'Server configuration error' });
+    console.error('SENDGRID_API_KEY is not defined')
+    return res.status(500).json({
+      message: 'Server configuration error',
+      detail: 'SENDGRID_API_KEY is missing. Add it to .env.local (see .env.local.example).',
+    })
   }
 
-  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY)
 
-  const adminEmail = process.env.ADMIN_EMAIL;
-  const fromEmail = process.env.FROM_EMAIL;
+  const adminEmail = process.env.ADMIN_EMAIL
+  const fromEmail = process.env.FROM_EMAIL
 
   if (!adminEmail || !fromEmail) {
-    console.error('ADMIN_EMAIL or FROM_EMAIL is not defined');
-    return res.status(500).json({ message: 'Server configuration error' });
+    const missing = [].concat(
+      !adminEmail ? 'ADMIN_EMAIL' : [],
+      !fromEmail ? 'FROM_EMAIL' : []
+    )
+    console.error('ADMIN_EMAIL or FROM_EMAIL is not defined:', missing.join(', '))
+    return res.status(500).json({
+      message: 'Server configuration error',
+      detail: `Missing: ${missing.join(', ')}. Add them to .env.local (see .env.local.example).`,
+    })
   }
 
   // --- Email Templates ---
 
-  const emailStyles = `
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  // Modern email styles with transparency
+  const emailWrapperStyle = `
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     line-height: 1.6;
-    color: #333;
+    color: #333333;
+    background-color: #fafafa;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  `;
+
+  const emailContainerStyle = `
     max-width: 600px;
     margin: 0 auto;
-    padding: 20px;
+    background-color: rgba(255, 255, 255, 0.95);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   `;
 
   const headerStyle = `
-    background-color: #f8f9fa;
-    padding: 20px;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.7) 0%, rgba(118, 75, 162, 0.7) 100%);
+    padding: 40px 30px;
     text-align: center;
-    border-bottom: 2px solid #eaeaea;
-    margin-bottom: 20px;
+    color: #ffffff;
+  `;
+
+  const contentStyle = `
+    padding: 40px 30px;
+    background-color: rgba(255, 255, 255, 0.95);
   `;
 
   const footerStyle = `
     margin-top: 30px;
-    padding-top: 20px;
-    border-top: 1px solid #eaeaea;
-    font-size: 12px;
-    color: #888;
+    padding: 30px;
+    background-color: rgba(248, 249, 250, 0.6);
+    border-top: 1px solid rgba(234, 234, 234, 0.5);
+    font-size: 13px;
+    color: #666666;
+    text-align: center;
+    line-height: 1.8;
+  `;
+
+  const buttonStyle = `
+    display: inline-block;
+    padding: 14px 32px;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.7) 0%, rgba(118, 75, 162, 0.7) 100%);
+    color: #ffffff;
+    text-decoration: none;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 16px;
+    margin: 20px 0;
     text-align: center;
   `;
 
-  // Translations for emails
-  const emailTranslations = {
-    fr: {
-      admin: {
-        subject: `Nouvelle inscription sur la liste d'attente: ${fullName}`,
-        title: 'Nouvelle inscription sur la liste d\'attente',
-        intro: 'Un nouvel utilisateur a rejoint la liste d\'attente:',
-        nameLabel: 'Nom:',
-        emailLabel: 'E-mail:',
-        phoneLabel: 'Téléphone:',
-        postalCodeLabel: 'Code postal:',
-        languageNote: 'Langue choisie: Français',
-        footer: 'Envoyé depuis le système du site Web Pavillon 46',
-      },
-      user: {
-        subject: 'Bienvenue sur la liste d\'attente de Pavillon 46',
-        title: 'Bienvenue à Pavillon 46',
-        greeting: `Cher/Chère ${fullName},`,
-        body1: 'Merci de votre intérêt pour <strong>Pavillon 46</strong>. Nous sommes ravis de vous avoir sur notre liste d\'attente.',
-        body2: 'Notre équipe examine votre candidature et vous contactera sous peu avec plus d\'informations sur notre adhésion exclusive.',
-        body3: 'En attendant, si vous avez des questions, veuillez consulter nos mises à jour.',
-        closing: 'Cordialement,',
-        team: 'L\'équipe Pavillon 46',
-        footer: `&copy; ${new Date().getFullYear()} Pavillon 46. Tous droits réservés.`,
-        location: 'La Croix-sur-Lutry, Suisse',
-      },
-    },
-    en: {
-      admin: {
-        subject: `New Waitlist Signup: ${fullName}`,
-        title: 'New Waitlist Signup',
-        intro: 'A new user has joined the waitlist:',
-        nameLabel: 'Name:',
-        emailLabel: 'Email:',
-        phoneLabel: 'Phone:',
-        postalCodeLabel: 'Postal Code:',
-        languageNote: 'Language chosen: English',
-        footer: 'Sent from Pavillon 46 Website System',
-      },
-      user: {
-        subject: 'Welcome to the Pavillon 46 Waitlist',
-        title: 'Welcome to Pavillon 46',
-        greeting: `Dear ${fullName},`,
-        body1: 'Thank you for your interest in <strong>Pavillon 46</strong>. We are thrilled to have you on our waitlist.',
-        body2: 'Our team is reviewing your application, and we will contact you shortly with more information about our exclusive membership.',
-        body3: 'In the meantime, if you have any questions, please verify our updates.',
-        closing: 'Warm regards,',
-        team: 'The Pavillon 46 Team',
-        footer: `&copy; ${new Date().getFullYear()} Pavillon 46. All rights reserved.`,
-        location: 'La Croix-sur-Lutry, Switzerland',
-      },
-    },
-  };
+  const highlightBoxStyle = `
+    background-color: rgba(248, 249, 255, 0.5);
+    border-left: 4px solid rgba(102, 126, 234, 0.4);
+    padding: 20px;
+    margin: 25px 0;
+    border-radius: 4px;
+  `;
 
-  const t = emailTranslations[language] || emailTranslations.fr;
+  // Get email translations
+  const lang = language === 'en' ? 'en' : 'fr'
+  const t = translations[lang].email
+  const currentYear = new Date().getFullYear()
 
   const adminEmailHtml = `
-    <div style="${emailStyles}">
-      <div style="${headerStyle}">
-        <h2 style="margin:0; color:#000;">${t.admin.title}</h2>
-      </div>
-      <div style="padding: 20px; background-color: #fff;">
-        <p style="font-size: 16px;"><strong>${t.admin.intro}</strong></p>
-        <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
-          <tr>
-            <td style="padding: 10px; border-bottom: 1px solid #eee; width: 30%;"><strong>${t.admin.nameLabel}</strong></td>
-            <td style="padding: 10px; border-bottom: 1px solid #eee;">${fullName}</td>
-          </tr>
-          <tr>
-            <td style="padding: 10px; border-bottom: 1px solid #eee;"><strong>${t.admin.emailLabel}</strong></td>
-            <td style="padding: 10px; border-bottom: 1px solid #eee;">${emailAddress}</td>
-          </tr>
-          <tr>
-            <td style="padding: 10px; border-bottom: 1px solid #eee;"><strong>${t.admin.phoneLabel}</strong></td>
-            <td style="padding: 10px; border-bottom: 1px solid #eee;">${phoneNumber}</td>
-          </tr>
-          <tr>
-            <td style="padding: 10px; border-bottom: 1px solid #eee;"><strong>${t.admin.postalCodeLabel}</strong></td>
-            <td style="padding: 10px; border-bottom: 1px solid #eee;">${postalCode}</td>
-          </tr>
-          <tr>
-            <td style="padding: 10px; border-top: 2px solid #ddd; border-bottom: 1px solid #eee; background-color: #f8f9fa;" colspan="2">
-              <strong>${t.admin.languageNote}</strong>
-            </td>
-          </tr>
-        </table>
-      </div>
-      <div style="${footerStyle}">
-        <p>${t.admin.footer}</p>
+    <div style="${emailWrapperStyle}">
+      <div style="${emailContainerStyle}">
+        <div style="${headerStyle}">
+          <h2 style="margin:0; color:rgba(255, 255, 255, 0.95); font-size: 24px;">${t.admin.title}</h2>
+        </div>
+        <div style="${contentStyle}">
+          <p style="font-size: 16px; margin-bottom: 20px;"><strong>${t.admin.intro}</strong></p>
+          <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+            <tr>
+              <td style="padding: 12px; border-bottom: 1px solid rgba(238, 238, 238, 0.6); width: 30%; background-color: rgba(248, 249, 250, 0.5);"><strong>${t.admin.nameLabel}</strong></td>
+              <td style="padding: 12px; border-bottom: 1px solid rgba(238, 238, 238, 0.6);">${fullName}</td>
+            </tr>
+            <tr>
+              <td style="padding: 12px; border-bottom: 1px solid rgba(238, 238, 238, 0.6); background-color: rgba(248, 249, 250, 0.5);"><strong>${t.admin.emailLabel}</strong></td>
+              <td style="padding: 12px; border-bottom: 1px solid rgba(238, 238, 238, 0.6);">${emailAddress}</td>
+            </tr>
+            <tr>
+              <td style="padding: 12px; border-bottom: 1px solid rgba(238, 238, 238, 0.6); background-color: rgba(248, 249, 250, 0.5);"><strong>${t.admin.phoneLabel}</strong></td>
+              <td style="padding: 12px; border-bottom: 1px solid rgba(238, 238, 238, 0.6);">${phoneNumber}</td>
+            </tr>
+            <tr>
+              <td style="padding: 12px; border-bottom: 1px solid rgba(238, 238, 238, 0.6); background-color: rgba(248, 249, 250, 0.5);"><strong>${t.admin.postalCodeLabel}</strong></td>
+              <td style="padding: 12px; border-bottom: 1px solid rgba(238, 238, 238, 0.6);">${postalCode}</td>
+            </tr>
+            <tr>
+              <td style="padding: 12px; border-top: 2px solid rgba(221, 221, 221, 0.5); background-color: rgba(240, 244, 255, 0.4);" colspan="2">
+                <strong>${t.admin.languageNote}</strong>
+              </td>
+            </tr>
+          </table>
+        </div>
+        <div style="${footerStyle}">
+          <p>${t.admin.footer}</p>
+        </div>
       </div>
     </div>
-  `;
+  `
 
   const userEmailHtml = `
-    <div style="${emailStyles}">
-      <div style="${headerStyle}">
-        <h1 style="margin:0; font-size: 24px; color:#000;">${t.user.title}</h1>
-      </div>
-      <div style="padding: 20px; background-color: #fff;">
-        <p>${t.user.greeting}</p>
-        <p>${t.user.body1}</p>
-        <p>${t.user.body2}</p>
-        <p>${t.user.body3}</p>
-        <br>
-        <p>${t.user.closing}</p>
-        <p><strong>${t.user.team}</strong></p>
-      </div>
-      <div style="${footerStyle}">
-        <p>${t.user.footer}</p>
-        <p>${t.user.location}</p>
-      </div>
-    </div>
-  `;
+    <!DOCTYPE html>
+    <html lang="${lang}">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>${t.user.subject}</title>
+    </head>
+    <body style="${emailWrapperStyle}">
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #fafafa; padding: 20px 0;">
+        <tr>
+          <td align="center">
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="${emailContainerStyle}">
+              <!-- Header -->
+              <tr>
+                <td style="${headerStyle}">
+                  <h1 style="margin: 0; font-size: 32px; font-weight: 700; color: rgba(255, 255, 255, 0.95); letter-spacing: -0.5px;">
+                    ${t.user.title}
+                  </h1>
+                  <p style="margin: 10px 0 0 0; font-size: 16px; color: rgba(255, 255, 255, 0.85);">
+                    ${lang === 'fr' ? 'La vie en couleurs' : 'Life in Full Color'}
+                  </p>
+                </td>
+              </tr>
+              
+              <!-- Main Content -->
+              <tr>
+                <td style="${contentStyle}">
+                  <p style="margin: 0 0 20px 0; font-size: 18px; color: #333333; font-weight: 500;">
+                    ${typeof t.user.greeting === 'function' ? t.user.greeting(fullName) : t.user.greeting}
+                  </p>
+                  
+                  <p style="margin: 0 0 20px 0; font-size: 16px; color: #555555; line-height: 1.8;">
+                    ${t.user.body1}
+                  </p>
+                  
+                  <div style="${highlightBoxStyle}">
+                    <p style="margin: 0; font-size: 15px; color: #444444; line-height: 1.8;">
+                      ${t.user.body2}
+                    </p>
+                  </div>
+                  
+                  <p style="margin: 20px 0; font-size: 16px; color: #555555; line-height: 1.8;">
+                    ${t.user.body3}
+                  </p>
+                  
+                  <!-- Divider -->
+                  <div style="height: 1px; background: linear-gradient(to right, transparent, rgba(224, 224, 224, 0.5), transparent); margin: 35px 0;"></div>
+                  
+                  <!-- Closing -->
+                  <p style="margin: 0 0 8px 0; font-size: 16px; color: #333333;">
+                    ${t.user.closing}
+                  </p>
+                  <p style="margin: 0; font-size: 18px; color: rgba(102, 126, 234, 0.8); font-weight: 600;">
+                    ${t.user.team}
+                  </p>
+                </td>
+              </tr>
+              
+              <!-- Footer -->
+              <tr>
+                <td style="${footerStyle}">
+                  <p style="margin: 0 0 8px 0;">
+                    ${typeof t.user.footer === 'function' ? t.user.footer(currentYear) : t.user.footer}
+                  </p>
+                  <p style="margin: 0; color: #999999; font-size: 12px;">
+                    ${t.user.location}
+                  </p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>
+  `
 
   const msgToAdmin = {
     to: adminEmail,
     from: fromEmail,
-    subject: t.admin.subject,
+    subject: typeof t.admin.subject === 'function' ? t.admin.subject(fullName) : t.admin.subject,
     text: `${t.admin.intro}\n${t.admin.nameLabel} ${fullName}\n${t.admin.emailLabel} ${emailAddress}\n${t.admin.phoneLabel} ${phoneNumber}\n${t.admin.postalCodeLabel} ${postalCode}\n\n${t.admin.languageNote}`,
     html: adminEmailHtml,
-  };
+  }
 
   const msgToUser = {
     to: emailAddress,
     from: fromEmail,
     subject: t.user.subject,
-    text: `${t.user.greeting}\n\n${t.user.body1.replace(/<strong>|<\/strong>/g, '')}\n\n${t.user.body2}\n\n${t.user.body3}\n\n${t.user.closing}\n${t.user.team}`,
+    text: `${typeof t.user.greeting === 'function' ? t.user.greeting(fullName) : t.user.greeting}\n\n${t.user.body1.replace(/<strong>|<\/strong>/g, '')}\n\n${t.user.body2}\n\n${t.user.body3}\n\n${t.user.closing}\n${t.user.team}`,
     html: userEmailHtml,
-  };
+  }
 
   try {
     await Promise.all([
       sgMail.send(msgToAdmin),
       sgMail.send(msgToUser),
-    ]);
-    return res.status(200).json({ message: 'Emails sent successfully' });
+    ])
+    return res.status(200).json({ message: 'Emails sent successfully' })
   } catch (error) {
-    console.error('SendGrid Error:', error);
+    console.error('SendGrid Error:', error)
     if (error.response) {
-      console.error(error.response.body);
+      console.error(error.response.body)
     }
-    return res.status(500).json({ message: 'Error sending emails' });
+    return res.status(500).json({ message: 'Error sending emails' })
   }
 }

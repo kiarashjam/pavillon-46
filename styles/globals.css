@@ -106,9 +106,9 @@ img {
     position: fixed;
     inset: 0;
     z-index: 1;
-    background: rgba(0, 0, 0, 0.35);
-    -webkit-backdrop-filter: blur(10px);
-    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.3);
+    -webkit-backdrop-filter: blur(15px);
+    backdrop-filter: blur(15px);
 }
 
 /* Left Section: image 4 (46 cutout) + legal (~45–50% width) */
@@ -149,7 +149,6 @@ img {
     width: 100%;
     background: rgba(255, 255, 255, 0.6);
     margin-bottom: 10px;
-    /* Full line spanning edge to edge with no padding */
 }
 
 .legal-text {
@@ -175,8 +174,6 @@ img {
     align-items: flex-start;
     overflow-y: auto;
 }
-
-/* Right section no longer has the image - it's now in left section */
 
 /* Beige content panel – fills entire right section */
 .right-content {
@@ -292,7 +289,8 @@ img {
     align-items: center;
     padding: 11px 20px;
     gap: 10px;
-    width: 210px;
+    min-width: 210px;
+    width: max-content;
     height: 40px;
     background: #C9B2E3;
     border-radius: 8px;
@@ -323,7 +321,8 @@ img {
     letter-spacing: 0.04em;
     line-height: 23px;
     text-align: center;
-    color: #FFFFFF;
+    color: #5a7a6e;
+    white-space: nowrap;
 }
 
 /* Footer text: bottom-right, right-aligned */
@@ -332,7 +331,7 @@ img {
     bottom: 40px;
     left: auto;
     right: 48px;
-    max-width: 320px;
+    max-width: 450px;
     font-family: var(--font-secondary), 'Jost', sans-serif;
     font-size: 13px;
     font-weight: 400;
@@ -340,620 +339,17 @@ img {
     line-height: 1.5;
     text-align: right;
     color: #5a7a6e;
+    white-space: nowrap;
 }
 
-/* ============================================
-   RESPONSIVE DESIGN
-   ============================================ */
-
-/* Large Desktop (1440px and above) - Default styles apply */
-
-/* Medium Desktop (1024px - 1439px) */
-@media (max-width: 1439px) {
-    .logo-pavillon {
-        font-size: 56px;
-    }
-    
-    .logo-number {
-        font-size: 64px;
-    }
-    
-    .slogan {
-        font-size: 28px;
-    }
-    
-    .right-content {
-        padding: 50px 48px 50px 60px;
-    }
-}
-
-/* Tablet (768px - 1023px) */
-@media (max-width: 1023px) {
-    /* Homepage - Stack layout */
-    .container {
-        flex-direction: column;
-    }
-    
-    .left-section {
-        width: 100%;
-        height: 45vh;
-        min-height: 350px;
-    }
-    
-    .right-section {
-        width: 100%;
-        height: auto;
-        min-height: 55vh;
-        align-items: center;
-    }
-    
-    .right-content {
-        width: 100%;
-        min-height: auto;
-        padding: 50px 60px;
-        max-width: 700px;
-        margin: 0 auto;
-    }
-    
-    .left-image {
-        background-position: center center;
-        background-size: cover;
-    }
-    
-    .opening-date {
-        position: static;
-        margin-bottom: 24px;
-        text-align: center;
-        font-size: 13px;
-    }
-    
-    .logo-pavillon {
-        font-size: 52px;
-    }
-    
-    .logo-number {
-        font-size: 60px;
-    }
-    
-    .logo-subtitle {
-        font-size: 12px;
-    }
-    
-    .slogan {
-        font-size: 26px;
-        margin-bottom: 36px;
-    }
-    
-    .join-button {
-        width: 220px;
-        margin-bottom: 32px;
-        height: 44px;
-    }
-    
-    .footer-text {
-        position: static;
-        left: auto;
-        right: auto;
-        max-width: 600px;
-        margin: 24px auto 0;
-        text-align: center;
-        padding: 0 20px;
-    }
-    
-    .legal-wrap {
-        padding: 0 0 20px 0;
-    }
-    
-    .legal-text {
-        padding-right: 20px;
-    }
-    
-    /* Waitlist/Thank You Pages */
-    .form-overlay {
-        padding: 90px 20px 80px;
-    }
-    
-    .form-container {
-        padding: 32px 40px;
-        max-width: 580px;
-        width: 100%;
-    }
-    
-    .form-heading {
-        font-size: 34px;
-        margin-bottom: 22px;
-    }
-    
-    .waitlist-form {
-        gap: 12px;
-        margin-bottom: 18px;
-    }
-    
-    .form-input {
-        padding: 12px 16px;
-        font-size: 16px;
-    }
-    
-    .submit-button {
-        padding: 14px 24px;
-        font-size: 16px;
-        height: 48px;
-        margin-top: 2px;
-    }
-    
-    .thank-you-container {
-        padding: 55px 60px;
-        max-width: 580px;
-    }
-    
-    .thank-you-heading {
-        font-size: 38px;
-        margin-bottom: 36px;
-    }
-    
-    .page-header {
-        padding: 24px 30px;
-    }
-    
-    .header-logo-image {
-        max-height: 36px;
-    }
-    
-    .opening-date-header {
-        font-size: 13px;
-    }
-    
-    .page-footer {
-        padding: 20px 30px;
-    }
-}
-
-/* Mobile (320px - 767px) */
-@media (max-width: 767px) {
-    /* Homepage - Immersive Layout */
-    .container {
-        display: block;
-        height: 100vh;
-        overflow: hidden;
-    }
-    
-    .left-section {
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        width: 100%;
-        height: auto;
-        min-height: 0;
-        z-index: 10;
-        background: transparent;
-        pointer-events: none;
-    }
-    
-    .left-image {
-        display: none;
-    }
-    
-    .right-section {
-        width: 100%;
-        height: 100vh;
-        min-height: 100vh;
-        position: relative;
-        z-index: 5;
-        background: transparent;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    
-    .right-content {
-        width: 100%;
-        min-height: auto;
-        padding: 40px 24px 100px; /* Extra bottom padding for legal/spacing */
-        max-width: 100%;
-        background: transparent;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-    }
-
-    /* Dark Mode / Overlay Text Styles */
-    .opening-date {
-        position: static;
-        margin-bottom: 24px;
-        font-size: 13px;
-        text-align: center;
-        color: rgba(255, 255, 255, 0.9);
-    }
-    
-    .welcome-text {
-        font-size: 16px;
-        margin-bottom: 10px;
-        color: rgba(255, 255, 255, 0.9);
-    }
-    
-    .logo-container {
-        margin-bottom: 24px;
-    }
-    
-    .logo-pavillon {
-        font-size: 42px;
-        letter-spacing: 0.5px;
-        color: #FFFFFF;
-    }
-    
-    .logo-number {
-        font-size: 48px;
-        left: -12px;
-        color: #FFFFFF;
-    }
-    
-    .logo-image {
-        max-width: 320px;
-        max-height: 128px;
-        height: auto;
-    }
-    
-    .logo-subtitle {
-        font-size: 11px;
-        letter-spacing: 0.15em;
-        color: rgba(255, 255, 255, 0.8);
-    }
-    
-    .slogan {
-        font-size: 24px;
-        margin-bottom: 32px;
-        line-height: 1.3;
-    }
-
-    .slogan-part1 {
-        color: #FFFFFF;
-    }
-
-    .slogan-part2 {
-        color: #FFFFFF;
-    }
-    
-    .join-button {
-        width: 100%;
-        max-width: 280px;
-        margin-bottom: 32px;
-        height: 48px;
-        background: #C9B2E3; /* Keep lavender */
-    }
-    
-    .button-text {
-        font-size: 16px;
-    }
-    
-    .footer-text {
-        position: static;
-        left: auto;
-        right: auto;
-        max-width: 100%;
-        transform: none;
-        width: 100%;
-        font-size: 13px;
-        line-height: 20px;
-        margin-top: 16px;
-        padding: 0 24px;
-        text-align: center;
-        color: rgba(255, 255, 255, 0.7);
-    }
-    
-    .legal-wrap {
-        padding: 20px 0 20px 0;
-        width: 100%;
-        background: linear-gradient(to top, rgba(0,0,0,0.6), transparent);
-    }
-    
-    .legal-text {
-        font-size: 10px;
-        padding-right: 20px;
-        color: rgba(255, 255, 255, 0.6);
-    }
-    
-    /* Waitlist/Thank You Pages - Ultra Compact for Mobile */
-    .page-header {
-        padding: 12px 16px;
-    }
-    
-    .header-logo-image {
-        max-height: 28px;
-    }
-    
-    .opening-date-header {
-        font-size: 11px;
-    }
-    
-    .form-overlay {
-        padding: 35px 10px 10px;
-        align-items: flex-start;
-        min-height: calc(100vh - 50px);
-        justify-content: flex-start;
-        padding-top: 50px; /* Account for smaller header */
-    }
-    
-    .form-container {
-        padding: 16px 16px;
-        max-width: 100%;
-        margin: 0;
-        border-radius: 10px;
-        width: 100%;
-        background: rgba(252, 248, 247, 0.98);
-    }
-    
-    .go-back-link {
-        font-size: 12px;
-        margin-bottom: 10px;
-        color: #8B4513;
-        font-weight: 500;
-        opacity: 0.8;
-    }
-    
-    .form-heading {
-        font-size: 20px;
-        margin-bottom: 14px;
-        line-height: 1.15;
-        text-align: center;
-    }
-    
-    .waitlist-form {
-        gap: 8px;
-        margin-bottom: 12px;
-    }
-    
-    .form-input {
-        padding: 8px 12px;
-        font-size: 15px; 
-        min-height: 40px;
-        border-radius: 6px;
-        background: #FFFFFF;
-    }
-    
-    .submit-button {
-        padding: 10px 20px;
-        font-size: 14px;
-        margin-top: 4px;
-        min-height: 40px;
-        font-weight: 600;
-        letter-spacing: 0.01em;
-        background: #2B5541;
-        box-shadow: 0 3px 8px rgba(43, 85, 65, 0.2);
-    }
-    
-    .form-links {
-        gap: 4px;
-        margin-top: 6px;
-    }
-    
-    .form-link {
-        font-size: 11px;
-        min-height: 32px;
-        color: #666666;
-    }
-    
-    /* Thank You Page - Mobile */
-    .thank-you-container {
-        padding: 44px 28px;
-        max-width: 100%;
-        margin: 0 auto;
-        border-radius: 14px;
-        width: 100%;
-    }
-    
-    .thank-you-heading {
-        font-size: 28px;
-        margin-bottom: 32px;
-        line-height: 1.3;
-    }
-    
-    .checkmark-icon {
-        margin: 24px auto 32px;
-        width: 56px;
-        height: 56px;
-    }
-    
-    .checkmark-svg {
-        width: 56px;
-        height: 56px;
-    }
-    
-    .confirmation-text {
-        font-size: 15px;
-        line-height: 1.5;
-    }
-    
-    /* Footer - Mobile Waitlist/Thank You */
-    .page-footer {
-        padding: 10px 16px;
-        display: none; /* Hide footer on mobile waitlist to save space */
-        flex-wrap: wrap;
-        gap: 8px;
-    }
-    
-    .footer-link {
-        font-size: 13px;
-        min-height: 44px;
-        display: inline-flex;
-        align-items: center;
-    }
-    
-    .footer-separator {
-        font-size: 13px;
-    }
-}
-
-/* Small Mobile (320px - 479px) */
-@media (max-width: 479px) {
-    /* Homepage - Small Mobile Adjustments */
-    .left-section {
-        position: absolute;
-        bottom: 0;
-        height: auto;
-        min-height: 0;
-    }
-
-    .right-content {
-        padding: 32px 20px 80px;
-    }
-    
-    .opening-date {
-        font-size: 12px;
-        margin-bottom: 18px;
-    }
-    
-    .logo-pavillon {
-        font-size: 36px;
-    }
-    
-    .logo-number {
-        font-size: 42px;
-        left: -10px;
-    }
-    
-    .logo-image {
-        max-width: 280px;
-        max-height: 112px;
-        height: auto;
-    }
-    
-    .logo-subtitle {
-        font-size: 10px;
-    }
-    
-    .slogan {
-        font-size: 20px;
-        margin-bottom: 28px;
-    }
-    
-    .join-button {
-        max-width: 100%;
-        height: 48px;
-    }
-    
-    .footer-text {
-        font-size: 12px;
-        padding: 0 20px;
-    }
-    
-    /* Waitlist Page - Small Mobile Ultra Compact */
-    .page-header {
-        padding: 16px 16px;
-    }
-    
-    .header-logo-image {
-        max-height: 28px;
-    }
-    
-    .opening-date-header {
-        font-size: 11px;
-    }
-    
-    .form-overlay {
-        padding: 30px 8px 8px;
-        padding-top: 45px;
-        min-height: calc(100vh - 30px);
-    }
-    
-    .form-container {
-        padding: 14px 14px;
-    }
-    
-    .go-back-link {
-        font-size: 11px;
-        margin-bottom: 8px;
-    }
-    
-    .form-heading {
-        font-size: 18px; 
-        margin-bottom: 12px;
-        line-height: 1.1;
-    }
-    
-    .waitlist-form {
-        gap: 6px;
-        margin-bottom: 10px;
-    }
-    
-    .form-input {
-        padding: 7px 10px;
-        font-size: 14px;
-        min-height: 38px;
-    }
-    
-    .submit-button {
-        padding: 9px 18px;
-        font-size: 13px;
-        min-height: 38px;
-    }
-    
-    .form-links {
-        gap: 3px;
-        margin-top: 4px;
-    }
-    
-    .form-link {
-        font-size: 10px;
-        min-height: 28px;
-    }
-    
-    /* Thank You Page - Small Mobile */
-    .thank-you-container {
-        padding: 36px 24px;
-        border-radius: 12px;
-    }
-    
-    .thank-you-heading {
-        font-size: 26px;
-        margin-bottom: 28px;
-    }
-    
-    .checkmark-icon {
-        margin: 20px auto 28px;
-        width: 64px;
-        height: 64px;
-    }
-    
-    .checkmark-svg {
-        width: 64px;
-        height: 64px;
-    }
-    
-    .confirmation-text {
-        font-size: 14px;
-    }
-    
-    /* Footer - Small Mobile */
-    .page-footer {
-        padding: 16px 16px;
-        display: none; /* Hide footer on small mobile to save space */
-    }
-    
-    .footer-link {
-        font-size: 12px;
-    }
-    
-    .footer-separator {
-        font-size: 12px;
-    }
-}
-
-/* ============================================
-   WAITLIST PAGE STYLES (Desktop Default)
-   ============================================ */
-
-/* Waitlist Page Container */
-.waitlist-page {
-    position: relative;
+/* Form Group - Common structural class */
+.form-group {
     width: 100%;
-    max-width: 100vw;
-    min-height: 100vh;
-    overflow-x: hidden;
-    /* Ensure homepage backgrounds don't leak through */
-    isolation: isolate;
 }
+
+/* ============================================
+   HEADER & LANGUAGE SWITCHER STYLES
+   ============================================ */
 
 /* Header - Waitlist/Thank You Pages */
 .page-header {
@@ -964,8 +360,23 @@ img {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 20px 30px;
+    padding: 12px 30px;
     z-index: 10;
+    /* Glassmorphism effect */
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Header - No background on home page */
+.page-header.no-background {
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border-bottom: none;
+    box-shadow: none;
 }
 
 .header-left {
@@ -988,13 +399,6 @@ img {
     filter: brightness(0) invert(1);
 }
 
-.opening-date-header {
-    font-family: var(--font-primary);
-    font-size: 14px;
-    color: #4a7c2a;
-    font-weight: 400;
-}
-
 .header-right {
     display: flex;
     align-items: center;
@@ -1007,442 +411,47 @@ img {
     gap: 8px;
 }
 
+/* Language Button - Inactive State (more obvious) */
 .lang-button {
     background: transparent;
     border: none;
-    color: #4a7c2a;
+    color: rgba(0, 0, 0, 0.5);
     font-family: var(--font-primary);
     font-size: 14px;
     font-weight: 400;
     cursor: pointer;
-    padding: 4px 8px;
-    transition: opacity 0.2s ease;
+    padding: 6px 12px;
+    border-radius: 6px;
+    transition: all 0.3s ease;
     opacity: 0.6;
+    text-decoration: line-through;
+    text-decoration-color: rgba(0, 0, 0, 0.4);
+    text-decoration-thickness: 1px;
 }
 
 .lang-button:hover {
-    opacity: 0.9;
+    opacity: 0.8;
+    color: rgba(0, 0, 0, 0.7);
+    background: rgba(0, 0, 0, 0.05);
+    text-decoration: none;
 }
 
+/* Language Button - Active State */
 .lang-button.active {
     opacity: 1;
+    color: #1a1a1a;
     font-weight: 600;
+    background: rgba(0, 0, 0, 0.1);
+    text-decoration: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+.lang-button.active:hover {
+    background: rgba(0, 0, 0, 0.15);
 }
 
 .lang-separator {
-    color: #4a7c2a;
-    opacity: 0.4;
+    color: rgba(0, 0, 0, 0.4);
     font-size: 14px;
-}
-
-/* Background Container - ONLY for waitlist and thank-you pages */
-.waitlist-page .background-container {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 1;
-}
-
-.waitlist-page .background-image {
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(135deg, #2d5016 0%, #4a7c2a 50%, #6b9f3d 100%);
-    background-image: url('/images/image%206.png');
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-    /* Same background as homepage for waitlist and thank-you pages */
-    animation: subtleZoom 20s ease-in-out infinite alternate;
-}
-
-@keyframes subtleZoom {
-    0% {
-        transform: scale(1);
-    }
-    100% {
-        transform: scale(1.05);
-    }
-}
-
-/* Form Overlay - Desktop */
-.form-overlay {
-    position: relative;
-    min-height: 100vh;
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 5;
-    padding: 80px 40px 60px; /* Added top/bottom padding to clear header/footer */
-    margin: 0;
-}
-
-/* Form Container - Desktop */
-.form-container {
-    background: rgba(252, 248, 247, 0.95);
-    backdrop-filter: blur(10px);
-    border-radius: 16px;
-    border: 1px solid #C8A882;
-    padding: 35px 45px;
-    max-width: 520px;
-    width: 100%;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-    margin: 0 auto; /* Ensure centered */
-}
-
-.go-back-link {
-    display: inline-block;
-    font-family: var(--font-primary);
-    font-size: 14px;
-    color: #8B4513;
-    text-decoration: none;
-    margin-bottom: 16px;
-    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-    transform: translateX(0);
-}
-
-.go-back-link:hover {
-    color: #6B3410;
-    transform: translateX(-4px);
-}
-
-.form-heading {
-    font-family: var(--font-secondary), 'Jost', sans-serif;
-    font-size: 36px;
-    font-weight: 500;
-    letter-spacing: 0.02em;
-    color: #8B4513;
-    margin-bottom: 24px;
-    line-height: 1.2;
-}
-
-/* Form Styles */
-.waitlist-form {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-    margin-bottom: 20px;
-}
-
-.form-group {
-    width: 100%;
-}
-
-/* Form Input Fields - Desktop */
-.form-input {
-    width: 100%;
-    padding: 12px 16px;
-    border: 1px solid #C8A882;
-    border-radius: 8px;
-    font-family: var(--font-primary);
-    font-size: 16px;
-    color: #333333;
-    background: #FFFFFF;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-    transform: scale(1);
-}
-
-.form-input::placeholder {
-    color: #8B7355;
-    transition: opacity 0.3s ease;
-}
-
-.form-input:focus {
-    outline: none;
-    border-color: #8B4513;
-    box-shadow: 0 0 0 3px rgba(139, 69, 19, 0.1), 0 4px 12px rgba(0, 0, 0, 0.08);
-    transform: scale(1.01);
-}
-
-.form-input:hover:not(:focus) {
-    border-color: #A68F6F;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-}
-
-/* Submit Button - Desktop */
-.submit-button {
-    width: 100%;
-    padding: 14px 24px;
-    background: #2B5541;
-    color: #FFFFFF;
-    border: none;
-    border-radius: 8px;
-    font-family: var(--font-primary);
-    font-size: 16px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-    margin-top: 4px;
-    transform: translateY(0);
-    box-shadow: 0 2px 8px rgba(43, 85, 65, 0.2);
-}
-
-.submit-button:hover {
-    background: #1e3d2e;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 16px rgba(43, 85, 65, 0.3);
-}
-
-.submit-button:active {
-    transform: translateY(0);
-    box-shadow: 0 2px 8px rgba(43, 85, 65, 0.2);
-}
-
-.submit-button:disabled {
     opacity: 0.6;
-    cursor: not-allowed;
-    transform: translateY(0);
-}
-
-.form-links {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    align-items: center;
-}
-
-.form-link {
-    font-family: var(--font-primary);
-    font-size: 14px;
-    color: #666666;
-    text-decoration: none;
-    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-    position: relative;
-}
-
-.form-link::after {
-    content: '';
-    position: absolute;
-    bottom: -2px;
-    left: 0;
-    width: 0;
-    height: 1px;
-    background: #2B5541;
-    transition: width 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-}
-
-.form-link:hover {
-    color: #2B5541;
-}
-
-.form-link:hover::after {
-    width: 100%;
-}
-
-/* Footer - Waitlist/Thank You Pages */
-.page-footer {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    padding: 0 0 30px 0;
-    z-index: 10;
-}
-
-.page-footer::before {
-    content: '';
-    width: 100%;
-    height: 1px;
-    background: rgba(255, 255, 255, 0.6);
-    margin-bottom: 10px;
-}
-
-.footer-links-container {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.footer-link {
-    font-family: var(--font-primary);
-    font-size: 14px;
-    color: #FFFFFF;
-    text-decoration: none;
-    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-    position: relative;
-}
-
-.footer-link::after {
-    content: '';
-    position: absolute;
-    bottom: -2px;
-    left: 0;
-    width: 0;
-    height: 1px;
-    background: #FFFFFF;
-    transition: width 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-}
-
-.footer-link:hover {
-    opacity: 0.8;
-}
-
-.footer-link:hover::after {
-    width: 100%;
-}
-
-.footer-separator {
-    color: #FFFFFF;
-    font-size: 14px;
-}
-
-/* Language Notification */
-.language-notification {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    z-index: 9999;
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border-radius: 12px;
-    padding: 16px 24px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    min-width: 280px;
-}
-
-.language-notification-content {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.language-notification-icon {
-    font-size: 24px;
-    line-height: 1;
-}
-
-.language-notification-text {
-    font-family: var(--font-primary);
-    font-size: 14px;
-    font-weight: 500;
-    color: #2B5541;
-    letter-spacing: 0.02em;
-}
-
-/* Responsive: Language Notification */
-@media (max-width: 768px) {
-    .language-notification {
-        top: 10px;
-        right: 10px;
-        left: 10px;
-        min-width: auto;
-        padding: 12px 20px;
-    }
-
-    .language-notification-text {
-        font-size: 13px;
-    }
-
-    .language-notification-icon {
-        font-size: 20px;
-    }
-}
-
-/* ============================================
-   THANK YOU PAGE STYLES
-   ============================================ */
-
-.thank-you-container {
-    background: rgba(252, 248, 247, 0.95);
-    backdrop-filter: blur(10px);
-    border-radius: 16px;
-    border: 1px solid #C8A882;
-    padding: 60px 70px;
-    max-width: 560px;
-    width: 100%;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-    text-align: center;
-}
-
-.thank-you-heading {
-    font-family: var(--font-secondary), 'Jost', sans-serif;
-    font-size: 40px;
-    font-weight: 500;
-    letter-spacing: 0.02em;
-    color: #8B4513;
-    margin-bottom: 40px;
-    line-height: 1.2;
-}
-
-.checkmark-icon {
-    margin: 30px auto 40px;
-    width: 80px;
-    height: 80px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.checkmark-svg {
-    width: 80px;
-    height: 80px;
-    object-fit: contain;
-}
-
-.confirmation-messages {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.confirmation-text {
-    font-family: var(--font-primary);
-    font-size: 16px;
-    color: #999999;
-    line-height: 1.5;
-    margin: 0;
-}
-
-/* Additional responsive utilities */
-@media (max-width: 1023px) {
-    .waitlist-page .background-image {
-        background-attachment: scroll;
-    }
-}
-
-/* Landscape mobile orientation */
-@media (max-width: 767px) and (orientation: landscape) {
-    /* Immersive Landscape */
-    .left-section {
-        height: auto;
-        min-height: 0;
-        bottom: 0;
-    }
-    
-    .right-section {
-        min-height: 100vh;
-    }
-    
-    .form-overlay {
-        padding-top: 80px;
-    }
-}
-
-/* Touch device optimizations */
-@media (hover: none) and (pointer: coarse) {
-    .join-button,
-    .submit-button {
-        min-height: 44px; /* Minimum touch target size */
-    }
-    
-    .form-input {
-        min-height: 44px;
-    }
-    
-    .go-back-link,
-    .form-link,
-    .footer-link {
-        min-height: 44px;
-        display: inline-flex;
-        align-items: center;
-    }
 }
