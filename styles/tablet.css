@@ -37,8 +37,8 @@
     .opening-date {
         position: static;
         margin-bottom: 24px;
-        text-align: center;
-        font-size: 13px;
+        text-align: left;
+        font-size: 12px;
     }
     
     .logo-pavillon {
@@ -54,7 +54,9 @@
     }
     
     .slogan {
-        font-size: 26px;
+        font-size: 30px;
+        font-weight: 300;
+        line-height: normal;
         margin-bottom: 36px;
     }
     
@@ -89,31 +91,58 @@
     }
     
     .form-container {
-        padding: 24px 32px;
-        max-width: 580px;
+        display: flex;
         width: 100%;
+        max-width: 471px;
+        padding: 50px;
+        flex-direction: column;
+        align-items: center;
+        gap: 40px;
+        border-radius: 12px;
+        border: 0.5px solid #E77A58;
+        background: rgba(255, 255, 255, 0.80);
         max-height: 60vh;
         overflow-y: auto;
     }
     
     .form-heading {
+        align-self: stretch;
+        color: #E77A58;
+        text-align: center;
         font-size: 26px;
+        font-style: normal;
+        font-weight: 400;
+        line-height: 26px;
         margin-bottom: 16px;
     }
     
     .waitlist-form {
+        width: 100%;
+        align-self: stretch;
         gap: 10px;
         margin-bottom: 14px;
     }
     
     .form-input {
+        width: 100%;
         padding: 10px 14px;
         font-size: 14px;
+        border: 0.5px solid #E77A58;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.30);
     }
     
     .submit-button {
+        width: 100%;
         padding: 12px 20px;
-        font-size: 14px;
+        font-family: var(--font-jost), 'Jost', sans-serif;
+        font-size: 16px;
+        font-style: normal;
+        font-weight: 400;
+        line-height: normal;
+        text-align: center;
+        color: #FFFFFF;
+        background: #2B5541;
         height: 44px;
         margin-top: 2px;
     }
@@ -207,6 +236,10 @@
     
     .header-logo-image {
         max-height: 36px;
+    }
+    
+    .page-header .opening-date-header {
+        font-size: 13px;
     }
     
     .opening-date-header {

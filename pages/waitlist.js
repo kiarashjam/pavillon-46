@@ -155,21 +155,18 @@ export default function Waitlist() {
                 >
                   {status === 'loading' ? t.submitting : t.submitButton}
                 </motion.button>
+                
+                <motion.div 
+                  className="form-links"
+                  variants={animationVariants.container}
+                  initial="hidden"
+                  animate="visible"
+                >
+                  <motion.a href="#" className="form-link" onClick={(e) => e.preventDefault()} variants={animationVariants.itemSmall}>
+                    {tCommon.alreadyMember}
+                  </motion.a>
+                </motion.div>
               </motion.form>
-              
-              <motion.div 
-                className="form-links"
-                variants={animationVariants.container}
-                initial="hidden"
-                animate="visible"
-              >
-                <motion.a href="#" className="form-link" onClick={(e) => e.preventDefault()} variants={animationVariants.itemSmall}>
-                  {tCommon.haveCode}
-                </motion.a>
-                <motion.a href="#" className="form-link" onClick={(e) => e.preventDefault()} variants={animationVariants.itemSmall}>
-                  {tCommon.alreadyMember}
-                </motion.a>
-              </motion.div>
             </motion.div>
           </div>
         </div>

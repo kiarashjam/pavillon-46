@@ -2,6 +2,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/router'
 import { useLanguage } from '../contexts/LanguageContext'
+import { useTranslations } from '../lib/translations'
 import { IMAGE_PATHS } from '../lib/constants'
 import { motion } from 'framer-motion'
 
@@ -9,6 +10,7 @@ export default function Header() {
   const { language, changeLanguage } = useLanguage()
   const router = useRouter()
   const isHomePage = router.pathname === '/'
+  const tHome = useTranslations(language, 'home')
 
   const headerVariants = {
     hidden: { opacity: 0 },
@@ -23,7 +25,7 @@ export default function Header() {
 
   return (
     <motion.header 
-      className={`page-header ${isHomePage ? 'no-background' : ''}`}
+      className={`page-header${isHomePage ? ' is-home' : ''}`}
       variants={headerVariants}
       initial="hidden"
       animate="visible"
@@ -39,6 +41,9 @@ export default function Header() {
             priority
           />
         </Link>
+      </div>
+      <div className="header-center">
+        <span className="opening-date-header">{tHome.openingDate}</span>
       </div>
       <div className="header-right">
         <div className="language-switcher">

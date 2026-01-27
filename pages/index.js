@@ -45,9 +45,6 @@ export default function Home() {
               initial="hidden"
               animate="visible"
             >
-              <motion.div className="opening-date" variants={animationVariants.item}>
-                {t.openingDate}
-              </motion.div>
               <motion.div className="welcome-text" variants={animationVariants.item}>
                 {t.welcomeText}
               </motion.div>
@@ -66,6 +63,7 @@ export default function Home() {
               <motion.div className="slogan" variants={animationVariants.item}>
                 <span className="slogan-part1">{t.sloganPart1}</span>
                 <span className="slogan-part2">{t.sloganPart2}</span>
+                <span className="slogan-part3">{t.sloganPart3}</span>
               </motion.div>
               <motion.div variants={animationVariants.item}>
                 <Link href="/waitlist" className="join-button">
