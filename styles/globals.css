@@ -117,7 +117,7 @@ img {
 
 /* Left Section: image 4 (46 cutout) + legal (~45–50% width) */
 .left-section {
-    width: 48%;
+    width: 50%;
     min-height: 100vh;
     position: relative;
     z-index: 2;
@@ -175,7 +175,7 @@ img {
 
 /* Right Section: image 4 on top + content */
 .right-section {
-    width: 52%;
+    width: 50%;
     min-height: 100vh;
     position: relative;
     z-index: 2;
