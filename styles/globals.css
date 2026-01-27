@@ -89,7 +89,7 @@ img {
     position: fixed;
     inset: 0;
     z-index: 0;
-    background-image: url('/images/background.tif');
+    background-image: url('/images/background.jpg');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
@@ -412,15 +412,74 @@ img {
 
 .page-header .opening-date-header {
     font-family: var(--font-jost), 'Jost', sans-serif;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 500;
     color: rgba(255, 255, 255, 0.95);
     white-space: nowrap;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    padding: 8px 16px;
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
 }
 
-/* Home page only: green */
-.page-header.is-home .opening-date-header {
-    color: var(--color-green);
+.page-header .opening-date-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+        to right,
+        transparent 0%,
+        rgba(255, 255, 255, 0.12) 8%,
+        rgba(255, 255, 255, 0.12) 92%,
+        transparent 100%
+    );
+    pointer-events: none;
+    border-radius: 20px;
+    z-index: -1;
+    mask-image: linear-gradient(
+        to right,
+        transparent 0%,
+        black 10%,
+        black 90%,
+        transparent 100%
+    );
+    -webkit-mask-image: linear-gradient(
+        to right,
+        transparent 0%,
+        black 10%,
+        black 90%,
+        transparent 100%
+    );
+}
+
+.page-header .opening-date-header:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Home page only: darker background for visibility on white backgrounds */
+.page-header.is-home .opening-date-header::before {
+    background: linear-gradient(
+        to right,
+        transparent 0%,
+        rgba(0, 0, 0, 0.25) 8%,
+        rgba(0, 0, 0, 0.25) 92%,
+        transparent 100%
+    );
+}
+
+.page-header.is-home .opening-date-header:hover {
+    background: rgba(0, 0, 0, 0.35);
+    border-color: rgba(255, 255, 255, 0.3);
 }
 
 .header-right {
