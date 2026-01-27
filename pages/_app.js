@@ -6,7 +6,6 @@ import { Jost } from 'next/font/google'
 import { LanguageProvider } from '../contexts/LanguageContext'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useRouter } from 'next/router'
-import LanguageNotification from '../components/LanguageNotification'
 import { animationVariants } from '../lib/constants'
 
 const jost = Jost({
@@ -22,7 +21,6 @@ export default function App({ Component, pageProps }) {
   return (
     <LanguageProvider>
       <div className={jost.variable}>
-        <LanguageNotification />
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={router.asPath}

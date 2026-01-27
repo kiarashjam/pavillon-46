@@ -245,8 +245,10 @@
     
     .opening-date-header {
         font-size: 12px;
-        padding: 7px 14px;
-        letter-spacing: 0.4px;
+        padding: 8px 16px;
+        letter-spacing: 0.6px;
+        font-weight: 600;
+        color: #ffffff;
     }
     
     .page-footer {
