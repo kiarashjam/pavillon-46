@@ -52,7 +52,9 @@
 }
 
 .page-header .opening-date-header {
-    font-size: 13px;
+    font-size: 14px;
+    font-family: Sogo, var(--font-primary), Arial, sans-serif;
+    font-weight: 300;
 }
 
 .header-right {
@@ -74,14 +76,6 @@
     filter: brightness(0) invert(1);
 }
 
-.opening-date-header {
-    font-family: var(--font-jost), 'Jost', sans-serif;
-    font-size: 13px;
-    color: #ffffff;
-    font-weight: 600;
-    letter-spacing: 0.8px;
-    text-transform: uppercase;
-}
 
 .header-right {
     display: flex;

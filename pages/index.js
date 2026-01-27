@@ -8,7 +8,7 @@ import { animationVariants, IMAGE_PATHS } from '../lib/constants'
 import { motion } from 'framer-motion'
 
 export default function Home() {
-  const { language } = useLanguage()
+  const { language, changeLanguage } = useLanguage()
   const t = useTranslations(language, 'home')
   const tCommon = useTranslations(language, 'common')
 
@@ -74,6 +74,23 @@ export default function Home() {
                 {t.footerText}
               </motion.p>
             </motion.div>
+            <div className="language-switcher language-switcher-right-section is-home">
+              <button
+                className={`lang-button ${language === 'fr' ? 'active' : ''}`}
+                onClick={() => changeLanguage('fr')}
+                aria-label="Switch to French"
+              >
+                FR
+              </button>
+              <span className="lang-separator">|</span>
+              <button
+                className={`lang-button ${language === 'en' ? 'active' : ''}`}
+                onClick={() => changeLanguage('en')}
+                aria-label="Switch to English"
+              >
+                EN
+              </button>
+            </div>
           </div>
         </div>
       </PageLayout>

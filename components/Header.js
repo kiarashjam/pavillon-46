@@ -42,27 +42,9 @@ export default function Header() {
           />
         </Link>
       </div>
-      <div className="header-center">
-        <span className="opening-date-header">{tHome.openingDate}</span>
-      </div>
+      <div className="header-center" aria-hidden="true" />
       <div className="header-right">
-        <div className="language-switcher">
-          <button
-            className={`lang-button ${language === 'fr' ? 'active' : ''}`}
-            onClick={() => changeLanguage('fr')}
-            aria-label="Switch to French"
-          >
-            FR
-          </button>
-          <span className="lang-separator">|</span>
-          <button
-            className={`lang-button ${language === 'en' ? 'active' : ''}`}
-            onClick={() => changeLanguage('en')}
-            aria-label="Switch to English"
-          >
-            EN
-          </button>
-        </div>
+        <span className="opening-date-header">{tHome.openingDate}</span>
       </div>
     </motion.header>
   )
