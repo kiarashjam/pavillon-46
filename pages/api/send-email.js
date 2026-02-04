@@ -6,7 +6,9 @@ export default async function handler(req, res) {
     return res.status(405).json({ message: 'Method not allowed' })
   }
 
-  const { fullName, phoneNumber, emailAddress, postalCode, language = 'fr' } = req.body
+  const { firstName, lastName, countryCode = '+33', phoneNumber, emailAddress, postalCode, language = 'fr' } = req.body
+  const fullName = `${firstName} ${lastName}`
+  const fullPhoneNumber = `${countryCode} ${phoneNumber}`
 
   if (!process.env.SENDGRID_API_KEY) {
     console.error('SENDGRID_API_KEY is not defined')
@@ -125,7 +127,7 @@ export default async function handler(req, res) {
             </tr>
             <tr>
               <td style="padding: 12px; border-bottom: 1px solid rgba(238, 238, 238, 0.6); background-color: rgba(248, 249, 250, 0.5);"><strong>${t.admin.phoneLabel}</strong></td>
-              <td style="padding: 12px; border-bottom: 1px solid rgba(238, 238, 238, 0.6);">${phoneNumber}</td>
+              <td style="padding: 12px; border-bottom: 1px solid rgba(238, 238, 238, 0.6);">${fullPhoneNumber}</td>
             </tr>
             <tr>
               <td style="padding: 12px; border-bottom: 1px solid rgba(238, 238, 238, 0.6); background-color: rgba(248, 249, 250, 0.5);"><strong>${t.admin.postalCodeLabel}</strong></td>
@@ -227,7 +229,7 @@ export default async function handler(req, res) {
     to: adminEmail,
     from: fromEmail,
     subject: typeof t.admin.subject === 'function' ? t.admin.subject(fullName) : t.admin.subject,
-    text: `${t.admin.intro}\n${t.admin.nameLabel} ${fullName}\n${t.admin.emailLabel} ${emailAddress}\n${t.admin.phoneLabel} ${phoneNumber}\n${t.admin.postalCodeLabel} ${postalCode}\n\n${t.admin.languageNote}`,
+    text: `${t.admin.intro}\n${t.admin.nameLabel} ${fullName}\n${t.admin.emailLabel} ${emailAddress}\n${t.admin.phoneLabel} ${fullPhoneNumber}\n${t.admin.postalCodeLabel} ${postalCode}\n\n${t.admin.languageNote}`,
     html: adminEmailHtml,
   }
 

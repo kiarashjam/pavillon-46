@@ -544,6 +544,75 @@
         transform: none;
     }
     
+    /* Phone Input Group - Mobile */
+    .phone-input-group {
+        display: flex;
+        align-items: stretch;
+        width: 100%;
+        position: relative;
+    }
+    
+    .country-code-selector {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 10px 10px;
+        background: rgba(255, 255, 255, 0.50);
+        border: 0.5px solid #E77A58;
+        border-right: none;
+        border-radius: 8px 0 0 8px;
+        cursor: pointer;
+        font-family: var(--font-jost), 'Jost', sans-serif;
+        font-size: 13px;
+        min-width: fit-content;
+    }
+    
+    .country-code-selector .country-flag {
+        font-size: 16px;
+    }
+    
+    .country-code-selector .country-code {
+        font-size: 12px;
+    }
+    
+    .country-code-selector .dropdown-arrow {
+        font-size: 7px;
+    }
+    
+    .phone-input-group .phone-input {
+        border-radius: 0 8px 8px 0;
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .country-dropdown {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        width: 260px;
+        max-height: 200px;
+        overflow-y: auto;
+        background: #ffffff;
+        border: 0.5px solid #E77A58;
+        border-radius: 8px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+        z-index: 100;
+        margin-top: 4px;
+    }
+    
+    .country-option {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        padding: 10px 12px;
+        background: transparent;
+        border: none;
+        font-family: var(--font-jost), 'Jost', sans-serif;
+        font-size: 13px;
+        text-align: left;
+    }
+    
     .submit-button {
         width: 100%;
         padding: 10px 20px;
@@ -1002,6 +1071,203 @@
     .language-switcher-right-section .lang-separator {
         display: none;
     }
+
+    /* ============================================
+       INVITE-ONLY HOME PAGE - MOBILE
+       ============================================ */
+    .invite-only-page {
+        width: 100vw;
+        height: 100vh;
+        overflow: hidden;
+        position: relative;
+    }
+
+    .vector-46-container {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+    }
+
+    .vector-46-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: 35% center;
+    }
+
+    .invite-content {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        right: auto;
+        z-index: 5;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        padding: 30px 25px;
+        max-width: 320px;
+        width: 90%;
+        background: rgba(43, 85, 65, 0.65);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border-radius: 24px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 
+            0 8px 32px rgba(0, 0, 0, 0.2),
+            inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    }
+
+    .invite-welcome {
+        font-size: 16px;
+        font-weight: 300;
+        margin-bottom: 12px;
+        color: rgba(255, 255, 255, 0.9);
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        letter-spacing: 0.5px;
+    }
+
+    .invite-logo {
+        margin-bottom: 12px;
+    }
+
+    .invite-logo-image {
+        max-width: 200px;
+        width: 100%;
+        height: auto;
+        filter: brightness(0) invert(1) drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
+    }
+
+    .invite-tagline {
+        font-size: 15px;
+        font-weight: 300;
+        margin-bottom: 20px;
+        color: rgba(255, 255, 255, 0.95);
+        line-height: 1.5;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        animation: none;
+    }
+
+    .invite-tagline .tagline-highlight {
+        color: #f4a574;
+        font-weight: 400;
+        text-shadow: 0 0 10px rgba(244, 165, 116, 0.4);
+    }
+
+    .invite-button {
+        padding: 14px 36px;
+        font-size: 13px;
+        min-width: 180px;
+        border-radius: 30px;
+        background: rgba(203, 181, 218, 0.95);
+        color: #2b5541;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        border: none;
+    }
+
+    .invite-footer {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        padding: 16px;
+        display: flex;
+        justify-content: center;
+        gap: 16px;
+        z-index: 10;
+    }
+
+    .invite-footer .footer-link {
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.8);
+    }
+
+    .invite-footer .footer-dot {
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 11px;
+    }
+
+    .invite-lang-switcher {
+        position: absolute;
+        bottom: 50px;
+        right: 16px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        z-index: 10;
+    }
+
+    .invite-lang-btn {
+        padding: 5px 10px;
+        font-size: 11px;
+        border-radius: 4px;
+        background: transparent;
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        color: rgba(255, 255, 255, 0.7);
+    }
+
+    .invite-lang-btn.active {
+        background: rgba(255, 255, 255, 0.2);
+        border-color: white;
+        color: white;
+    }
+
+    .invite-lang-sep {
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 10px;
+    }
+
+    /* Preload background container for mobile */
+    .preload-bg-container {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 1;
+    }
+
+    .preload-bg-image {
+        width: 100%;
+        height: 100%;
+        background-size: cover;
+        background-position: center;
+    }
+
+    /* Splash Screen - Mobile */
+    .splash-screen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+        padding: 20px;
+    }
+
+    .splash-content {
+        text-align: center;
+    }
+
+    .splash-title {
+        font-size: clamp(40px, 14vw, 80px);
+        letter-spacing: 0.05em;
+    }
+
+    .splash-line {
+        width: 80px;
+        height: 1.5px;
+        margin: 20px auto 0;
+    }
 }
 
 /* Small Mobile (320px - 479px) */
@@ -1064,6 +1330,67 @@
     .language-switcher-right-section {
         bottom: clamp(16px, 4vw, 24px);
         right: clamp(12px, 3vw, 20px);
+    }
+
+    /* INVITE-ONLY HOME PAGE - SMALL MOBILE */
+    .invite-content {
+        max-width: 280px;
+        padding: 24px 20px;
+        background: rgba(43, 85, 65, 0.7);
+        border-radius: 20px;
+    }
+
+    .invite-welcome {
+        font-size: 14px;
+        margin-bottom: 8px;
+    }
+
+    .invite-logo-image {
+        max-width: 160px;
+    }
+
+    .invite-tagline {
+        font-size: 13px;
+        margin-bottom: 16px;
+    }
+
+    .invite-button {
+        padding: 12px 28px;
+        font-size: 11px;
+        min-width: 150px;
+    }
+
+    .invite-footer {
+        padding: 12px;
+        gap: 12px;
+    }
+
+    .invite-footer .footer-link {
+        font-size: 10px;
+    }
+
+    .invite-lang-switcher {
+        bottom: 45px;
+        right: 12px;
+    }
+
+    .invite-lang-btn {
+        padding: 4px 8px;
+        font-size: 10px;
+    }
+
+    /* Splash Screen - Small Mobile */
+    .splash-screen {
+        padding: 20px;
+    }
+
+    .splash-title {
+        font-size: clamp(36px, 12vw, 60px);
+    }
+
+    .splash-line {
+        width: 60px;
+        height: 1.5px;
     }
     
     .language-switcher-right-section .lang-button {
