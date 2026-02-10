@@ -985,22 +985,6 @@ img {
 
 .invite-welcome span {
     display: inline-block;
-    animation: welcomeWave 3s ease-in-out infinite;
-    animation-delay: calc(var(--i, 0) * 0.1s);
-}
-
-@keyframes welcomeWave {
-    0%, 100% {
-        transform: translateY(0) rotateX(0);
-        text-shadow: 0 0 0 transparent;
-    }
-    25% {
-        transform: translateY(-3px) rotateX(5deg);
-        text-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    }
-    75% {
-        transform: translateY(2px) rotateX(-3deg);
-    }
 }
 
 .invite-logo {

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
 import Image from 'next/image'
@@ -15,14 +15,56 @@ export default function Home() {
   const tCommon = useTranslations(language, 'common')
   
   const [isExiting, setIsExiting] = useState(false)
+  const [isBgTransitioning, setIsBgTransitioning] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+  const [isMounted, setIsMounted] = useState(false)
+
+  useEffect(() => {
+    setIsMounted(true)
+    const checkMobile = () => setIsMobile(window.innerWidth <= 767)
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
+  // Generate stable random values for particles (only used client-side)
+  const particles = useMemo(() => {
+    if (typeof window === 'undefined') return []
+    const w = window.innerWidth
+    const h = window.innerHeight
+    return [...Array(40)].map(() => ({
+      initialX: Math.random() * w,
+      initialY: Math.random() * h,
+      initialScale: Math.random() * 0.5 + 0.3,
+      initialOpacity: Math.random() * 0.4 + 0.1,
+      animateX: [Math.random() * w, Math.random() * w, Math.random() * w],
+      animateY: [Math.random() * h, Math.random() * h, Math.random() * h],
+      duration: Math.random() * 20 + 15,
+      dotWidth: Math.random() * 4 + 2,
+      dotHeight: Math.random() * 4 + 2,
+    }))
+  }, [isMounted]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleNavigate = (e) => {
     e.preventDefault()
     setIsExiting(true)
-    // Wait for exit animations to complete before navigating
-    setTimeout(() => {
-      router.push('/waitlist')
-    }, 1800) // Total exit animation time
+
+    if (isMobile) {
+      // Mobile: fade content first (0.8s), then start background transition
+      setTimeout(() => {
+        setIsBgTransitioning(true)
+      }, 800)
+      // Navigate after both animations complete
+      setTimeout(() => {
+        router.push('/waitlist')
+      }, 2200)
+    } else {
+      // Desktop: simultaneous animations
+      setIsBgTransitioning(true)
+      setTimeout(() => {
+        router.push('/waitlist')
+      }, 1800)
+    }
   }
 
   return (
@@ -43,40 +85,32 @@ export default function Home() {
             <div className="orb-2" />
             <div className="orb-3" />
             
-            {/* JS-animated particles */}
-            {[...Array(40)].map((_, i) => (
+            {/* JS-animated particles - only rendered client-side to avoid hydration mismatch */}
+            {isMounted && particles.map((p, i) => (
               <motion.div
                 key={i}
                 className="floating-dot"
                 initial={{
-                  x: Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 1920),
-                  y: Math.random() * (typeof window !== 'undefined' ? window.innerHeight : 1080),
-                  scale: Math.random() * 0.5 + 0.3,
-                  opacity: Math.random() * 0.4 + 0.1
+                  x: p.initialX,
+                  y: p.initialY,
+                  scale: p.initialScale,
+                  opacity: p.initialOpacity
                 }}
                 animate={{
-                  x: [
-                    Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 1920),
-                    Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 1920),
-                    Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 1920)
-                  ],
-                  y: [
-                    Math.random() * (typeof window !== 'undefined' ? window.innerHeight : 1080),
-                    Math.random() * (typeof window !== 'undefined' ? window.innerHeight : 1080),
-                    Math.random() * (typeof window !== 'undefined' ? window.innerHeight : 1080)
-                  ],
+                  x: p.animateX,
+                  y: p.animateY,
                   opacity: [0.1, 0.5, 0.2, 0.4, 0.1],
                   scale: [0.3, 0.6, 0.4, 0.7, 0.3]
                 }}
                 transition={{
-                  duration: Math.random() * 20 + 15,
+                  duration: p.duration,
                   repeat: Infinity,
                   ease: "linear",
                   repeatType: "reverse"
                 }}
                 style={{
-                  width: Math.random() * 4 + 2 + 'px',
-                  height: Math.random() * 4 + 2 + 'px',
+                  width: p.dotWidth + 'px',
+                  height: p.dotHeight + 'px',
                 }}
               />
             ))}
@@ -86,9 +120,9 @@ export default function Home() {
           <motion.div 
             className="preload-bg-container"
             initial={{ opacity: 0 }}
-            animate={isExiting ? { opacity: 1 } : { opacity: 0 }}
+            animate={isBgTransitioning ? { opacity: 1 } : { opacity: 0 }}
             transition={{ 
-              duration: 1.5, 
+              duration: 1.2, 
               delay: 0,
               ease: [0.25, 0.46, 0.45, 0.94] 
             }}
@@ -101,13 +135,13 @@ export default function Home() {
           <motion.div 
             className="vector-46-container"
             initial={{ opacity: 0 }}
-            animate={isExiting 
+            animate={isBgTransitioning 
               ? { opacity: 0 } 
               : { opacity: 1 }
             }
             transition={{ 
-              duration: isExiting ? 1.5 : 1.2, 
-              delay: isExiting ? 0 : 0,
+              duration: isBgTransitioning ? 1.2 : 1.2, 
+              delay: 0,
               ease: [0.25, 0.46, 0.45, 0.94] 
             }}
             aria-hidden="true"
@@ -120,90 +154,58 @@ export default function Home() {
           </motion.div>
 
           {/* Content Section - Right Side */}
-          <div className="invite-content">
-            {/* Welcome text - letter by letter animation */}
+          <motion.div 
+            className="invite-content"
+            initial={{ opacity: 1 }}
+            animate={isExiting 
+              ? { opacity: 0 } 
+              : { opacity: 1 }
+            }
+            transition={{ 
+              duration: isExiting ? (isMobile ? 0.7 : 1.0) : 0.3, 
+              delay: isExiting ? (isMobile ? 0 : 0.4) : 0,
+              ease: [0.25, 0.46, 0.45, 0.94] 
+            }}
+          >
+            {/* Welcome text */}
             <motion.p 
               className="invite-welcome"
-              initial={{ opacity: 0 }}
+              initial={{ opacity: 1 }}
               animate={isExiting 
-                ? { opacity: 0, y: -30, filter: 'blur(10px)', rotateX: -20 } 
-                : { opacity: 1, y: 0, filter: 'blur(0px)', rotateX: 0 }
+                ? { opacity: 0, y: isMobile ? 0 : -30, filter: isMobile ? 'blur(0px)' : 'blur(10px)' } 
+                : { opacity: 1, y: 0, filter: 'blur(0px)' }
               }
               transition={{ 
-                duration: isExiting ? 0.6 : 0.5, 
-                delay: isExiting ? 0 : 0.2,
+                duration: isExiting ? (isMobile ? 0.5 : 0.6) : 0.5, 
+                delay: 0,
                 ease: [0.25, 0.46, 0.45, 0.94] 
               }}
-              style={{ perspective: '500px' }}
             >
-              {t.welcomeText.split('').map((letter, index) => (
-                <motion.span
-                  key={index}
-                  initial={{ 
-                    opacity: 0, 
-                    y: -40,
-                    rotateY: -90,
-                    scale: 0
-                  }}
-                  animate={isExiting 
-                    ? { 
-                        opacity: 0, 
-                        y: -20, 
-                        rotateY: 90,
-                        scale: 0.5,
-                        filter: 'blur(5px)'
-                      } 
-                    : { 
-                        opacity: 1, 
-                        y: 0, 
-                        rotateY: 0,
-                        scale: 1,
-                        filter: 'blur(0px)'
-                      }
-                  }
-                  transition={{ 
-                    duration: 0.6, 
-                    delay: isExiting ? index * 0.02 : 0.3 + index * 0.05,
-                    ease: [0.25, 0.46, 0.45, 0.94]
-                  }}
-                  style={{ 
-                    display: 'inline-block',
-                    transformStyle: 'preserve-3d',
-                    '--i': index
-                  }}
-                >
-                  {letter === ' ' ? '\u00A0' : letter}
-                </motion.span>
-              ))}
+              {t.welcomeText}
             </motion.p>
             
             {/* Logo */}
             <motion.div 
               className="invite-logo"
-              initial={{ opacity: 0, scale: 0.9 }}
+              initial={{ opacity: 1 }}
               animate={isExiting 
-                ? { opacity: 0, scale: 0.8, filter: 'blur(10px)' } 
+                ? { opacity: 0, scale: isMobile ? 1 : 0.8, filter: isMobile ? 'blur(0px)' : 'blur(10px)' } 
                 : { opacity: 1, scale: 1, filter: 'blur(0px)' }
               }
               transition={{ 
-                duration: isExiting ? 0.7 : 1, 
-                delay: isExiting ? 0.15 : 0.5,
+                duration: isExiting ? (isMobile ? 0.5 : 0.7) : 0.5, 
+                delay: 0,
                 ease: [0.25, 0.46, 0.45, 0.94] 
               }}
             >
-              <motion.div
-                animate={isExiting ? {} : { y: [0, -5, 0] }}
-                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-              >
-                <Image 
-                  src={IMAGE_PATHS.logo}
-                  alt="PAVILLON 46" 
-                  width={340} 
-                  height={140}
-                  className="invite-logo-image"
-                  priority
-                />
-              </motion.div>
+              <Image 
+                src={IMAGE_PATHS.logo}
+                alt="PAVILLON 46" 
+                width={340} 
+                height={140}
+                className="invite-logo-image"
+                priority
+              />
             </motion.div>
             
             {/* Tagline with enhanced animations */}
@@ -211,12 +213,12 @@ export default function Home() {
               className="invite-tagline"
               initial={{ opacity: 0, y: 20 }}
               animate={isExiting 
-                ? { opacity: 0, y: 30, filter: 'blur(10px)' } 
+                ? { opacity: 0, y: isMobile ? 0 : 30, filter: isMobile ? 'blur(0px)' : 'blur(10px)' } 
                 : { opacity: 1, y: 0, filter: 'blur(0px)' }
               }
               transition={{ 
-                duration: isExiting ? 0.6 : 0.8, 
-                delay: isExiting ? 0.3 : 0.7,
+                duration: isExiting ? (isMobile ? 0.5 : 0.6) : 0.8, 
+                delay: isExiting ? 0 : 0.7,
                 ease: [0.25, 0.46, 0.45, 0.94] 
               }}
             >
@@ -258,12 +260,12 @@ export default function Home() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={isExiting 
-                ? { opacity: 0, y: 40, scale: 0.9 } 
+                ? { opacity: 0, y: isMobile ? 0 : 40, scale: isMobile ? 1 : 0.9 } 
                 : { opacity: 1, y: 0, scale: 1 }
               }
               transition={{ 
-                duration: isExiting ? 0.5 : 0.8, 
-                delay: isExiting ? 0.45 : 0.9,
+                duration: isExiting ? (isMobile ? 0.5 : 0.5) : 0.8, 
+                delay: isExiting ? 0 : 0.9,
                 ease: [0.25, 0.46, 0.45, 0.94] 
               }}
             >
@@ -277,7 +279,7 @@ export default function Home() {
                 {t.joinButton}
               </motion.button>
             </motion.div>
-          </div>
+          </motion.div>
 
           {/* Footer */}
           <motion.footer 
