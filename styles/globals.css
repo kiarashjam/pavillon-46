@@ -1,39 +1,6 @@
-/* Primary Font: Sogo (local font via @font-face) */
-@font-face {
-    font-family: 'Sogo';
-    src: url('/fonts/Sogo-Regular.woff2') format('woff2');
-    font-weight: 400;
-    font-style: normal;
-    font-display: swap;
-}
-
-@font-face {
-    font-family: 'Sogo';
-    src: url('/fonts/Sogo-Medium.woff2') format('woff2');
-    font-weight: 500;
-    font-style: normal;
-    font-display: swap;
-}
-
-@font-face {
-    font-family: 'Sogo';
-    src: url('/fonts/Sogo-SemiBold.woff2') format('woff2');
-    font-weight: 600;
-    font-style: normal;
-    font-display: swap;
-}
-
-@font-face {
-    font-family: 'Sogo';
-    src: url('/fonts/Sogo-Bold.woff2') format('woff2');
-    font-weight: 700;
-    font-style: normal;
-    font-display: swap;
-}
-
-/* CSS Variable for Primary Font */
+/* CSS Variable for Primary Font (Jost loaded via next/font in _app.js) */
 :root {
-    --font-primary: 'Sogo', Arial, sans-serif;
+    --font-primary: var(--font-jost), 'Jost', Arial, sans-serif;
     --color-green: #4a7c2a;
     --color-green-dark: #2d5016;
 }
@@ -522,7 +489,7 @@ img {
 .page-header .opening-date-header {
     color: #FFF;
     text-align: center;
-    font-family: Sogo, var(--font-primary), Arial, sans-serif;
+    font-family: var(--font-primary);
     font-size: 14px;
     font-style: normal;
     font-weight: 300;
@@ -534,7 +501,7 @@ img {
 .page-header.is-home .opening-date-header {
     color: #FFFFFF;
     text-align: center;
-    font-family: Sogo, var(--font-primary), Arial, sans-serif;
+    font-family: var(--font-primary);
     font-size: 12px;
     font-style: normal;
     font-weight: 300;
@@ -909,7 +876,7 @@ img {
 }
 
 .opening-date-text {
-    font-family: 'Sogo', var(--font-primary), sans-serif;
+    font-family: var(--font-primary);
     font-size: 14px;
     font-weight: 300;
     color: rgba(252, 248, 247, 0.8);
@@ -975,7 +942,7 @@ img {
 }
 
 .invite-welcome {
-    font-family: 'Sogo', var(--font-primary), sans-serif;
+    font-family: var(--font-primary);
     font-size: 30px;
     font-weight: 300;
     color: rgba(252, 248, 247, 0.8);

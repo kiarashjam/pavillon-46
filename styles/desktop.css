@@ -53,7 +53,7 @@
 
 .page-header .opening-date-header {
     font-size: 14px;
-    font-family: Sogo, var(--font-primary), Arial, sans-serif;
+    font-family: var(--font-primary);
     font-weight: 300;
 }
 
@@ -231,6 +231,7 @@
     margin-bottom: 24px;
     width: 100%;
     align-self: stretch;
+    min-height: 220px;
 }
 
 /* Form Input Fields - Desktop */
@@ -285,44 +286,92 @@
 .country-code-selector {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 10px 12px;
-    background: rgba(255, 255, 255, 0.50);
-    border: 0.5px solid #E77A58;
+    gap: 8px;
+    padding: 10px 14px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0.6) 100%);
+    border: 1px solid rgba(231, 122, 88, 0.4);
     border-right: none;
-    border-radius: 8px 0 0 8px;
+    border-radius: 10px 0 0 10px;
     cursor: pointer;
     font-family: var(--font-jost), 'Jost', sans-serif;
     font-size: 14px;
-    font-weight: 400;
+    font-weight: 500;
     color: #333333;
     transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
     white-space: nowrap;
     min-width: fit-content;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 1px 3px rgba(0, 0, 0, 0.04);
+    position: relative;
+    overflow: hidden;
+}
+
+.country-code-selector::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    transition: left 0.5s ease;
+    pointer-events: none;
+}
+
+.country-code-selector:hover::before {
+    left: 100%;
 }
 
 .country-code-selector:hover {
-    background: rgba(255, 255, 255, 0.70);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.75) 100%);
+    border-color: rgba(231, 122, 88, 0.6);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 2px 8px rgba(231, 122, 88, 0.12);
+    transform: translateY(-1px);
+}
+
+.country-code-selector:active {
+    transform: translateY(0);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 1px 2px rgba(0, 0, 0, 0.06);
 }
 
 .country-code-selector .country-flag {
-    font-size: 18px;
+    font-size: 22px;
     line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+    flex-shrink: 0;
 }
 
 .country-code-selector .country-code {
     font-size: 13px;
-    color: #555555;
+    font-weight: 600;
+    color: #444444;
+    letter-spacing: 0.3px;
 }
 
 .country-code-selector .dropdown-arrow {
     font-size: 8px;
-    color: #737373;
+    color: #E77A58;
     margin-left: 2px;
+    transition: transform 0.3s ease;
+}
+
+.country-code-selector.open {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.8) 100%);
+    border-color: rgba(231, 122, 88, 0.7);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 3px 12px rgba(231, 122, 88, 0.15);
+}
+
+.country-code-selector.open .dropdown-arrow {
+    transform: rotate(180deg);
 }
 
 .phone-input-group .phone-input {
-    border-radius: 0 8px 8px 0;
+    border-radius: 0 10px 10px 0;
     flex: 1;
 }
 
@@ -331,13 +380,15 @@
     position: absolute;
     top: 100%;
     left: 0;
-    width: 280px;
-    max-height: 250px;
+    width: 290px;
+    max-height: 260px;
     overflow-y: auto;
-    background: #ffffff;
-    border: 0.5px solid #E77A58;
-    border-radius: 8px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(231, 122, 88, 0.25);
+    border-radius: 12px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12), 0 4px 12px rgba(231, 122, 88, 0.08);
     z-index: 100;
     margin-top: 4px;
 }
@@ -347,39 +398,257 @@
     align-items: center;
     gap: 10px;
     width: 100%;
-    padding: 10px 14px;
+    padding: 11px 16px;
     background: transparent;
     border: none;
+    border-left: 3px solid transparent;
     cursor: pointer;
     font-family: var(--font-jost), 'Jost', sans-serif;
     font-size: 14px;
     color: #333333;
     text-align: left;
-    transition: background 0.2s ease;
+    transition: all 0.2s ease;
 }
 
 .country-option:hover {
-    background: rgba(231, 122, 88, 0.1);
+    background: rgba(231, 122, 88, 0.08);
+    border-left-color: rgba(231, 122, 88, 0.4);
 }
 
 .country-option.selected {
-    background: rgba(231, 122, 88, 0.15);
+    background: rgba(231, 122, 88, 0.12);
+    border-left-color: #E77A58;
 }
 
 .country-option .country-flag {
-    font-size: 18px;
+    font-size: 20px;
     line-height: 1;
+    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.08));
 }
 
 .country-option .country-name {
     flex: 1;
     font-size: 14px;
     color: #333333;
+    font-weight: 400;
 }
 
 .country-option .country-code {
     font-size: 13px;
+    color: #888888;
+    font-weight: 500;
+}
+
+/* =============================================
+   Step Indicator - Desktop
+   ============================================= */
+.step-indicator {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 0;
+    margin-bottom: 24px;
+    padding: 0 10px;
+}
+
+/* Each step column (circle + label) */
+.step-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    min-width: 60px;
+}
+
+/* The numbered circle */
+.step-circle {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-jost), 'Jost', sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    color: rgba(120, 120, 120, 0.6);
+    background: rgba(255, 255, 255, 0.15);
+    border: 1.5px solid rgba(180, 180, 180, 0.35);
+    transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+    position: relative;
+}
+
+.step-circle.active {
+    color: #FFFFFF;
+    background: #2B5541;
+    border-color: #2B5541;
+    box-shadow: 0 2px 12px rgba(43, 85, 65, 0.3), 0 0 0 4px rgba(43, 85, 65, 0.08);
+}
+
+.step-circle.completed {
+    background: #2B5541;
+    border-color: #2B5541;
+    color: #FFFFFF;
+    box-shadow: 0 2px 8px rgba(43, 85, 65, 0.2);
+}
+
+.step-circle span {
+    line-height: 1;
+}
+
+.step-circle svg {
+    display: block;
+}
+
+/* Label below the circle */
+.step-label {
+    font-family: var(--font-jost), 'Jost', sans-serif;
+    font-size: 11px;
+    font-weight: 300;
+    color: rgba(120, 120, 120, 0.5);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+    white-space: nowrap;
+}
+
+.step-label.active {
+    color: #2B5541;
+    font-weight: 400;
+}
+
+/* The line track between circles */
+.step-line-track {
+    flex: 1;
+    height: 2px;
+    background: rgba(180, 180, 180, 0.25);
+    border-radius: 1px;
+    margin: 18px 6px 0 6px; /* vertically center with circle */
+    overflow: hidden;
+    max-width: 70px;
+    min-width: 30px;
+}
+
+.step-line-fill {
+    width: 100%;
+    height: 100%;
+    background: #2B5541;
+    border-radius: 1px;
+    transform-origin: left center;
+}
+
+/* =============================================
+   Step Description Text
+   ============================================= */
+.step-description {
+    font-family: var(--font-jost), 'Jost', sans-serif;
+    font-size: 14px;
+    font-weight: 300;
+    color: #555555;
+    text-align: center;
+    margin: 0 0 16px 0;
+    line-height: 1.5;
+}
+
+.step-description strong {
+    font-weight: 500;
+    color: #333333;
+}
+
+/* =============================================
+   Step Buttons Row (Back + Submit)
+   ============================================= */
+.step-buttons {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+    margin-top: 4px;
+}
+
+.back-button {
+    padding: 12px 20px;
+    background: transparent;
+    color: #555555;
+    border: 0.5px solid rgba(85, 85, 85, 0.3);
+    border-radius: 8px;
+    font-family: var(--font-jost), 'Jost', sans-serif;
+    font-size: 14px;
+    font-weight: 300;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    white-space: nowrap;
+}
+
+.back-button:hover {
+    background: rgba(0, 0, 0, 0.04);
+    border-color: rgba(85, 85, 85, 0.5);
+}
+
+.step-buttons .submit-button {
+    flex: 1;
+    margin-top: 0;
+}
+
+/* =============================================
+   Verification Code Input - Desktop
+   ============================================= */
+.verification-code-input {
+    text-align: center;
+    font-size: 24px !important;
+    font-weight: 400 !important;
+    letter-spacing: 0.4em !important;
+}
+
+/* =============================================
+   Verification Actions (resend)
+   ============================================= */
+.verification-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 2px;
+    margin-bottom: 4px;
+}
+
+.resend-code-btn {
+    background: none;
+    border: none;
+    font-family: var(--font-jost), 'Jost', sans-serif;
+    font-size: 12px;
+    font-weight: 300;
+    color: #2B5541;
+    cursor: pointer;
+    text-decoration: underline;
+    padding: 2px 0;
+    transition: color 0.2s ease;
+}
+
+.resend-code-btn:hover {
+    color: #3d7a5f;
+}
+
+.resend-code-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.resend-cooldown {
+    font-family: var(--font-jost), 'Jost', sans-serif;
+    font-size: 12px;
+    font-weight: 300;
     color: #737373;
+}
+
+/* =============================================
+   Verification Error
+   ============================================= */
+.verification-error {
+    font-family: var(--font-jost), 'Jost', sans-serif;
+    font-size: 13px;
+    font-weight: 400;
+    color: #d44;
+    margin: 2px 0 6px 0;
+    text-align: center;
 }
 
 /* Submit Button - Desktop */
