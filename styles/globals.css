@@ -1,6 +1,6 @@
 /* CSS Variable for Primary Font (Jost loaded locally in _app.js) */
 :root {
-    --font-primary: var(--font-jost), 'Jost', Arial, sans-serif;
+    --font-primary: var(--font-jost), "Jost", sans-serif;
     --color-green: #265640;
     --color-green-dark: #265640;
     --color-coral: #ff6e50;
@@ -492,7 +492,7 @@ img {
 .page-header .opening-date-header {
     color: #FFF;
     text-align: center;
-    font-family: var(--font-primary);
+    font-family: var(--font-jost), "Jost", sans-serif;
     font-size: 14px;
     font-style: normal;
     font-weight: 300;
@@ -504,7 +504,7 @@ img {
 .page-header.is-home .opening-date-header {
     color: #FFFFFF;
     text-align: center;
-    font-family: var(--font-primary);
+    font-family: var(--font-jost), "Jost", sans-serif;
     font-size: 12px;
     font-style: normal;
     font-weight: 300;
@@ -897,7 +897,7 @@ img {
 }
 
 .opening-date-text {
-    font-family: var(--font-primary);
+    font-family: var(--font-jost), "Jost", sans-serif;
     font-size: 14px;
     font-weight: 300;
     color: rgba(252, 248, 247, 0.8);
@@ -963,7 +963,7 @@ img {
 }
 
 .invite-welcome {
-    font-family: var(--font-primary);
+    font-family: var(--font-jost), "Jost", sans-serif;
     font-size: 30px;
     font-weight: 300;
     color: rgba(252, 248, 247, 0.8);

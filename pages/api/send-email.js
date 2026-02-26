@@ -39,7 +39,7 @@ export default async function handler(req, res) {
 
   // Modern email styles with transparency
   const emailWrapperStyle = `
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-family: var(--font-jost), "Jost", sans-serif;
     line-height: 1.6;
     color: #333333;
     background-color: #fafafa;
@@ -108,7 +108,7 @@ export default async function handler(req, res) {
   const t = translations[lang].email
   const currentYear = new Date().getFullYear()
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://pavillon46.ch'
-  const logoUrl = `${siteUrl}/images/logotops.png`
+  const logoUrl = `${siteUrl}/images/logo.png`
 
   const logoBlockHtml = `
     <div style="text-align: center; margin-bottom: 20px;">
