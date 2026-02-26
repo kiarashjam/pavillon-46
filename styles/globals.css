@@ -1,8 +1,11 @@
-/* CSS Variable for Primary Font (Jost loaded via next/font in _app.js) */
+/* CSS Variable for Primary Font (Jost loaded locally in _app.js) */
 :root {
     --font-primary: var(--font-jost), 'Jost', Arial, sans-serif;
-    --color-green: #4a7c2a;
-    --color-green-dark: #2d5016;
+    --color-green: #265640;
+    --color-green-dark: #265640;
+    --color-coral: #ff6e50;
+    --color-lavender: #e0bffc;
+    --color-cream: #fcf8f7;
 }
 
 /* Reset and base styles */
@@ -20,13 +23,13 @@ body {
     height: 100vh;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    background-color: #2b5541;
+    background-color: var(--color-green);
 }
 
 html {
     overflow-x: hidden;
     scroll-behavior: smooth;
-    background-color: #2b5541;
+    background-color: var(--color-green);
 }
 
 /* Smooth transitions for all interactive elements */
@@ -153,8 +156,8 @@ img {
     justify-content: center;
     align-items: flex-start;
     overflow: hidden;
-    background: #F8F7F2;
-    background: linear-gradient(135deg, #F8F7F2 0%, #FDF9F3 50%, #F8F7F2 100%);
+    background: var(--color-cream);
+    background: linear-gradient(135deg, var(--color-cream) 0%, var(--color-cream) 50%, var(--color-cream) 100%);
     background-size: 200% 200%;
     animation: gradientShift 8s ease infinite;
 }
@@ -257,13 +260,13 @@ img {
     text-align: left;
     font-family: var(--font-jost), 'Jost', sans-serif;
     font-size: 12px;
-    color: #2B5541;
+    color: var(--color-green);
     font-weight: 400;
     letter-spacing: 0.02em;
 }
 
 .welcome-text {
-    color: #2B5541;
+    color: var(--color-green);
     text-align: center;
     font-family: var(--font-jost), 'Jost', sans-serif;
     font-size: 30px;
@@ -358,7 +361,7 @@ img {
 
 .slogan-part1 {
     font-family: var(--font-jost), 'Jost', sans-serif;
-    color: #2B5541;
+    color: var(--color-green);
     font-weight: 300;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -366,7 +369,7 @@ img {
 
 .slogan-part2 {
     font-family: var(--font-jost), 'Jost', sans-serif;
-    color: #c76b4a;
+    color: var(--color-coral);
     font-weight: 300;
     margin-left: 0.25em;
     -webkit-font-smoothing: antialiased;
@@ -375,7 +378,7 @@ img {
 
 .slogan-part3 {
     font-family: var(--font-jost), 'Jost', sans-serif;
-    color: #2B5541;
+    color: var(--color-green);
     font-weight: 300;
     margin-left: 0.25em;
     -webkit-font-smoothing: antialiased;
@@ -393,7 +396,7 @@ img {
     min-width: 210px;
     width: max-content;
     height: 40px;
-    background: #C9B2E3;
+    background: var(--color-lavender);
     border-radius: 8px;
     border: none;
     cursor: pointer;
@@ -404,13 +407,13 @@ img {
 }
 
 .join-button:hover {
-    background: #B8A0D0;
+    background: var(--color-lavender);
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(201, 178, 227, 0.4);
 }
 
 .join-button:active {
-    background: #A58BC5;
+    background: var(--color-lavender);
     transform: translateY(0);
     box-shadow: 0 2px 6px rgba(201, 178, 227, 0.3);
 }
@@ -422,7 +425,7 @@ img {
     letter-spacing: 0.02em;
     line-height: 23px;
     text-align: center;
-    color: #2B5541;
+    color: var(--color-green);
     white-space: nowrap;
 }
 
@@ -440,7 +443,7 @@ img {
     letter-spacing: 0.02em;
     line-height: 1.5;
     text-align: center;
-    color: #2B5541;
+    color: var(--color-green);
     white-space: nowrap;
     transition: opacity 0.3s ease, letter-spacing 0.3s ease;
 }
@@ -513,6 +516,24 @@ img {
     align-items: center;
     gap: 20px;
     justify-self: end;
+}
+
+/* Mobile: prevent opening date clipping in header */
+@media (max-width: 480px) {
+    .page-header {
+        padding: 12px 16px;
+    }
+
+    .page-header .opening-date-header,
+    .page-header.is-home .opening-date-header {
+        display: block;
+        max-width: 92px;
+        font-size: 10px;
+        line-height: 1.2;
+        text-align: right;
+        white-space: normal;
+        word-break: normal;
+    }
 }
 
 .logo-link {
@@ -634,31 +655,31 @@ img {
     font-size: 11px;
 }
 
-/* Home page: green (app green #2B5541 / var(--color-green)) */
+/* Home page: green from shared palette */
 .language-switcher-fixed.is-home .lang-button {
     border-color: rgba(43, 85, 65, 0.5);
-    color: #2B5541;
+    color: var(--color-green);
 }
 
 .language-switcher-fixed.is-home .lang-button:hover {
-    color: #2B5541;
+    color: var(--color-green);
     background: rgba(43, 85, 65, 0.15);
-    border-color: #2B5541;
+    border-color: var(--color-green);
 }
 
 .language-switcher-fixed.is-home .lang-button.active {
     color: #fff;
-    background: #2B5541;
-    border-color: #2B5541;
+    background: var(--color-green);
+    border-color: var(--color-green);
 }
 
 .language-switcher-fixed.is-home .lang-button.active:hover {
-    background: #234a36;
-    border-color: #234a36;
+    background: var(--color-green);
+    border-color: var(--color-green);
 }
 
 .language-switcher-fixed.is-home .lang-separator {
-    color: #2B5541;
+    color: var(--color-green);
     opacity: 0.8;
 }
 
@@ -685,28 +706,28 @@ img {
 
 .language-switcher-right-section.is-home .lang-button {
     border-color: rgba(43, 85, 65, 0.5);
-    color: #2B5541;
+    color: var(--color-green);
 }
 
 .language-switcher-right-section.is-home .lang-button:hover {
-    color: #2B5541;
+    color: var(--color-green);
     background: rgba(43, 85, 65, 0.15);
-    border-color: #2B5541;
+    border-color: var(--color-green);
 }
 
 .language-switcher-right-section.is-home .lang-button.active {
     color: #fff;
-    background: #2B5541;
-    border-color: #2B5541;
+    background: var(--color-green);
+    border-color: var(--color-green);
 }
 
 .language-switcher-right-section.is-home .lang-button.active:hover {
-    background: #234a36;
-    border-color: #234a36;
+    background: var(--color-green);
+    border-color: var(--color-green);
 }
 
 .language-switcher-right-section.is-home .lang-separator {
-    color: #2B5541;
+    color: var(--color-green);
     opacity: 0.8;
 }
 
@@ -719,7 +740,7 @@ img {
     width: 100vw;
     height: 100vh;
     max-height: 100vh;
-    background-color: #2b5541;
+    background-color: var(--color-green);
     overflow: hidden;
 }
 
@@ -971,7 +992,7 @@ img {
     font-family: var(--font-jost), 'Jost', sans-serif;
     font-size: 25px;
     font-weight: 300;
-    color: #fcf8f7;
+    color: var(--color-cream);
     margin-bottom: 25px;
     line-height: 1.4;
     animation: taglineFloat 6s ease-in-out infinite;
@@ -987,7 +1008,7 @@ img {
 }
 
 .invite-tagline .tagline-highlight {
-    color: #e77a58;
+    color: var(--color-coral);
     font-style: normal;
     display: inline-block;
     position: relative;
@@ -996,11 +1017,11 @@ img {
 
 @keyframes highlightPulse {
     0%, 100% {
-        color: #e77a58;
+        color: var(--color-coral);
         text-shadow: 0 0 8px rgba(231, 122, 88, 0.3);
     }
     50% {
-        color: #f4a574;
+        color: var(--color-coral);
         text-shadow: 0 0 20px rgba(231, 122, 88, 0.6);
     }
 }
@@ -1012,20 +1033,20 @@ img {
     min-width: 210px;
     height: 40px;
     padding: 11px 40px;
-    background: #cbb5da;
+    background: var(--color-lavender);
     border: none;
     border-radius: 8px;
     font-family: var(--font-jost), 'Jost', sans-serif;
     font-size: 16px;
     font-weight: 500;
-    color: #2b5541;
+    color: var(--color-green);
     text-decoration: none;
     cursor: pointer;
     transition: all 0.3s ease;
 }
 
 .invite-button:hover {
-    background: #b9a0cc;
+    background: var(--color-lavender);
     box-shadow: 0 4px 15px rgba(203, 181, 218, 0.4);
 }
 
@@ -1049,7 +1070,7 @@ img {
 }
 
 .footer-link {
-    font-family: 'Inter', var(--font-jost), sans-serif;
+    font-family: var(--font-jost), 'Jost', sans-serif;
     font-size: 12px;
     font-weight: 400;
     color: white;

@@ -99,7 +99,7 @@
         align-items: center;
         gap: 40px;
         border-radius: 12px;
-        border: 0.5px solid #E77A58;
+        border: 0.5px solid var(--color-coral);
         background: rgba(255, 255, 255, 0.80);
         max-height: 60vh;
         overflow-y: auto;
@@ -107,7 +107,7 @@
     
     .form-heading {
         align-self: stretch;
-        color: #E77A58;
+        color: var(--color-coral);
         text-align: center;
         font-size: 26px;
         font-style: normal;
@@ -127,7 +127,7 @@
         width: 100%;
         padding: 10px 14px;
         font-size: 14px;
-        border: 0.5px solid #E77A58;
+        border: 0.5px solid var(--color-coral);
         border-radius: 8px;
         background: rgba(255, 255, 255, 0.30);
     }
@@ -197,7 +197,7 @@
         line-height: normal;
         text-align: center;
         color: #FFFFFF;
-        background: #2B5541;
+        background: var(--color-green);
         height: 44px;
         margin-top: 2px;
     }

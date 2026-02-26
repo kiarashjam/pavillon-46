@@ -107,11 +107,25 @@ export default async function handler(req, res) {
   const lang = language === 'en' ? 'en' : 'fr'
   const t = translations[lang].email
   const currentYear = new Date().getFullYear()
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://pavillon46.ch'
+  const logoUrl = `${siteUrl}/images/logotops.png`
+
+  const logoBlockHtml = `
+    <div style="text-align: center; margin-bottom: 20px;">
+      <img
+        src="${logoUrl}"
+        alt="Pavillon 46"
+        width="150"
+        style="display: inline-block; max-width: 150px; width: 100%; height: auto;"
+      />
+    </div>
+  `
 
   const adminEmailHtml = `
     <div style="${emailWrapperStyle}">
       <div style="${emailContainerStyle}">
         <div style="${headerStyle}">
+          ${logoBlockHtml}
           <h2 style="margin:0; color:rgba(255, 255, 255, 0.95); font-size: 24px;">${t.admin.title}</h2>
         </div>
         <div style="${contentStyle}">
@@ -163,11 +177,12 @@ export default async function handler(req, res) {
               <!-- Header -->
               <tr>
                 <td style="${headerStyle}">
+                  ${logoBlockHtml}
                   <h1 style="margin: 0; font-size: 32px; font-weight: 700; color: rgba(255, 255, 255, 0.95); letter-spacing: -0.5px;">
                     ${t.user.title}
                   </h1>
                   <p style="margin: 10px 0 0 0; font-size: 16px; color: rgba(255, 255, 255, 0.85);">
-                    ${lang === 'fr' ? 'La vie en couleurs' : 'Life in Full Color'}
+                    ${lang === 'fr' ? 'La vie pleine de couleurs' : 'Life in Full Color'}
                   </p>
                 </td>
               </tr>

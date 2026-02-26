@@ -102,7 +102,7 @@
 .waitlist-page .background-image {
     width: 100%;
     height: 100%;
-    background: linear-gradient(135deg, #2d5016 0%, #4a7c2a 50%, #6b9f3d 100%);
+    background: linear-gradient(135deg, var(--color-green) 0%, var(--color-green) 50%, var(--color-green) 100%);
     background-image: url('/images/background.jpg');
     background-size: cover;
     background-position: center;
@@ -147,7 +147,7 @@
 }
 
 .splash-title {
-    font-family: 'Playfair Display', var(--font-jost), serif;
+    font-family: var(--font-jost), 'Jost', sans-serif;
     font-size: clamp(48px, 10vw, 120px);
     font-weight: 400;
     font-style: italic;
@@ -187,7 +187,7 @@
     align-items: center;
     gap: 40px;
     border-radius: 12px;
-    border: 0.5px solid #E77A58;
+    border: 0.5px solid var(--color-coral);
     background: rgba(255, 255, 255, 0.80);
     max-width: 471px;
     margin: 0 auto;
@@ -213,7 +213,7 @@
 
 .form-heading {
     align-self: stretch;
-    color: #E77A58;
+    color: var(--color-coral);
     text-align: center;
     font-family: var(--font-jost), 'Jost', sans-serif;
     font-size: 40px;
@@ -238,7 +238,7 @@
 .form-input {
     width: 100%;
     padding: 10px 14px;
-    border: 0.5px solid #E77A58;
+    border: 0.5px solid var(--color-coral);
     border-radius: 8px;
     font-family: var(--font-jost), 'Jost', sans-serif;
     font-size: 14px;
@@ -264,14 +264,14 @@
 
 .form-input:focus {
     outline: none;
-    border-color: #E77A58;
+    border-color: var(--color-coral);
     background: rgba(255, 255, 255, 0.30);
     box-shadow: 0 0 0 3px rgba(231, 122, 88, 0.1), 0 4px 12px rgba(0, 0, 0, 0.08);
     transform: scale(1.01);
 }
 
 .form-input:hover:not(:focus) {
-    border-color: #E77A58;
+    border-color: var(--color-coral);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
@@ -355,7 +355,7 @@
 
 .country-code-selector .dropdown-arrow {
     font-size: 8px;
-    color: #E77A58;
+    color: var(--color-coral);
     margin-left: 2px;
     transition: transform 0.3s ease;
 }
@@ -417,7 +417,7 @@
 
 .country-option.selected {
     background: rgba(231, 122, 88, 0.12);
-    border-left-color: #E77A58;
+    border-left-color: var(--color-coral);
 }
 
 .country-option .country-flag {
@@ -480,14 +480,14 @@
 
 .step-circle.active {
     color: #FFFFFF;
-    background: #2B5541;
-    border-color: #2B5541;
+    background: var(--color-green);
+    border-color: var(--color-green);
     box-shadow: 0 2px 12px rgba(43, 85, 65, 0.3), 0 0 0 4px rgba(43, 85, 65, 0.08);
 }
 
 .step-circle.completed {
-    background: #2B5541;
-    border-color: #2B5541;
+    background: var(--color-green);
+    border-color: var(--color-green);
     color: #FFFFFF;
     box-shadow: 0 2px 8px rgba(43, 85, 65, 0.2);
 }
@@ -513,7 +513,7 @@
 }
 
 .step-label.active {
-    color: #2B5541;
+    color: var(--color-green);
     font-weight: 400;
 }
 
@@ -532,7 +532,7 @@
 .step-line-fill {
     width: 100%;
     height: 100%;
-    background: #2B5541;
+    background: var(--color-green);
     border-radius: 1px;
     transform-origin: left center;
 }
@@ -616,7 +616,7 @@
     font-family: var(--font-jost), 'Jost', sans-serif;
     font-size: 12px;
     font-weight: 300;
-    color: #2B5541;
+    color: var(--color-green);
     cursor: pointer;
     text-decoration: underline;
     padding: 2px 0;
@@ -624,7 +624,7 @@
 }
 
 .resend-code-btn:hover {
-    color: #3d7a5f;
+    color: var(--color-green);
 }
 
 .resend-code-btn:disabled {
@@ -655,7 +655,7 @@
 .submit-button {
     width: 100%;
     padding: 12px 20px;
-    background: #2B5541;
+    background: var(--color-green);
     color: #FFFFFF;
     border: none;
     border-radius: 8px;
@@ -674,7 +674,7 @@
 }
 
 .submit-button:hover {
-    background: #3d7a5f;
+    background: var(--color-green);
     transform: translateY(-2px);
     box-shadow: 0 4px 16px rgba(43, 85, 65, 0.2);
 }
@@ -719,12 +719,12 @@
     left: 0;
     width: 0;
     height: 1px;
-    background: #2B5541;
+    background: var(--color-green);
     transition: width 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 .form-link:hover {
-    color: #2B5541;
+    color: var(--color-green);
 }
 
 .form-link:hover::after {

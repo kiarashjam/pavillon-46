@@ -2,14 +2,22 @@ import '../styles/globals.css'
 import '../styles/desktop.css'
 import '../styles/tablet.css'
 import '../styles/mobile.css'
-import { Jost } from 'next/font/google'
+import localFont from 'next/font/local'
 import { LanguageProvider } from '../contexts/LanguageContext'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useRouter } from 'next/router'
 
-const jost = Jost({
-  subsets: ['latin'],
-  weight: ['300', '400', '500', '600', '700'],
+const jost = localFont({
+  src: [
+    {
+      path: '../public/fonts/Jost/Jost-VariableFont_wght.ttf',
+      style: 'normal',
+    },
+    {
+      path: '../public/fonts/Jost/Jost-Italic-VariableFont_wght.ttf',
+      style: 'italic',
+    },
+  ],
   variable: '--font-jost',
   display: 'swap',
 })

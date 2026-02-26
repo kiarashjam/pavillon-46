@@ -3,13 +3,13 @@ import { Html, Head, Main, NextScript } from 'next/document'
 export default function Document() {
   const siteUrl = 'https://pavillon46.ch'
   const siteTitle = 'Pavillon 46'
-  const siteDescription = 'Bienvenue à Pavillon 46 - La vie en couleurs'
+  const siteDescription = 'Bienvenue au Pavillon 46 - La vie pleine de couleurs'
 
   return (
     <Html lang="fr">
       <Head>
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
-        <meta name="theme-color" content="#F8F7F2" />
+        <meta name="theme-color" content="#fcf8f7" />
         
         {/* Favicons */}
         <link rel="icon" type="image/png" sizes="32x32" href="/images/logotops.png" />

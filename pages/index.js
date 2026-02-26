@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
 import Image from 'next/image'
@@ -17,33 +17,13 @@ export default function Home() {
   const [isExiting, setIsExiting] = useState(false)
   const [isBgTransitioning, setIsBgTransitioning] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
-  const [isMounted, setIsMounted] = useState(false)
 
   useEffect(() => {
-    setIsMounted(true)
     const checkMobile = () => setIsMobile(window.innerWidth <= 767)
     checkMobile()
     window.addEventListener('resize', checkMobile)
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
-
-  // Generate stable random values for particles (only used client-side)
-  const particles = useMemo(() => {
-    if (typeof window === 'undefined') return []
-    const w = window.innerWidth
-    const h = window.innerHeight
-    return [...Array(40)].map(() => ({
-      initialX: Math.random() * w,
-      initialY: Math.random() * h,
-      initialScale: Math.random() * 0.5 + 0.3,
-      initialOpacity: Math.random() * 0.4 + 0.1,
-      animateX: [Math.random() * w, Math.random() * w, Math.random() * w],
-      animateY: [Math.random() * h, Math.random() * h, Math.random() * h],
-      duration: Math.random() * 20 + 15,
-      dotWidth: Math.random() * 4 + 2,
-      dotHeight: Math.random() * 4 + 2,
-    }))
-  }, [isMounted]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleNavigate = (e) => {
     e.preventDefault()
@@ -78,44 +58,6 @@ export default function Home() {
 
       <PageLayout showFooter={false}>
         <div className="invite-only-page">
-          {/* Animated floating dots background */}
-          <div className="floating-dots-container" aria-hidden="true">
-            {/* CSS-animated orbs */}
-            <div className="orb-1" />
-            <div className="orb-2" />
-            <div className="orb-3" />
-            
-            {/* JS-animated particles - only rendered client-side to avoid hydration mismatch */}
-            {isMounted && particles.map((p, i) => (
-              <motion.div
-                key={i}
-                className="floating-dot"
-                initial={{
-                  x: p.initialX,
-                  y: p.initialY,
-                  scale: p.initialScale,
-                  opacity: p.initialOpacity
-                }}
-                animate={{
-                  x: p.animateX,
-                  y: p.animateY,
-                  opacity: [0.1, 0.5, 0.2, 0.4, 0.1],
-                  scale: [0.3, 0.6, 0.4, 0.7, 0.3]
-                }}
-                transition={{
-                  duration: p.duration,
-                  repeat: Infinity,
-                  ease: "linear",
-                  repeatType: "reverse"
-                }}
-                style={{
-                  width: p.dotWidth + 'px',
-                  height: p.dotHeight + 'px',
-                }}
-              />
-            ))}
-          </div>
-
           {/* Waitlist background image underneath - preloaded for smooth transition */}
           <motion.div 
             className="preload-bg-container"
