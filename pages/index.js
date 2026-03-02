@@ -160,53 +160,21 @@ export default function Home() {
               />
             </motion.div>
             
-            {/* Tagline with enhanced animations */}
-            <motion.p 
-              className="invite-tagline"
-              initial={{ opacity: 0, y: 20 }}
-              animate={isExiting 
-                ? { opacity: 0, y: isMobile ? 0 : 30, filter: isMobile ? 'blur(0px)' : 'blur(10px)' } 
-                : { opacity: 1, y: 0, filter: 'blur(0px)' }
-              }
-              transition={{ 
-                duration: isExiting ? (isMobile ? 0.5 : 0.6) : 0.8, 
-                delay: isExiting ? 0 : 0.7,
-                ease: [0.25, 0.46, 0.45, 0.94] 
-              }}
-            >
-              <motion.span
-                initial={{ opacity: 0, x: -15 }}
-                animate={isExiting ? { opacity: 0, x: -20 } : { opacity: 1, x: 0 }}
-                transition={{ duration: 0.6, delay: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
-                style={{ display: 'inline-block' }}
-              >
+            {/* Tagline (static, no animation) */}
+            <p className="invite-tagline">
+              <span style={{ display: 'inline-block' }}>
                 {t.sloganPart1}{' '}
-              </motion.span>
-              <motion.span 
+              </span>
+              <span
                 className="tagline-highlight"
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={isExiting 
-                  ? { opacity: 0, scale: 0.8 } 
-                  : { opacity: 1, scale: 1 }
-                }
-                transition={{ 
-                  duration: 0.8, 
-                  delay: 1,
-                  ease: [0.25, 0.46, 0.45, 0.94]
-                }}
                 style={{ display: 'inline-block', marginLeft: '6px', marginRight: '6px' }}
               >
                 {t.sloganPart2}
-              </motion.span>
-              <motion.span
-                initial={{ opacity: 0, x: 15 }}
-                animate={isExiting ? { opacity: 0, x: 20 } : { opacity: 1, x: 0 }}
-                transition={{ duration: 0.6, delay: 1.2, ease: [0.25, 0.46, 0.45, 0.94] }}
-                style={{ display: 'inline-block' }}
-              >
+              </span>
+              <span style={{ display: 'inline-block' }}>
                 {t.sloganPart3}
-              </motion.span>
-            </motion.p>
+              </span>
+            </p>
             
             {/* CTA Button */}
             <motion.div

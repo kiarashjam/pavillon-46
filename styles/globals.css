@@ -1002,35 +1002,15 @@ img {
     color: var(--color-cream);
     margin-bottom: 25px;
     line-height: 1.4;
-    animation: taglineFloat 6s ease-in-out infinite;
-}
-
-@keyframes taglineFloat {
-    0%, 100% {
-        transform: translateY(0);
-    }
-    50% {
-        transform: translateY(-4px);
-    }
 }
 
 .invite-tagline .tagline-highlight {
-    color: var(--color-coral);
+    color: inherit;
+    font-weight: inherit;
+    text-shadow: inherit;
     font-style: normal;
     display: inline-block;
     position: relative;
-    animation: highlightPulse 3s ease-in-out infinite;
-}
-
-@keyframes highlightPulse {
-    0%, 100% {
-        color: var(--color-coral);
-        text-shadow: 0 0 8px rgba(231, 122, 88, 0.3);
-    }
-    50% {
-        color: var(--color-coral);
-        text-shadow: 0 0 20px rgba(231, 122, 88, 0.6);
-    }
 }
 
 .invite-button {
