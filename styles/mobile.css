@@ -314,19 +314,21 @@
     }
     
     .page-header .opening-date-header {
-        font-size: 11px;
+        font-size: 12px;
         color: #FFF;
         text-align: center;
         font-family: var(--font-jost), "Jost", sans-serif;
         font-style: normal;
-        font-weight: 300;
-        line-height: normal;
+        font-weight: 400;
+        line-height: 1.05;
+        letter-spacing: 0.01em;
         white-space: nowrap;
     }
     
     .page-header.is-home .opening-date-header {
         color: #ffffff;
-        font-size: 10px;
+        font-size: 11px;
+        font-weight: 400;
     }
     
     .header-right {
@@ -437,6 +439,74 @@
             rgba(255, 255, 255, 0.15) 0%,
             rgba(255, 255, 255, 0) 100%
         );
+    }
+
+    /* Fixed language switcher - same top style as homepage */
+    .language-switcher-fixed {
+        position: fixed !important;
+        top: max(8px, env(safe-area-inset-top, 8px));
+        left: 50%;
+        right: auto;
+        bottom: auto;
+        transform: translateX(-50%);
+        z-index: 130 !important;
+        display: inline-flex !important;
+        align-items: center;
+        gap: 4px;
+        padding: 4px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.16);
+        backdrop-filter: blur(12px) saturate(150%);
+        -webkit-backdrop-filter: blur(12px) saturate(150%);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        box-shadow:
+            0 8px 22px rgba(0, 0, 0, 0.22),
+            inset 0 1px 0 rgba(255, 255, 255, 0.25);
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+
+    .language-switcher-fixed .lang-button {
+        min-width: 38px;
+        height: 32px;
+        padding: 0 12px;
+        font-size: 11px;
+        font-weight: 500;
+        letter-spacing: 0.04em;
+        border-radius: 999px;
+        background: transparent;
+        border: 1px solid transparent;
+        color: rgba(255, 255, 255, 0.85);
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+
+    .language-switcher-fixed .lang-button:hover {
+        background: rgba(255, 255, 255, 0.14);
+        border-color: rgba(255, 255, 255, 0.28);
+        transform: translateY(-1px);
+    }
+
+    .language-switcher-fixed .lang-button.active {
+        background: #ffffff;
+        border-color: #ffffff;
+        color: var(--color-green);
+        box-shadow: 0 3px 10px rgba(38, 86, 64, 0.24);
+    }
+
+    .language-switcher-fixed .lang-button.active::before {
+        display: none;
+    }
+
+    .language-switcher-fixed .lang-separator {
+        display: none;
+        visibility: hidden !important;
+        opacity: 0 !important;
+    }
+
+    .language-switcher-fixed .lang-button:focus-visible {
+        outline: 2px solid rgba(255, 255, 255, 0.7);
+        outline-offset: 2px;
     }
     
     .form-overlay {
@@ -884,13 +954,14 @@
         font-weight: 300;
         padding: 4px 8px;
         border-radius: 6px;
-        background: rgba(255, 255, 255, 0.5);
-        backdrop-filter: blur(8px);
+        background: transparent;
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
         transition: all 0.2s ease;
         text-decoration: underline;
         position: relative;
         line-height: 1.3;
-        border: 1px solid rgba(0, 0, 0, 0.05);
+        border: none;
     }
     
     .form-link::after {
@@ -899,8 +970,6 @@
     
     .form-link:hover {
         color: var(--color-green);
-        background: rgba(43, 85, 65, 0.08);
-        border-color: rgba(43, 85, 65, 0.15);
         transform: translateY(-1px);
     }
     
@@ -1162,40 +1231,64 @@
         line-height: 1.5;
     }
     
-    /* Footer - Mobile Waitlist/Thank You */
+    /* Footer - Mobile Waitlist/Thank You (match homepage style) */
     .page-footer {
-        padding: 6px 16px max(8px, env(safe-area-inset-bottom, 8px));
-        display: flex;
-        flex-wrap: wrap;
-        gap: 4px;
         position: absolute;
         bottom: 0;
         left: 0;
-        right: 0;
-        z-index: 10;
+        width: 100%;
+        padding: 14px 16px max(10px, env(safe-area-inset-bottom, 10px));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(7, 20, 14, 0.34) 100%);
+        border-top: 1px solid rgba(255, 255, 255, 0.18);
+        z-index: 11;
     }
     
     .page-footer::before {
-        margin-bottom: 4px;
-        height: 0.5px;
+        display: none;
     }
     
     .footer-links-container {
-        gap: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        padding: 0;
+        background: transparent;
+        border: none;
+        border-radius: 0;
+        box-shadow: none;
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
     }
     
     .footer-link {
         font-size: 11px;
+        font-weight: 400;
+        color: rgba(255, 255, 255, 0.9);
+        line-height: 1.2;
+        letter-spacing: 0.02em;
         min-height: auto;
         display: inline-flex;
         align-items: center;
-        color: rgba(255, 255, 255, 0.7);
-        line-height: 1.2;
+        padding: 2px 0;
+        text-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .footer-link:hover {
+        color: #ffffff;
+        opacity: 1;
+        transform: translateY(-1px);
+        background: transparent;
     }
     
     .footer-separator {
-        font-size: 11px;
-        color: rgba(255, 255, 255, 0.5);
+        font-size: 10px;
+        color: rgba(255, 255, 255, 0.65);
+        line-height: 1;
     }
     
     /* Home: language switcher in right section, bottom right - Modern Mobile Design */
@@ -1337,8 +1430,7 @@
         width: 90%;
         min-height: 460px;
         background: rgba(43, 85, 65, 0.65);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
+
         border-radius: 24px;
         border: 1px solid rgba(255, 255, 255, 0.1);
         box-shadow: 
@@ -1403,51 +1495,92 @@
         bottom: 0;
         left: 0;
         width: 100%;
-        padding: 16px;
+        padding: 14px 16px max(10px, env(safe-area-inset-bottom, 10px));
         display: flex;
+        align-items: center;
         justify-content: center;
-        gap: 16px;
-        z-index: 10;
+        gap: 12px;
+        background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(7, 20, 14, 0.34) 100%);
+        border-top: 1px solid rgba(255, 255, 255, 0.18);
+        z-index: 11;
     }
 
     .invite-footer .footer-link {
         font-size: 11px;
-        color: rgba(255, 255, 255, 0.8);
+        font-weight: 400;
+        color: rgba(255, 255, 255, 0.9);
+        letter-spacing: 0.02em;
+        padding: 2px 0;
+        text-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .invite-footer .footer-link:hover {
+        color: #ffffff;
+        opacity: 1;
+        transform: translateY(-1px);
     }
 
     .invite-footer .footer-dot {
-        color: rgba(255, 255, 255, 0.5);
-        font-size: 11px;
+        color: rgba(255, 255, 255, 0.65);
+        font-size: 10px;
+        line-height: 1;
     }
 
     .invite-lang-switcher {
         position: absolute;
-        bottom: 50px;
-        right: 16px;
-        display: flex;
+        top: max(8px, env(safe-area-inset-top, 8px));
+        left: 50%;
+        right: auto;
+        bottom: auto;
+        transform: translateX(-50%);
+        display: inline-flex;
         align-items: center;
-        gap: 6px;
-        z-index: 10;
+        gap: 4px;
+        padding: 4px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.16);
+        backdrop-filter: blur(12px) saturate(150%);
+        -webkit-backdrop-filter: blur(12px) saturate(150%);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        box-shadow:
+            0 8px 22px rgba(0, 0, 0, 0.22),
+            inset 0 1px 0 rgba(255, 255, 255, 0.25);
+        z-index: 110;
     }
 
     .invite-lang-btn {
-        padding: 5px 10px;
+        min-width: 38px;
+        height: 32px;
+        padding: 0 12px;
         font-size: 11px;
-        border-radius: 4px;
+        font-weight: 500;
+        letter-spacing: 0.04em;
+        border-radius: 999px;
         background: transparent;
-        border: 1px solid rgba(255, 255, 255, 0.4);
-        color: rgba(255, 255, 255, 0.7);
+        border: 1px solid transparent;
+        color: rgba(255, 255, 255, 0.85);
+    }
+
+    .invite-lang-btn:hover {
+        background: rgba(255, 255, 255, 0.14);
+        border-color: rgba(255, 255, 255, 0.28);
+        transform: translateY(-1px);
     }
 
     .invite-lang-btn.active {
-        background: rgba(255, 255, 255, 0.2);
-        border-color: white;
-        color: white;
+        background: #ffffff;
+        border-color: #ffffff;
+        color: var(--color-green);
+        box-shadow: 0 3px 10px rgba(38, 86, 64, 0.24);
+    }
+
+    .invite-lang-btn:focus-visible {
+        outline: 2px solid rgba(255, 255, 255, 0.7);
+        outline-offset: 2px;
     }
 
     .invite-lang-sep {
-        color: rgba(255, 255, 255, 0.5);
-        font-size: 10px;
+        display: none;
     }
 
     /* Preload background container for mobile */
@@ -1589,21 +1722,28 @@
     }
 
     .invite-footer {
-        padding: 12px;
-        gap: 12px;
+        padding: 10px 12px max(8px, env(safe-area-inset-bottom, 8px));
+        gap: 9px;
     }
 
     .invite-footer .footer-link {
         font-size: 10px;
+        padding: 2px 0;
     }
 
     .invite-lang-switcher {
-        bottom: 45px;
-        right: 12px;
+        top: max(6px, env(safe-area-inset-top, 6px));
+        left: 50%;
+        right: auto;
+        bottom: auto;
+        transform: translateX(-50%);
+        padding: 3px;
     }
 
     .invite-lang-btn {
-        padding: 4px 8px;
+        min-width: 34px;
+        height: 30px;
+        padding: 0 10px;
         font-size: 10px;
     }
 
@@ -1648,18 +1788,21 @@
     }
     
     .page-header .opening-date-header {
-        font-size: 10px;
+        font-size: 11px;
         color: #FFF;
         text-align: center;
         font-family: var(--font-jost), "Jost", sans-serif;
         font-style: normal;
-        font-weight: 300;
-        line-height: normal;
+        font-weight: 400;
+        line-height: 1.05;
+        letter-spacing: 0.005em;
+        white-space: nowrap;
     }
     
     .page-header.is-home .opening-date-header {
         color: #ffffff;
-        font-size: 10px;
+        font-size: 10.5px;
+        font-weight: 400;
     }
     
     .language-switcher {
@@ -1682,6 +1825,22 @@
     
     .lang-separator {
         display: none;
+    }
+
+    .language-switcher-fixed {
+        top: max(6px, env(safe-area-inset-top, 6px));
+        left: 50%;
+        right: auto;
+        bottom: auto;
+        transform: translateX(-50%);
+        padding: 3px;
+    }
+
+    .language-switcher-fixed .lang-button {
+        min-width: 34px;
+        height: 30px;
+        padding: 0 10px;
+        font-size: 10px;
     }
     
     .form-overlay {
@@ -1792,6 +1951,8 @@
         line-height: 1.3;
         color: #737373;
         font-weight: 300;
+        background: transparent;
+        border: none;
     }
     
     /* Thank You Page - Small Mobile */
@@ -1913,28 +2074,32 @@
     
     /* Footer - Small Mobile */
     .page-footer {
-        padding: 5px 14px max(6px, env(safe-area-inset-bottom, 6px));
+        padding: 10px 12px max(8px, env(safe-area-inset-bottom, 8px));
         display: flex;
     }
     
     .page-footer::before {
-        margin-bottom: 3px;
-        height: 0.5px;
+        display: none;
     }
     
     .footer-links-container {
-        gap: 3px;
+        gap: 9px;
+        padding: 0;
+        background: transparent;
+        border: none;
+        box-shadow: none;
     }
     
     .footer-link {
         font-size: 10px;
         line-height: 1.2;
-        color: rgba(255, 255, 255, 0.7);
+        color: rgba(255, 255, 255, 0.9);
+        padding: 2px 0;
     }
     
     .footer-separator {
         font-size: 10px;
-        color: rgba(255, 255, 255, 0.5);
+        color: rgba(255, 255, 255, 0.62);
     }
     
 }
@@ -1968,9 +2133,14 @@
     }
     
     .go-back-link,
-    .form-link,
-    .footer-link {
+    .form-link {
         min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+    }
+
+    .footer-link {
+        min-height: 32px;
         display: inline-flex;
         align-items: center;
     }
@@ -1980,41 +2150,31 @@
         line-height: 1.2;
     }
     
-    /* Fixed position language switcher – smaller */
+    /* Fixed language switcher - top center on touch devices */
     .language-switcher-fixed {
-        bottom: clamp(12px, 3vw, 16px);
-        right: clamp(12px, 3vw, 20px);
-        z-index: 99999 !important;
+        top: max(8px, env(safe-area-inset-top, 8px)) !important;
+        left: 50% !important;
+        right: auto !important;
+        bottom: auto !important;
+        transform: translateX(-50%) !important;
+        z-index: 130 !important;
         visibility: visible !important;
         opacity: 1 !important;
-        gap: 3px;
+        gap: 4px;
     }
     
     .language-switcher-fixed .lang-button {
         visibility: visible !important;
         opacity: 1 !important;
-        font-size: 10px !important;
-        padding: 3px 8px !important;
+        min-width: 38px !important;
+        min-height: 32px !important;
+        font-size: 11px !important;
+        padding: 0 12px !important;
     }
     
     .language-switcher-fixed .lang-separator {
-        visibility: visible !important;
-        opacity: 1 !important;
-        font-size: 10px !important;
-    }
-    
-    .language-switcher-fixed.is-home .lang-button {
-        border-color: rgba(43, 85, 65, 0.5);
-        color: var(--color-green);
-    }
-    
-    .language-switcher-fixed.is-home .lang-button.active {
-        background: var(--color-green);
-        border-color: var(--color-green);
-        color: #fff;
-    }
-    
-    .language-switcher-fixed.is-home .lang-separator {
-        color: var(--color-green);
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
     }
 }

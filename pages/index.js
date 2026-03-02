@@ -25,8 +25,8 @@ export default function Home() {
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
 
-  const handleNavigate = (e) => {
-    e.preventDefault()
+  const navigateWithExit = (path) => {
+    if (isExiting) return
     setIsExiting(true)
 
     if (isMobile) {
@@ -36,15 +36,25 @@ export default function Home() {
       }, 800)
       // Navigate after both animations complete
       setTimeout(() => {
-        router.push('/waitlist')
+        router.push(path)
       }, 2200)
     } else {
       // Desktop: simultaneous animations
       setIsBgTransitioning(true)
       setTimeout(() => {
-        router.push('/waitlist')
+        router.push(path)
       }, 1800)
     }
+  }
+
+  const handleNavigate = (e) => {
+    e.preventDefault()
+    navigateWithExit('/waitlist')
+  }
+
+  const handleMemberNavigate = (e) => {
+    e.preventDefault()
+    navigateWithExit('/login')
   }
 
   return (
@@ -200,6 +210,7 @@ export default function Home() {
             
             {/* CTA Button */}
             <motion.div
+              className="invite-cta"
               initial={{ opacity: 0, y: 20 }}
               animate={isExiting 
                 ? { opacity: 0, y: isMobile ? 0 : 40, scale: isMobile ? 1 : 0.9 } 
@@ -220,6 +231,14 @@ export default function Home() {
               >
                 {t.joinButton}
               </motion.button>
+              <motion.a
+                href="/login"
+                className="form-link invite-member-link"
+                onClick={handleMemberNavigate}
+                whileHover={{ y: -1, opacity: 0.85 }}
+              >
+                {tCommon.alreadyMember}
+              </motion.a>
             </motion.div>
           </motion.div>
 

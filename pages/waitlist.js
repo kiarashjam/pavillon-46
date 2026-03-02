@@ -576,9 +576,12 @@ export default function Waitlist() {
                       variants={linkVariants}
                     >
                       <motion.a 
-                        href="#" 
+                        href="/login" 
                         className="form-link" 
-                        onClick={(e) => e.preventDefault()}
+                        onClick={(e) => {
+                          e.preventDefault()
+                          router.push('/login')
+                        }}
                         whileHover={{ y: -1, opacity: 0.8 }}
                       >
                         {tCommon.alreadyMember}
