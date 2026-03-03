@@ -304,6 +304,31 @@
         padding: 20px 30px;
     }
 
+    .footer-content {
+        width: 100%;
+        padding: 0;
+        gap: 12px;
+        grid-template-columns: 1fr auto 1fr;
+    }
+
+    .footer-left-content {
+        gap: 10px;
+    }
+
+    .social-icon-link {
+        width: 28px;
+        height: 28px;
+    }
+
+    .social-icon {
+        width: 15px;
+        height: 15px;
+    }
+
+    .footer-elle-mention {
+        font-size: 12px;
+    }
+
     /* ============================================
        INVITE-ONLY HOME PAGE - TABLET
        ============================================ */
@@ -376,8 +401,7 @@
         width: 100%;
         padding: 20px;
         display: flex;
-        justify-content: center;
-        gap: 20px;
+        justify-content: flex-start;
     }
 
     .invite-footer .footer-link {

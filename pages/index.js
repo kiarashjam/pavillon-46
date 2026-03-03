@@ -10,7 +10,7 @@ import { motion } from 'framer-motion'
 
 export default function Home() {
   const router = useRouter()
-  const { language, changeLanguage } = useLanguage()
+  const { language } = useLanguage()
   const t = useTranslations(language, 'home')
   const tCommon = useTranslations(language, 'common')
   
@@ -220,39 +220,61 @@ export default function Home() {
               delay: isExiting ? 0.6 : 1.2 
             }}
           >
-            <a href="/legal" className="footer-link">
-              {tCommon.legal}
-            </a>
-            <span className="footer-dot">•</span>
-            <a href="/privacy" className="footer-link">
-              {tCommon.privacy}
-            </a>
+            <div className="footer-content">
+              <div className="footer-left-content">
+                <div className="footer-social-links">
+                  <a
+                    href="http://instagram.com/pavillon46.ch"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="social-icon-link"
+                    aria-label="Follow Pavillon 46 on Instagram"
+                  >
+                    <svg className="social-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <rect x="3.5" y="3.5" width="17" height="17" rx="5" stroke="currentColor" strokeWidth="2.2" />
+                      <circle cx="12" cy="12" r="3.8" stroke="currentColor" strokeWidth="2.2" />
+                      <circle cx="17.2" cy="6.8" r="1.1" fill="currentColor" />
+                    </svg>
+                  </a>
+                  <a
+                    href="https://www.linkedin.com/company/pavillon46"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="social-icon-link"
+                    aria-label="Visit Pavillon 46 on LinkedIn"
+                  >
+                    <svg className="social-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <rect x="4.2" y="8.8" width="3.2" height="10.8" fill="currentColor" />
+                      <rect x="4.2" y="4.2" width="3.2" height="3.2" fill="currentColor" />
+                      <path d="M10 8.8H13V10.3C13.6 9.2 14.8 8.4 16.4 8.4C19 8.4 20 10.2 20 13V19.6H16.8V13.8C16.8 12.4 16.3 11.4 14.9 11.4C13.6 11.4 13 12.3 13 13.8V19.6H10V8.8Z" fill="currentColor" />
+                    </svg>
+                  </a>
+                </div>
+              </div>
+
+              <div className="footer-links-container">
+                <a href="/legal" className="footer-link">
+                  {tCommon.legal}
+                </a>
+                <span className="footer-separator">•</span>
+                <a href="/privacy" className="footer-link">
+                  {tCommon.privacy}
+                </a>
+              </div>
+
+              <div className="footer-right-content">
+                <a
+                  href="https://www.elle.ch"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="footer-elle-mention"
+                >
+                  {tCommon.asSeenOnElle}
+                </a>
+              </div>
+            </div>
           </motion.footer>
 
-          {/* Language Switcher */}
-          <motion.div 
-            className="invite-lang-switcher"
-            initial={{ opacity: 0 }}
-            animate={isExiting ? { opacity: 0 } : { opacity: 1 }}
-            transition={{ 
-              duration: isExiting ? 0.3 : 0.6, 
-              delay: isExiting ? 0.7 : 1.5 
-            }}
-          >
-            <button
-              className={`invite-lang-btn ${language === 'fr' ? 'active' : ''}`}
-              onClick={() => changeLanguage('fr')}
-            >
-              FR
-            </button>
-            <span className="invite-lang-sep">|</span>
-            <button
-              className={`invite-lang-btn ${language === 'en' ? 'active' : ''}`}
-              onClick={() => changeLanguage('en')}
-            >
-              EN
-            </button>
-          </motion.div>
         </div>
       </PageLayout>
     </>

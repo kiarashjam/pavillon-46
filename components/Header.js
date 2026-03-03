@@ -12,6 +12,26 @@ export default function Header() {
   const isHomePage = router.pathname === '/'
   const tHome = useTranslations(language, 'home')
 
+  const handleLogoNavigation = (e) => {
+    if (isHomePage) return
+
+    // Ensure page-level scroll locks do not leak across routes.
+    document.body.classList.remove('no-scroll')
+    document.documentElement.classList.remove('no-scroll')
+
+    // Add a brief visual transition, then force a clean homepage mount.
+    e.preventDefault()
+    const appRoot = document.getElementById('__next')
+    if (appRoot) {
+      appRoot.style.transition = 'opacity 220ms cubic-bezier(0.25, 0.46, 0.45, 0.94)'
+      appRoot.style.opacity = '0.4'
+    }
+
+    window.setTimeout(() => {
+      window.location.href = '/'
+    }, 220)
+  }
+
   const headerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -31,7 +51,7 @@ export default function Header() {
       animate="visible"
     >
       <div className="header-left">
-        <Link href="/" className="logo-link">
+        <Link href="/" className="logo-link" onClick={handleLogoNavigation}>
           <Image 
             src={IMAGE_PATHS.logo}
             alt="PAVILLON 46" 
@@ -42,7 +62,25 @@ export default function Header() {
           />
         </Link>
       </div>
-      <div className="header-center" aria-hidden="true" />
+      <div className="header-center">
+        <div className="language-switcher" role="group" aria-label="Language switcher">
+          <button
+            className={`lang-button ${language === 'fr' ? 'active' : ''}`}
+            onClick={() => changeLanguage('fr')}
+            aria-label="Switch to French"
+          >
+            FR
+          </button>
+          <span className="lang-separator">|</span>
+          <button
+            className={`lang-button ${language === 'en' ? 'active' : ''}`}
+            onClick={() => changeLanguage('en')}
+            aria-label="Switch to English"
+          >
+            EN
+          </button>
+        </div>
+      </div>
       <div className="header-right">
         <span className="opening-date-header">{tHome.openingDate}</span>
       </div>

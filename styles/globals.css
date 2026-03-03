@@ -6,6 +6,7 @@
     --color-coral: #ff6e50;
     --color-lavender: #e0bffc;
     --color-cream: #fcf8f7;
+    --hero-media-position: center;
 }
 
 /* Reset and base styles */
@@ -69,7 +70,7 @@ img {
     z-index: 0;
     background-image: url('/images/background.jpg');
     background-size: cover;
-    background-position: center;
+    background-position: var(--hero-media-position);
     background-repeat: no-repeat;
     animation: subtleZoom 20s ease-in-out infinite alternate;
 }
@@ -494,7 +495,7 @@ img {
     justify-self: center;
 }
 
-/* Opening Summer 2027: waitlist and other pages — white */
+/* Opening end of 2027: waitlist and other pages — white */
 .page-header .opening-date-header {
     color: #FFF;
     text-align: center;
@@ -604,34 +605,34 @@ img {
     font-weight: 500;
 }
 
-/* Home page only: green */
+/* Home page only: warm gold highlight */
 .page-header.is-home .lang-button {
-    border-color: rgba(74, 124, 42, 0.5);
-    color: var(--color-green);
-    opacity: 0.85;
-}
-
-.page-header.is-home .lang-button:hover {
-    color: var(--color-green-dark);
-    background: rgba(74, 124, 42, 0.12);
-    border-color: var(--color-green);
+    border-color: rgba(255, 255, 255, 0.55);
+    color: rgba(255, 255, 255, 0.95);
     opacity: 1;
 }
 
+.page-header.is-home .lang-button:hover {
+    color: #FFFFFF;
+    background: rgba(255, 255, 255, 0.16);
+    border-color: rgba(255, 255, 255, 0.9);
+}
+
 .page-header.is-home .lang-button.active {
-    color: var(--color-green-dark);
-    background: rgba(74, 124, 42, 0.18);
-    border-color: var(--color-green);
-    box-shadow: 0 2px 8px rgba(74, 124, 42, 0.2);
+    color: #FFFFFF;
+    background: #4A7C2A;
+    border-color: #4A7C2A;
+    box-shadow: 0 2px 10px rgba(74, 124, 42, 0.35);
 }
 
 .page-header.is-home .lang-button.active:hover {
-    background: rgba(74, 124, 42, 0.22);
+    background: #3E6922;
+    border-color: #3E6922;
 }
 
 .page-header.is-home .lang-separator {
-    color: var(--color-green);
-    opacity: 0.7;
+    color: rgba(255, 255, 255, 0.85);
+    opacity: 1;
 }
 
 /* Fixed position language switcher at bottom right – smaller */
@@ -927,7 +928,7 @@ img {
     height: 100%;
     background-image: url('/images/background.jpg');
     background-size: cover;
-    background-position: center;
+    background-position: var(--hero-media-position);
     background-repeat: no-repeat;
 }
 
@@ -948,7 +949,7 @@ img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    object-position: center;
+    object-position: var(--hero-media-position);
     margin: 0;
     padding: 0;
     display: block;
@@ -1225,10 +1226,9 @@ img {
     left: 0;
     right: 0;
     display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 24px;
-    padding: 24px;
+    align-items: stretch;
+    justify-content: flex-start;
+    padding: 24px 0;
     border-top: 0.5px solid rgba(255, 255, 255, 0.3);
     z-index: 10;
 }
@@ -1246,7 +1246,7 @@ img {
     opacity: 0.7;
 }
 
-.footer-dot {
+.footer-separator {
     color: white;
     font-size: 12px;
 }
