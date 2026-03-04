@@ -269,7 +269,14 @@ export default function Home() {
                   rel="noopener noreferrer"
                   className="footer-elle-mention"
                 >
-                  {tCommon.asSeenOnElle}
+                  {tCommon.asSeenOnElle.includes('ELLE') ? (
+                    <>
+                      {tCommon.asSeenOnElle.replace('ELLE', '')}
+                      <span className="footer-elle-brand">ELLE</span>
+                    </>
+                  ) : (
+                    tCommon.asSeenOnElle
+                  )}
                 </a>
               </div>
             </div>

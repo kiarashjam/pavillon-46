@@ -804,7 +804,7 @@
     font-family: var(--font-jost), 'Jost', sans-serif;
     font-size: 14px;
     color: #FFFFFF;
-    text-decoration: underline;
+    text-decoration: none;
     text-underline-offset: 3px;
     text-decoration-thickness: 1.2px;
     text-decoration-color: rgba(255, 255, 255, 0.75);
@@ -826,6 +826,18 @@
 .footer-elle-mention:focus-visible {
     outline: 2px solid rgba(255, 255, 255, 0.75);
     outline-offset: 2px;
+}
+
+.footer-elle-brand {
+    margin-left: 4px;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-thickness: 1.2px;
+    text-decoration-color: rgba(255, 255, 255, 0.75);
+}
+
+.footer-elle-mention:hover .footer-elle-brand {
+    text-decoration-color: #FFFFFF;
 }
 
 .footer-links-container {

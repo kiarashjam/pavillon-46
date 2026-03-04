@@ -72,7 +72,14 @@ export default function Footer() {
               rel="noopener noreferrer"
               className="footer-elle-mention"
             >
-              {t.asSeenOnElle}
+              {t.asSeenOnElle.includes('ELLE') ? (
+                <>
+                  {t.asSeenOnElle.replace('ELLE', '')}
+                  <span className="footer-elle-brand">ELLE</span>
+                </>
+              ) : (
+                t.asSeenOnElle
+              )}
             </a>
           </div>
         </div>
