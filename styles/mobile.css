@@ -859,11 +859,24 @@
         cursor: pointer;
         min-height: 44px;
         white-space: nowrap;
+        flex-shrink: 0;
     }
 
     .step-buttons .submit-button {
         flex: 1;
         margin-top: 0;
+        min-width: 0;
+        padding-left: 12px;
+        padding-right: 12px;
+        font-size: 14px;
+        line-height: 1.25;
+        white-space: normal;
+        text-wrap: balance;
+        overflow-wrap: anywhere;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
     }
 
     .verification-code-input {

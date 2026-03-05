@@ -22,6 +22,7 @@ export default async function handler(req, res) {
 
   const adminEmail = process.env.ADMIN_EMAIL
   const fromEmail = process.env.FROM_EMAIL
+  const fromName = process.env.FROM_NAME || 'Pavillon 46'
 
   if (!adminEmail || !fromEmail) {
     const missing = [].concat(
@@ -242,7 +243,7 @@ export default async function handler(req, res) {
 
   const msgToAdmin = {
     to: adminEmail,
-    from: fromEmail,
+    from: { email: fromEmail, name: fromName },
     subject: typeof t.admin.subject === 'function' ? t.admin.subject(fullName) : t.admin.subject,
     text: `${t.admin.intro}\n${t.admin.nameLabel} ${fullName}\n${t.admin.emailLabel} ${emailAddress}\n${t.admin.phoneLabel} ${fullPhoneNumber}\n${t.admin.postalCodeLabel} ${postalCode}\n\n${t.admin.languageNote}`,
     html: adminEmailHtml,
@@ -250,7 +251,7 @@ export default async function handler(req, res) {
 
   const msgToUser = {
     to: emailAddress,
-    from: fromEmail,
+    from: { email: fromEmail, name: fromName },
     subject: t.user.subject,
     text: `${typeof t.user.greeting === 'function' ? t.user.greeting(fullName) : t.user.greeting}\n\n${t.user.body1.replace(/<strong>|<\/strong>/g, '')}\n\n${t.user.body2}\n\n${t.user.body3}\n\n${t.user.closing}\n${t.user.team}`,
     html: userEmailHtml,
