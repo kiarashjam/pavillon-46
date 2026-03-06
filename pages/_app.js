@@ -3,7 +3,7 @@ import '../styles/desktop.css'
 import '../styles/tablet.css'
 import '../styles/mobile.css'
 import localFont from 'next/font/local'
-import Script from 'next/script'
+import { useEffect } from 'react'
 import { LanguageProvider } from '../contexts/LanguageContext'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useRouter } from 'next/router'
@@ -23,24 +23,78 @@ const jost = localFont({
   display: 'swap',
 })
 
-function VisitorAnalytics() {
-  const clarityProjectId = process.env.NEXT_PUBLIC_CLARITY_PROJECT_ID
+function InternalActivityTracker() {
+  const router = useRouter()
 
-  if (!clarityProjectId) {
-    return null
-  }
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined
 
-  return (
-    <Script id="microsoft-clarity" strategy="afterInteractive">
-      {`
-        (function(c,l,a,r,i,t,y){
-          c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-          t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
-          y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
-        })(window, document, "clarity", "script", "${clarityProjectId}");
-      `}
-    </Script>
-  )
+    const disabled = process.env.NEXT_PUBLIC_ACTIVITY_LOG_ENABLED === 'false'
+    if (disabled) return undefined
+
+    const blockedPathPrefixes = ['/admin/activity']
+    const storageKey = 'p46_activity_session_id'
+    let sessionId = localStorage.getItem(storageKey)
+    if (!sessionId) {
+      sessionId = `${Date.now()}-${Math.random().toString(36).slice(2, 12)}`
+      localStorage.setItem(storageKey, sessionId)
+    }
+
+    const sendEvent = (payload) => {
+      if (!payload?.path) return
+      if (blockedPathPrefixes.some((prefix) => payload.path.startsWith(prefix))) return
+
+      const body = JSON.stringify({
+        ...payload,
+        sessionId,
+        ts: new Date().toISOString(),
+      })
+
+      if (navigator.sendBeacon) {
+        const blob = new Blob([body], { type: 'application/json' })
+        navigator.sendBeacon('/api/activity/log', blob)
+        return
+      }
+
+      fetch('/api/activity/log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body,
+        keepalive: true,
+      }).catch(() => {})
+    }
+
+    const trackPageView = (path) => {
+      sendEvent({ type: 'page_view', path })
+    }
+
+    const trackClick = (event) => {
+      const target = event.target instanceof Element ? event.target.closest('a,button,[data-track]') : null
+      if (!target) return
+
+      const text = (target.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 120)
+      sendEvent({
+        type: 'click',
+        path: window.location.pathname,
+        element: {
+          tag: target.tagName.toLowerCase(),
+          id: target.id || '',
+          text,
+        },
+      })
+    }
+
+    trackPageView(window.location.pathname)
+    router.events.on('routeChangeComplete', trackPageView)
+    document.addEventListener('click', trackClick, true)
+
+    return () => {
+      router.events.off('routeChangeComplete', trackPageView)
+      document.removeEventListener('click', trackClick, true)
+    }
+  }, [router])
+
+  return null
 }
 
 // Cross-fade page transition - pages overlap during transition
@@ -69,7 +123,7 @@ export default function App({ Component, pageProps }) {
 
   return (
     <LanguageProvider>
-      <VisitorAnalytics />
+      <InternalActivityTracker />
       <div className={jost.variable} style={{ position: 'relative', minHeight: '100vh', overflow: 'hidden' }}>
         <AnimatePresence mode="sync" initial={true}>
           <motion.div
