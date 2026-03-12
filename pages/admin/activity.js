@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import Head from 'next/head'
 
 const STORAGE_KEY = 'p46_report_key'
+const EXPORT_LIMIT = 10000
 
 function formatDateTime(value) {
   const date = new Date(value)
@@ -9,18 +10,131 @@ function formatDateTime(value) {
   return date.toLocaleString()
 }
 
+function formatNumber(value) {
+  return new Intl.NumberFormat().format(Number(value) || 0)
+}
+
+function formatFooterDate(value) {
+  if (!value) return 'Not refreshed yet'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return 'Not refreshed yet'
+  return date.toLocaleString()
+}
+
+function toIsoDate(value, inclusiveEnd = false) {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return null
+
+  if (inclusiveEnd) {
+    date.setSeconds(59, 999)
+  } else {
+    date.setSeconds(0, 0)
+  }
+
+  return date.toISOString()
+}
+
+function toLocalDateTimeInput(date) {
+  const value = date instanceof Date ? date : new Date(date)
+  if (Number.isNaN(value.getTime())) return ''
+  return new Date(value.getTime() - value.getTimezoneOffset() * 60000).toISOString().slice(0, 16)
+}
+
+function buildQuery(filters, limitOverride) {
+  const query = new URLSearchParams()
+  if (filters.type) query.set('type', filters.type)
+  if (filters.path) query.set('path', filters.path)
+  if (filters.from) {
+    const fromIso = toIsoDate(filters.from, false)
+    if (fromIso) query.set('from', fromIso)
+  }
+  if (filters.to) {
+    const toIso = toIsoDate(filters.to, true)
+    if (toIso) query.set('to', toIso)
+  }
+  query.set('limit', String(limitOverride ?? filters.limit))
+  return query
+}
+
 function barSeries(events) {
+  if (!events.length) return []
+  const timestamps = events.map((event) => new Date(event.ts).getTime()).filter((value) => !Number.isNaN(value))
+  if (!timestamps.length) return []
+
+  const minTs = Math.min(...timestamps)
+  const maxTs = Math.max(...timestamps)
+  const useDailyBuckets = maxTs - minTs > 1000 * 60 * 60 * 48
+
   const buckets = new Map()
   for (const event of events) {
     const date = new Date(event.ts)
     if (Number.isNaN(date.getTime())) continue
-    const bucket = `${date.getMonth() + 1}/${date.getDate()} ${String(date.getHours()).padStart(2, '0')}:00`
-    buckets.set(bucket, (buckets.get(bucket) || 0) + 1)
+    const bucketDate = new Date(date)
+    bucketDate.setMinutes(0, 0, 0)
+    if (useDailyBuckets) {
+      bucketDate.setHours(0)
+    }
+
+    const key = bucketDate.toISOString()
+    buckets.set(key, (buckets.get(key) || 0) + 1)
   }
 
   return Array.from(buckets.entries())
-    .slice(-12)
-    .map(([label, count]) => ({ label, count }))
+    .sort((a, b) => new Date(a[0]).getTime() - new Date(b[0]).getTime())
+    .slice(-18)
+    .map(([iso, count]) => ({
+      label: useDailyBuckets
+        ? new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+        : new Date(iso).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit' }),
+      count,
+    }))
+}
+
+function csvSafe(value) {
+  const asText = String(value ?? '')
+  const startsWithFormula = /^[=+\-@]/.test(asText)
+  return JSON.stringify(startsWithFormula ? `'${asText}` : asText)
+}
+
+function downloadCsv(events, fileName) {
+  const rows = [
+    [
+      'local_time',
+      'utc_time',
+      'type',
+      'path',
+      'sessionId',
+      'elementTag',
+      'elementId',
+      'elementText',
+      'referrer',
+      'ipHash',
+      'userAgent',
+    ].join(','),
+    ...events.map((event) =>
+      [
+        csvSafe(formatDateTime(event.ts)),
+        csvSafe(event.ts || ''),
+        csvSafe(event.type || ''),
+        csvSafe(event.path || ''),
+        csvSafe(event.sessionId || ''),
+        csvSafe(event.element?.tag || ''),
+        csvSafe(event.element?.id || ''),
+        csvSafe(event.element?.text || ''),
+        csvSafe(event.referrer || ''),
+        csvSafe(event.ipHash || ''),
+        csvSafe(event.userAgent || ''),
+      ].join(',')
+    ),
+  ]
+
+  const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = fileName
+  link.click()
+  URL.revokeObjectURL(url)
 }
 
 export default function ActivityDashboard() {
@@ -29,6 +143,8 @@ export default function ActivityDashboard() {
   const [report, setReport] = useState(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [exporting, setExporting] = useState(false)
+  const [lastRefreshedAt, setLastRefreshedAt] = useState(null)
   const [filters, setFilters] = useState({
     type: 'all',
     path: '',
@@ -51,12 +167,7 @@ export default function ActivityDashboard() {
     setLoading(true)
     setError('')
     try {
-      const query = new URLSearchParams()
-      if (filters.type) query.set('type', filters.type)
-      if (filters.path) query.set('path', filters.path)
-      if (filters.from) query.set('from', new Date(filters.from).toISOString())
-      if (filters.to) query.set('to', new Date(filters.to).toISOString())
-      query.set('limit', String(filters.limit))
+      const query = buildQuery(filters)
 
       const response = await fetch(`/api/activity/report?${query.toString()}`, {
         headers: {
@@ -75,6 +186,7 @@ export default function ActivityDashboard() {
 
       const data = await response.json()
       setReport(data)
+      setLastRefreshedAt(new Date().toISOString())
       sessionStorage.setItem(STORAGE_KEY, key)
       setReportKey(key)
     } catch (fetchError) {
@@ -91,32 +203,64 @@ export default function ActivityDashboard() {
   }, [filters.type, filters.path, filters.from, filters.to, filters.limit, reportKey])
 
   const bars = useMemo(() => barSeries(report?.events || []), [report?.events])
+  const referrers = useMemo(() => {
+    const counts = new Map()
+    for (const event of report?.events || []) {
+      if (!event.referrer) continue
+      counts.set(event.referrer, (counts.get(event.referrer) || 0) + 1)
+    }
 
-  const exportCsv = () => {
-    if (!report?.events?.length) return
-    const rows = [
-      ['time', 'type', 'path', 'sessionId', 'elementTag', 'elementId', 'elementText', 'userAgent'].join(','),
-      ...report.events.map((event) =>
-        [
-          JSON.stringify(event.ts || ''),
-          JSON.stringify(event.type || ''),
-          JSON.stringify(event.path || ''),
-          JSON.stringify(event.sessionId || ''),
-          JSON.stringify(event.element?.tag || ''),
-          JSON.stringify(event.element?.id || ''),
-          JSON.stringify(event.element?.text || ''),
-          JSON.stringify(event.userAgent || ''),
-        ].join(',')
-      ),
-    ]
+    return Array.from(counts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6)
+      .map(([referrer, count]) => ({ referrer, count }))
+  }, [report?.events])
 
-    const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `activity-report-${Date.now()}.csv`
-    link.click()
-    URL.revokeObjectURL(url)
+  const rangeLabel = useMemo(() => {
+    const newest = report?.meta?.latestEventTs
+    const oldest = report?.meta?.oldestEventTs
+    if (!newest || !oldest) return '-'
+    return `${formatDateTime(oldest)} - ${formatDateTime(newest)}`
+  }, [report?.meta?.latestEventTs, report?.meta?.oldestEventTs])
+  const activeFilterCount = useMemo(() => {
+    let count = 0
+    if (filters.type && filters.type !== 'all') count += 1
+    if (filters.path.trim()) count += 1
+    if (filters.from) count += 1
+    if (filters.to) count += 1
+    return count
+  }, [filters])
+  const rowsShown = report?.events?.length || 0
+  const scannedEvents = report?.meta?.scannedEvents || 0
+
+  const exportCsv = async () => {
+    if (!reportKey) return
+    setExporting(true)
+    setError('')
+    try {
+      const query = buildQuery(filters, EXPORT_LIMIT)
+      const response = await fetch(`/api/activity/report?${query.toString()}`, {
+        headers: {
+          'x-report-key': reportKey,
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error('Unable to export report right now.')
+      }
+
+      const data = await response.json()
+      if (!data?.events?.length) {
+        throw new Error('No rows match the current filters.')
+      }
+
+      const fileName = `activity-report-${Date.now()}.csv`
+      downloadCsv(data.events, fileName)
+    } catch (exportError) {
+      setError(exportError.message || 'Unexpected error while exporting CSV.')
+    } finally {
+      setExporting(false)
+    }
   }
 
   if (!reportKey) {
@@ -159,13 +303,18 @@ export default function ActivityDashboard() {
       </Head>
       <main className="activity-admin-page">
         <section className="activity-header-panel">
-          <div>
+          <div className="activity-header-copy">
             <h1>Pavillon 46 Activity Dashboard</h1>
-            <p>Live visitor events from your internal logging API.</p>
+            <p className="activity-subtle-text">
+              Live visitor events from your internal logging API. Storage: <strong>{report?.storage || 'unknown'}</strong>
+            </p>
+            <p className="activity-subtle-text">
+              Showing <strong>{formatNumber(rowsShown)}</strong> rows from <strong>{formatNumber(scannedEvents)}</strong> scanned events.
+            </p>
           </div>
           <div className="activity-header-actions">
-            <button type="button" className="activity-secondary-btn" onClick={exportCsv}>
-              Export CSV
+            <button type="button" className="activity-secondary-btn" onClick={exportCsv} disabled={exporting}>
+              {exporting ? 'Exporting...' : `Export CSV (${EXPORT_LIMIT} max)`}
             </button>
             <button
               type="button"
@@ -183,38 +332,121 @@ export default function ActivityDashboard() {
         </section>
 
         <section className="activity-filter-panel">
-          <select value={filters.type} onChange={(event) => setFilters((prev) => ({ ...prev, type: event.target.value }))}>
-            <option value="all">All events</option>
-            <option value="page_view">Page views</option>
-            <option value="click">Clicks</option>
-          </select>
-          <input
-            type="text"
-            placeholder="Filter by path..."
-            value={filters.path}
-            onChange={(event) => setFilters((prev) => ({ ...prev, path: event.target.value }))}
-          />
-          <input
-            type="datetime-local"
-            value={filters.from}
-            onChange={(event) => setFilters((prev) => ({ ...prev, from: event.target.value }))}
-          />
-          <input
-            type="datetime-local"
-            value={filters.to}
-            onChange={(event) => setFilters((prev) => ({ ...prev, to: event.target.value }))}
-          />
-          <select
-            value={String(filters.limit)}
-            onChange={(event) => setFilters((prev) => ({ ...prev, limit: Number(event.target.value) }))}
+          <div className="activity-filter-heading">
+            <h2>Filters</h2>
+            <p className="activity-subtle-text">
+              Auto-updates on change. Active filters: <strong>{activeFilterCount}</strong>
+            </p>
+          </div>
+          <div className="activity-filter-grid">
+            <label className="activity-filter-field">
+              <span>Event type</span>
+              <select value={filters.type} onChange={(event) => setFilters((prev) => ({ ...prev, type: event.target.value }))}>
+                <option value="all">All events</option>
+                <option value="page_view">Page views</option>
+                <option value="click">Clicks</option>
+              </select>
+            </label>
+            <label className="activity-filter-field">
+              <span>Path contains</span>
+              <input
+                type="text"
+                placeholder="/waitlist, /admin, ..."
+                value={filters.path}
+                onChange={(event) => setFilters((prev) => ({ ...prev, path: event.target.value }))}
+              />
+            </label>
+            <label className="activity-filter-field">
+              <span>From</span>
+              <input
+                type="datetime-local"
+                value={filters.from}
+                onChange={(event) => setFilters((prev) => ({ ...prev, from: event.target.value }))}
+              />
+            </label>
+            <label className="activity-filter-field">
+              <span>To</span>
+              <input
+                type="datetime-local"
+                value={filters.to}
+                onChange={(event) => setFilters((prev) => ({ ...prev, to: event.target.value }))}
+              />
+            </label>
+            <label className="activity-filter-field">
+              <span>Rows on screen</span>
+              <select
+                value={String(filters.limit)}
+                onChange={(event) => setFilters((prev) => ({ ...prev, limit: Number(event.target.value) }))}
+              >
+                <option value="300">300 rows</option>
+                <option value="600">600 rows</option>
+                <option value="1000">1000 rows</option>
+                <option value="2500">2500 rows</option>
+                <option value="5000">5000 rows</option>
+              </select>
+            </label>
+            <div className="activity-filter-actions">
+              <button type="button" className="activity-primary-btn" onClick={() => fetchReport()}>
+                Refresh now
+              </button>
+              <button
+                type="button"
+                className="activity-secondary-btn"
+                onClick={() =>
+                  setFilters((prev) => ({
+                    ...prev,
+                    type: 'all',
+                    path: '',
+                    from: '',
+                    to: '',
+                  }))
+                }
+              >
+                Reset filters
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <section className="activity-quick-range">
+          <button
+            type="button"
+            className="activity-secondary-btn"
+            onClick={() =>
+              setFilters((prev) => ({
+                ...prev,
+                from: toLocalDateTimeInput(new Date(Date.now() - 24 * 60 * 60 * 1000)),
+                to: toLocalDateTimeInput(new Date()),
+              }))
+            }
           >
-            <option value="100">100 rows</option>
-            <option value="300">300 rows</option>
-            <option value="600">600 rows</option>
-            <option value="1000">1000 rows</option>
-          </select>
-          <button type="button" className="activity-primary-btn" onClick={() => fetchReport()}>
-            Refresh
+            Last 24 hours
+          </button>
+          <button
+            type="button"
+            className="activity-secondary-btn"
+            onClick={() =>
+              setFilters((prev) => ({
+                ...prev,
+                from: toLocalDateTimeInput(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)),
+                to: toLocalDateTimeInput(new Date()),
+              }))
+            }
+          >
+            Last 7 days
+          </button>
+          <button
+            type="button"
+            className="activity-secondary-btn"
+            onClick={() =>
+              setFilters((prev) => ({
+                ...prev,
+                from: '',
+                to: '',
+              }))
+            }
+          >
+            Clear date range
           </button>
         </section>
 
@@ -224,20 +456,35 @@ export default function ActivityDashboard() {
         <section className="activity-stats-grid">
           <article className="activity-stat-card">
             <span>Total events</span>
-            <strong>{report?.summary?.totalEvents ?? 0}</strong>
+            <strong>{formatNumber(report?.summary?.totalEvents ?? 0)}</strong>
           </article>
           <article className="activity-stat-card">
             <span>Unique sessions</span>
-            <strong>{report?.summary?.uniqueSessions ?? 0}</strong>
+            <strong>{formatNumber(report?.summary?.uniqueSessions ?? 0)}</strong>
           </article>
           <article className="activity-stat-card">
             <span>Page views</span>
-            <strong>{report?.summary?.pageViews ?? 0}</strong>
+            <strong>{formatNumber(report?.summary?.pageViews ?? 0)}</strong>
           </article>
           <article className="activity-stat-card">
             <span>Clicks</span>
-            <strong>{report?.summary?.clicks ?? 0}</strong>
+            <strong>{formatNumber(report?.summary?.clicks ?? 0)}</strong>
           </article>
+          <article className="activity-stat-card">
+            <span>Scan status</span>
+            <strong>{report?.meta?.truncated ? 'Partial' : 'Complete'}</strong>
+          </article>
+          <article className="activity-stat-card">
+            <span>Date range</span>
+            <strong className="activity-smaller-stat">{rangeLabel}</strong>
+          </article>
+        </section>
+
+        <section className="activity-usage-note">
+          <p>
+            Tip: use <strong>Last 7 days</strong> to see trend direction, then narrow with path and type filters for diagnostics.
+            Export includes more columns than on-screen table for deeper analysis in Excel.
+          </p>
         </section>
 
         <section className="activity-insights-grid">
@@ -285,6 +532,19 @@ export default function ActivityDashboard() {
               {!report?.summary?.topClicks?.length && <li className="activity-empty">No click data yet.</li>}
             </ul>
           </article>
+
+          <article className="activity-panel">
+            <h2>Top referrers</h2>
+            <ul className="activity-top-list">
+              {referrers.map((item) => (
+                <li key={item.referrer}>
+                  <span>{item.referrer}</span>
+                  <strong>{item.count}</strong>
+                </li>
+              ))}
+              {!referrers.length && <li className="activity-empty">No referrer data yet.</li>}
+            </ul>
+          </article>
         </section>
 
         <section className="activity-events-panel">
@@ -325,6 +585,18 @@ export default function ActivityDashboard() {
             </table>
           </div>
         </section>
+
+        <footer className="activity-dashboard-footer">
+          <p>
+            Last refreshed: <strong>{formatFooterDate(lastRefreshedAt)}</strong>
+          </p>
+          <p>
+            Range: <strong>{rangeLabel}</strong>
+          </p>
+          <p>
+            Need full analysis? Use <strong>Export CSV</strong> to open deeper details in Excel.
+          </p>
+        </footer>
       </main>
     </>
   )
