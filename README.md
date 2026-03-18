@@ -256,6 +256,8 @@ Create a `.env.local` file in the project root with the following variables:
 | `SENDGRID_API_KEY` | SendGrid API key for email sending | Yes | `SG.xxxxxxxxxxxxx` |
 | `ADMIN_EMAIL` | Email address to receive waitlist notifications | Yes | `admin@pavillon46.ch` |
 | `FROM_EMAIL` | Email address used as sender (must be verified in SendGrid) | Yes | `noreply@pavillon46.ch` |
+| `ACTIVITY_REPORT_KEY` | Secret key to access activity report endpoints | Yes (activity reporting) | `long-random-secret` |
+| `ACTIVITY_DAILY_REPORT_TO` | Daily report recipient (end of day summary) | No | `pierre.boissart@pavillon46.ch` |
 
 #### Getting SendGrid API Key
 
@@ -729,6 +731,8 @@ Set environment variables in Azure Portal:
    - `SENDGRID_API_KEY`
    - `ADMIN_EMAIL`
    - `FROM_EMAIL`
+   - `ACTIVITY_REPORT_KEY`
+   - `ACTIVITY_DAILY_REPORT_TO`
 3. Save and restart the app
 
 ### Custom Domain

@@ -539,7 +539,9 @@
         gap: clamp(16px, 4vw, 32px);
         border-radius: 24px;
         border: none;
-        background: rgba(255, 255, 255, 0.80);
+        background: rgba(255, 255, 255, 0.92);
+        -webkit-backdrop-filter: blur(10px);
+        backdrop-filter: blur(10px);
         margin: 0 auto;
         margin-top: -18vh;
         overflow-y: auto;
@@ -764,11 +766,11 @@
         align-items: center;
         justify-content: center;
         font-family: var(--font-jost), 'Jost', sans-serif;
-        font-size: 12px;
-        font-weight: 400;
-        color: rgba(120, 120, 120, 0.6);
-        background: rgba(255, 255, 255, 0.15);
-        border: 1.5px solid rgba(180, 180, 180, 0.35);
+        font-size: 13px;
+        font-weight: 500;
+        color: rgba(80, 80, 80, 0.82);
+        background: rgba(255, 255, 255, 0.72);
+        border: 1.5px solid rgba(110, 110, 110, 0.42);
         transition: all 0.4s ease;
     }
 
@@ -792,10 +794,10 @@
 
     .step-label {
         font-family: var(--font-jost), 'Jost', sans-serif;
-        font-size: 9px;
-        font-weight: 300;
-        color: rgba(120, 120, 120, 0.5);
-        letter-spacing: 0.03em;
+        font-size: 10px;
+        font-weight: 500;
+        color: rgba(65, 65, 65, 0.82);
+        letter-spacing: 0.04em;
         text-transform: uppercase;
         transition: all 0.4s ease;
         white-space: nowrap;
@@ -803,13 +805,13 @@
 
     .step-label.active {
         color: var(--color-green);
-        font-weight: 400;
+        font-weight: 600;
     }
 
     .step-line-track {
         flex: 1;
         height: 2px;
-        background: rgba(180, 180, 180, 0.25);
+        background: rgba(110, 110, 110, 0.32);
         border-radius: 1px;
         margin: 15px 4px 0 4px;
         overflow: hidden;
@@ -827,12 +829,12 @@
 
     .step-description {
         font-family: var(--font-jost), 'Jost', sans-serif;
-        font-size: 13px;
-        font-weight: 300;
-        color: #555555;
+        font-size: 14px;
+        font-weight: 400;
+        color: #3f3f3f;
         text-align: center;
         margin: 0 0 12px 0;
-        line-height: 1.5;
+        line-height: 1.55;
     }
 
     .step-description strong {
@@ -1948,7 +1950,9 @@
         gap: clamp(12px, 3vw, 24px);
         border-radius: 24px;
         border: none;
-        background: rgba(255, 255, 255, 0.80);
+        background: rgba(255, 255, 255, 0.92);
+        -webkit-backdrop-filter: blur(10px);
+        backdrop-filter: blur(10px);
         margin: 0 auto;
         margin-top: -18vh;
         overflow-y: auto;

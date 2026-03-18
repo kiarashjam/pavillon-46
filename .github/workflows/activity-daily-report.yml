@@ -1,0 +1,38 @@
+name: Send Daily Activity Report
+
+on:
+  schedule:
+    # 23:30 UTC daily (~end of day in Switzerland, accounting for DST margin)
+    - cron: '30 23 * * *'
+  workflow_dispatch:
+    inputs:
+      day:
+        description: 'Optional report day (YYYY-MM-DD, Europe/Zurich)'
+        required: false
+        type: string
+
+jobs:
+  send_daily_report:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger daily report endpoint
+        env:
+          REPORT_KEY: ${{ secrets.ACTIVITY_REPORT_KEY }}
+          SITE_URL: https://kind-hill-0e0617903.1.azurestaticapps.net
+          DAY: ${{ github.event.inputs.day }}
+        run: |
+          if [ -z "$REPORT_KEY" ]; then
+            echo "::error::Missing ACTIVITY_REPORT_KEY secret"
+            exit 1
+          fi
+
+          URL="$SITE_URL/api/activity/daily-report"
+          if [ -n "$DAY" ]; then
+            URL="$URL?day=$DAY"
+          fi
+
+          echo "Calling: $URL"
+          curl --fail --silent --show-error \
+            -X POST \
+            -H "x-report-key: $REPORT_KEY" \
+            "$URL"
