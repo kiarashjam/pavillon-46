@@ -188,7 +188,9 @@
     gap: 40px;
     border-radius: 12px;
     border: none;
-    background: rgba(255, 255, 255, 0.80);
+    background: rgba(255, 255, 255, 0.92);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
     max-width: 471px;
     margin: 0 auto;
     overflow-y: visible;
@@ -470,10 +472,10 @@
     justify-content: center;
     font-family: var(--font-jost), 'Jost', sans-serif;
     font-size: 14px;
-    font-weight: 400;
-    color: rgba(120, 120, 120, 0.6);
-    background: rgba(255, 255, 255, 0.15);
-    border: 1.5px solid rgba(180, 180, 180, 0.35);
+    font-weight: 500;
+    color: rgba(80, 80, 80, 0.82);
+    background: rgba(255, 255, 255, 0.72);
+    border: 1.5px solid rgba(110, 110, 110, 0.42);
     transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
     position: relative;
 }
@@ -504,8 +506,8 @@
 .step-label {
     font-family: var(--font-jost), 'Jost', sans-serif;
     font-size: 11px;
-    font-weight: 300;
-    color: rgba(120, 120, 120, 0.5);
+    font-weight: 500;
+    color: rgba(65, 65, 65, 0.82);
     letter-spacing: 0.04em;
     text-transform: uppercase;
     transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
@@ -514,14 +516,14 @@
 
 .step-label.active {
     color: var(--color-green);
-    font-weight: 400;
+    font-weight: 600;
 }
 
 /* The line track between circles */
 .step-line-track {
     flex: 1;
     height: 2px;
-    background: rgba(180, 180, 180, 0.25);
+    background: rgba(110, 110, 110, 0.32);
     border-radius: 1px;
     margin: 18px 6px 0 6px; /* vertically center with circle */
     overflow: hidden;
@@ -543,11 +545,11 @@
 .step-description {
     font-family: var(--font-jost), 'Jost', sans-serif;
     font-size: 14px;
-    font-weight: 300;
-    color: #555555;
+    font-weight: 400;
+    color: #3f3f3f;
     text-align: center;
     margin: 0 0 16px 0;
-    line-height: 1.5;
+    line-height: 1.55;
 }
 
 .step-description strong {
