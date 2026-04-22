@@ -29,22 +29,8 @@ const countryCodes = [
   { code: '+974', country: 'QA', flag: '🇶🇦', name: 'Qatar' },
 ]
 
-const HEAR_ABOUT_OPTION_KEYS = [
-  'instagram',
-  'facebook',
-  'linkedin',
-  'tiktok',
-  'youtube',
-  'referral',
-  'member',
-  'search',
-  'elle',
-  'press',
-  'event',
-  'local',
-  'ads',
-  'newsletter',
-]
+const HEAR_ABOUT_OPTION_KEYS = ['social', 'friends', 'press', 'other']
+const HEAR_ABOUT_OTHER_MAX = 500
 
 export default function Waitlist() {
   const router = useRouter()
@@ -77,6 +63,7 @@ export default function Waitlist() {
     emailAddress: '',
     postalCode: '',
     hearAboutKey: '',
+    hearAboutOther: '',
   })
 
   // Close dropdown when clicking outside
@@ -742,7 +729,11 @@ export default function Waitlist() {
                             whileHover={{ x: 2 }}
                             whileTap={{ scale: 0.985 }}
                             onClick={() => {
-                              setFormData((prev) => ({ ...prev, hearAboutKey: key }))
+                              setFormData((prev) => ({
+                                ...prev,
+                                hearAboutKey: key,
+                                hearAboutOther: key === 'other' ? prev.hearAboutOther : '',
+                              }))
                               if (hearAboutError) setHearAboutError('')
                             }}
                           >
@@ -767,6 +758,106 @@ export default function Waitlist() {
                         )
                       })}
                     </motion.div>
+
+                    <AnimatePresence initial={false}>
+                      {formData.hearAboutKey === 'other' ? (
+                        <motion.div
+                          key="hear-other-input"
+                          className="hear-about-other-field"
+                          initial={{ opacity: 0, y: -8, height: 0, filter: 'blur(4px)' }}
+                          animate={{
+                            opacity: 1,
+                            y: 0,
+                            height: 'auto',
+                            filter: 'blur(0px)',
+                            transition: {
+                              type: 'spring',
+                              stiffness: 280,
+                              damping: 26,
+                              mass: 0.9,
+                              when: 'beforeChildren',
+                              staggerChildren: 0.07,
+                              delayChildren: 0.08,
+                            },
+                          }}
+                          exit={{
+                            opacity: 0,
+                            y: -4,
+                            height: 0,
+                            filter: 'blur(3px)',
+                            transition: { duration: 0.22, ease: [0.4, 0, 1, 1] },
+                          }}
+                        >
+                          <motion.div
+                            className="hear-about-other-pill"
+                            variants={{
+                              initial: { opacity: 0, scale: 0.98, y: 4 },
+                              animate: {
+                                opacity: 1,
+                                scale: 1,
+                                y: 0,
+                                transition: { type: 'spring', stiffness: 320, damping: 24 },
+                              },
+                            }}
+                            initial="initial"
+                            animate="animate"
+                          >
+                            <motion.span
+                              className="hear-about-other-icon"
+                              aria-hidden
+                              initial={{ opacity: 0, rotate: -20, scale: 0.6 }}
+                              animate={{
+                                opacity: 1,
+                                rotate: 0,
+                                scale: 1,
+                                transition: { type: 'spring', stiffness: 360, damping: 18, delay: 0.1 },
+                              }}
+                            >
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M12 20h9" />
+                                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5Z" />
+                              </svg>
+                            </motion.span>
+
+                            <motion.input
+                              type="text"
+                              name="hearAboutOther"
+                              className="hear-about-other-input"
+                              placeholder={t.hearAboutOtherPlaceholder}
+                              value={formData.hearAboutOther}
+                              onChange={handleChange}
+                              maxLength={HEAR_ABOUT_OTHER_MAX}
+                              autoComplete="off"
+                              aria-label={t.hearAboutOtherPlaceholder}
+                              initial={{ opacity: 0, x: -6 }}
+                              animate={{
+                                opacity: 1,
+                                x: 0,
+                                transition: { duration: 0.35, ease: [0.22, 1, 0.36, 1], delay: 0.12 },
+                              }}
+                            />
+
+                            <AnimatePresence initial={false}>
+                              {formData.hearAboutOther ? (
+                                <motion.span
+                                  key="counter"
+                                  className="hear-about-other-counter"
+                                  aria-live="polite"
+                                  initial={{ opacity: 0, x: 6 }}
+                                  animate={{ opacity: 1, x: 0 }}
+                                  exit={{ opacity: 0, x: 6 }}
+                                  transition={{ duration: 0.2 }}
+                                >
+                                  {formData.hearAboutOther.length}/{HEAR_ABOUT_OTHER_MAX}
+                                </motion.span>
+                              ) : null}
+                            </AnimatePresence>
+
+                            <span className="hear-about-other-underline" aria-hidden />
+                          </motion.div>
+                        </motion.div>
+                      ) : null}
+                    </AnimatePresence>
 
                     <AnimatePresence>
                       {hearAboutError ? (

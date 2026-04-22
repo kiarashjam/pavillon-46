@@ -15,18 +15,28 @@ function normalizeEmailLang(language) {
   return String(language).trim().toLowerCase() === 'en' ? 'en' : 'fr'
 }
 
-function formatHearAboutHtml(langKey, hearAboutKey) {
+function formatHearAboutHtml(langKey, hearAboutKey, hearAboutOther) {
   const opts = translations[langKey]?.waitlist?.hearAboutOptions
   if (!hearAboutKey || !opts) return '—'
-  const label = opts[hearAboutKey]
-  if (!label) return escapeHtml(String(hearAboutKey))
+  const label = opts[hearAboutKey] || hearAboutKey
+  const trimmedOther =
+    typeof hearAboutOther === 'string' ? hearAboutOther.trim().slice(0, 500) : ''
+  if (hearAboutKey === 'other' && trimmedOther) {
+    return `${escapeHtml(label)} — ${escapeHtml(trimmedOther)}`
+  }
   return escapeHtml(label)
 }
 
-function formatHearAboutPlain(langKey, hearAboutKey) {
+function formatHearAboutPlain(langKey, hearAboutKey, hearAboutOther) {
   const opts = translations[langKey]?.waitlist?.hearAboutOptions
   if (!hearAboutKey || !opts) return '—'
-  return String(opts[hearAboutKey] || hearAboutKey)
+  const label = String(opts[hearAboutKey] || hearAboutKey)
+  const trimmedOther =
+    typeof hearAboutOther === 'string' ? hearAboutOther.trim().slice(0, 500) : ''
+  if (hearAboutKey === 'other' && trimmedOther) {
+    return `${label} — ${trimmedOther.replace(/\s+/g, ' ')}`
+  }
+  return label
 }
 
 export default async function handler(req, res) {
@@ -42,13 +52,14 @@ export default async function handler(req, res) {
     emailAddress,
     postalCode,
     hearAboutKey,
+    hearAboutOther,
     language = 'fr',
   } = req.body
   const emailLang = normalizeEmailLang(language)
   const fullName = `${firstName} ${lastName}`
   const fullPhoneNumber = `${countryCode} ${phoneNumber}`
-  const hearAboutHtml = formatHearAboutHtml(emailLang, hearAboutKey)
-  const hearAboutPlain = formatHearAboutPlain(emailLang, hearAboutKey)
+  const hearAboutHtml = formatHearAboutHtml(emailLang, hearAboutKey, hearAboutOther)
+  const hearAboutPlain = formatHearAboutPlain(emailLang, hearAboutKey, hearAboutOther)
 
   if (!process.env.SENDGRID_API_KEY) {
     console.error('SENDGRID_API_KEY is not defined')
