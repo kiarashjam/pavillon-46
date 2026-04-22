@@ -167,9 +167,20 @@
     }
 
     .step-line-track {
-        max-width: 60px;
-        margin-top: 16px;
+        max-width: 40px;
+        min-width: 14px;
+        margin: 16px 4px 0 4px;
         background: rgba(110, 110, 110, 0.32);
+    }
+
+    .step-item {
+        min-width: 52px;
+        gap: 6px;
+    }
+
+    .step-label {
+        font-size: 10.5px;
+        letter-spacing: 0.02em;
     }
 
     .step-description {

@@ -52,15 +52,13 @@ export default function Waitlist() {
   const t = useTranslations(language, 'waitlist')
   const tCommon = useTranslations(language, 'common')
   
-  // Step: 1 = name, 2 = email/postal, 3 = phone, 4 = code verification
+  // Step: 1 = name, 2 = email/postal, 3 = hear-about, 4 = phone, 5 = code verification
   const [currentStep, setCurrentStep] = useState(1)
   const [status, setStatus] = useState('idle')
   const [isCountryDropdownOpen, setIsCountryDropdownOpen] = useState(false)
   const [selectedCountry, setSelectedCountry] = useState(countryCodes[0])
   const dropdownRef = useRef(null)
-  const [isHearAboutOpen, setIsHearAboutOpen] = useState(false)
   const [hearAboutError, setHearAboutError] = useState('')
-  const hearAboutDropdownRef = useRef(null)
   
   // Verification state
   const [verificationCode, setVerificationCode] = useState('')
@@ -86,9 +84,6 @@ export default function Waitlist() {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsCountryDropdownOpen(false)
-      }
-      if (hearAboutDropdownRef.current && !hearAboutDropdownRef.current.contains(event.target)) {
-        setIsHearAboutOpen(false)
       }
     }
     document.addEventListener('pointerdown', handleClickOutside)
@@ -124,21 +119,27 @@ export default function Waitlist() {
     setCurrentStep(2)
   }
 
-  // Step 2 → Step 3: validate email/postal/hear-about then go to phone step
+  // Step 2 → Step 3: validate email/postal, then go to hear-about step
   const handleStep2Submit = (e) => {
+    e.preventDefault()
+    setDirection(1)
+    setCurrentStep(3)
+  }
+
+  // Step 3 → Step 4: validate hear-about selection, then go to phone step
+  const handleStep3Submit = (e) => {
     e.preventDefault()
     if (!formData.hearAboutKey) {
       setHearAboutError(t.hearAboutValidationSelect)
       return
     }
     setHearAboutError('')
-    setIsHearAboutOpen(false)
     setDirection(1)
-    setCurrentStep(3)
+    setCurrentStep(4)
   }
 
-  // Step 3 → Step 4: submit phone, send SMS code, show code input
-  const handleStep3Submit = async (e) => {
+  // Step 4 → Step 5: submit phone, send SMS code, show code input
+  const handleStep4Submit = async (e) => {
     e.preventDefault()
     if (!formData.phoneNumber) return
 
@@ -157,7 +158,7 @@ export default function Waitlist() {
 
       if (res.ok) {
         setDirection(1)
-        setCurrentStep(4)
+        setCurrentStep(5)
         setCooldown(60)
       } else {
         const data = await res.json()
@@ -297,7 +298,6 @@ export default function Waitlist() {
     setVerificationCode('')
     setStatus('idle')
     setHearAboutError('')
-    setIsHearAboutOpen(false)
     if (currentStep > 1) {
       setDirection(-1)
       setCurrentStep(currentStep - 1)
@@ -530,8 +530,9 @@ export default function Waitlist() {
                 {[
                   { step: 1, label: t.stepName },
                   { step: 2, label: t.stepEmail },
-                  { step: 3, label: t.stepPhone },
-                  { step: 4, label: t.stepVerify },
+                  { step: 3, label: t.stepSource },
+                  { step: 4, label: t.stepPhone },
+                  { step: 5, label: t.stepVerify },
                 ].map(({ step, label }, idx) => (
                   <React.Fragment key={step}>
                     {idx > 0 && (
@@ -681,115 +682,6 @@ export default function Waitlist() {
                         required
                       />
                     </motion.div>
-
-                    <motion.div className="form-group hear-about-field" variants={fieldVariants}>
-                      <div className="hear-about-label-row">
-                        <motion.span
-                          className="hear-about-label-icon"
-                          aria-hidden
-                          initial={{ opacity: 0, rotate: -12, scale: 0.8 }}
-                          animate={{ opacity: 1, rotate: 0, scale: 1 }}
-                          transition={{ type: 'spring', stiffness: 260, damping: 18, delay: 0.2 }}
-                        >
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.65" strokeLinecap="round">
-                            <circle cx="12" cy="12" r="2.25" fill="currentColor" stroke="none" />
-                            <path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.64 5.64l1.41 1.41M16.95 16.95l1.41 1.41M18.36 5.64l-1.41 1.41M5.64 18.36l-1.41 1.41" />
-                          </svg>
-                        </motion.span>
-                        <span className="hear-about-label">{t.hearAboutLabel}</span>
-                      </div>
-                      <div className="hear-about-wrap" ref={hearAboutDropdownRef}>
-                        <motion.button
-                          type="button"
-                          className={`hear-about-selector ${isHearAboutOpen ? 'open' : ''} ${hearAboutError ? 'has-error' : ''}`}
-                          onClick={() => setIsHearAboutOpen((o) => !o)}
-                          whileTap={{ scale: 0.992 }}
-                          aria-haspopup="listbox"
-                          aria-expanded={isHearAboutOpen}
-                          aria-label={t.hearAboutLabel}
-                        >
-                          <span className={formData.hearAboutKey ? 'hear-about-value' : 'hear-about-placeholder-text'}>
-                            {formData.hearAboutKey && t.hearAboutOptions?.[formData.hearAboutKey]
-                              ? t.hearAboutOptions[formData.hearAboutKey]
-                              : t.hearAboutPlaceholder}
-                          </span>
-                          <span className="hear-about-chevron" aria-hidden>▾</span>
-                        </motion.button>
-
-                        <AnimatePresence>
-                          {isHearAboutOpen && (
-                            <motion.div
-                              className="hear-about-dropdown"
-                              role="listbox"
-                              initial={{ opacity: 0, y: -8, scale: 0.97 }}
-                              animate={{ opacity: 1, y: 0, scale: 1 }}
-                              exit={{ opacity: 0, y: -6, scale: 0.98 }}
-                              transition={{ type: 'spring', stiffness: 420, damping: 32 }}
-                              style={{ originY: 0 }}
-                            >
-                              <div className="hear-about-dropdown-shine" aria-hidden />
-                              <motion.ul
-                                className="hear-about-option-list"
-                                variants={hearAboutDropdownListVariants}
-                                initial="hidden"
-                                animate="show"
-                              >
-                                {HEAR_ABOUT_OPTION_KEYS.map((key) => (
-                                  <motion.li
-                                    key={key}
-                                    className="hear-about-option-item"
-                                    variants={hearAboutDropdownItemVariants}
-                                  >
-                                    <button
-                                      type="button"
-                                      role="option"
-                                      aria-selected={formData.hearAboutKey === key}
-                                      className={`hear-about-option ${formData.hearAboutKey === key ? 'selected' : ''}`}
-                                      onClick={() => {
-                                        setFormData((prev) => ({
-                                          ...prev,
-                                          hearAboutKey: key,
-                                        }))
-                                        setHearAboutError('')
-                                        setIsHearAboutOpen(false)
-                                      }}
-                                    >
-                                      <span className="hear-about-option-text">{t.hearAboutOptions?.[key] ?? key}</span>
-                                      {formData.hearAboutKey === key && (
-                                        <motion.span
-                                          className="hear-about-option-check"
-                                          initial={{ scale: 0, opacity: 0 }}
-                                          animate={{ scale: 1, opacity: 1 }}
-                                          transition={{ type: 'spring', stiffness: 500, damping: 22 }}
-                                        >
-                                          ✓
-                                        </motion.span>
-                                      )}
-                                    </button>
-                                  </motion.li>
-                                ))}
-                              </motion.ul>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-
-                        <AnimatePresence>
-                          {hearAboutError ? (
-                            <motion.p
-                              key="hear-err"
-                              className="hear-about-error"
-                              role="alert"
-                              initial={{ opacity: 0, y: -6 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0, y: -4 }}
-                              transition={{ type: 'spring', stiffness: 400, damping: 28 }}
-                            >
-                              {hearAboutError}
-                            </motion.p>
-                          ) : null}
-                        </AnimatePresence>
-                      </div>
-                    </motion.div>
                     
                     <motion.div className="step-buttons" variants={buttonVariants}>
                       <motion.button 
@@ -813,12 +705,113 @@ export default function Waitlist() {
                   </motion.form>
                 )}
 
-                {/* ====== STEP 3: Phone Number ====== */}
+                {/* ====== STEP 3: How did you hear about us? ====== */}
                 {currentStep === 3 && (
-                  <motion.form 
-                    key="step3"
-                    className="waitlist-form" 
+                  <motion.form
+                    key="step3-source"
+                    className="waitlist-form hear-about-step-form"
                     onSubmit={handleStep3Submit}
+                    custom={direction}
+                    variants={stepVariants}
+                    initial="enter"
+                    animate="center"
+                    exit="exit"
+                  >
+                    <motion.p className="step-description" variants={descriptionVariants}>
+                      {t.hearAboutStepDescription || t.hearAboutLabel}
+                    </motion.p>
+
+                    <motion.div
+                      className={`hear-about-step-list ${hearAboutError ? 'has-error' : ''}`}
+                      role="radiogroup"
+                      aria-label={t.hearAboutLabel}
+                      variants={hearAboutDropdownListVariants}
+                      initial="hidden"
+                      animate="show"
+                    >
+                      {HEAR_ABOUT_OPTION_KEYS.map((key) => {
+                        const selected = formData.hearAboutKey === key
+                        return (
+                          <motion.button
+                            key={key}
+                            type="button"
+                            role="radio"
+                            aria-checked={selected}
+                            className={`hear-about-step-option ${selected ? 'selected' : ''}`}
+                            variants={hearAboutDropdownItemVariants}
+                            whileHover={{ x: 2 }}
+                            whileTap={{ scale: 0.985 }}
+                            onClick={() => {
+                              setFormData((prev) => ({ ...prev, hearAboutKey: key }))
+                              if (hearAboutError) setHearAboutError('')
+                            }}
+                          >
+                            <span className="hear-about-step-radio" aria-hidden>
+                              <svg
+                                width="12"
+                                height="12"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="3"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              >
+                                <polyline points="20 6 9 17 4 12" />
+                              </svg>
+                            </span>
+                            <span className="hear-about-step-option-text">
+                              {t.hearAboutOptions?.[key] ?? key}
+                            </span>
+                          </motion.button>
+                        )
+                      })}
+                    </motion.div>
+
+                    <AnimatePresence>
+                      {hearAboutError ? (
+                        <motion.p
+                          key="hear-step-err"
+                          className="hear-about-error"
+                          role="alert"
+                          initial={{ opacity: 0, y: -4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -2 }}
+                          transition={{ type: 'spring', stiffness: 400, damping: 28 }}
+                        >
+                          {hearAboutError}
+                        </motion.p>
+                      ) : null}
+                    </AnimatePresence>
+
+                    <motion.div className="step-buttons" variants={buttonVariants}>
+                      <motion.button
+                        type="button"
+                        className="back-button"
+                        onClick={handleBack}
+                        whileHover={{ x: -4, scale: 1.02 }}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        {t.backButton}
+                      </motion.button>
+                      <motion.button
+                        type="submit"
+                        className="submit-button"
+                        whileHover={{ scale: 1.05, y: -2, boxShadow: '0 8px 30px rgba(43, 85, 65, 0.3)' }}
+                        whileTap={{ scale: 0.95, y: 0 }}
+                      >
+                        {t.continueButton}
+                      </motion.button>
+                    </motion.div>
+                  </motion.form>
+                )}
+
+                {/* ====== STEP 4: Phone Number ====== */}
+                {currentStep === 4 && (
+                  <motion.form 
+                    key="step4-phone"
+                    className="waitlist-form" 
+                    onSubmit={handleStep4Submit}
                     custom={direction}
                     variants={stepVariants}
                     initial="enter"
@@ -915,9 +908,9 @@ export default function Waitlist() {
                 )}
 
                 {/* ====== STEP 4: Verification Code ====== */}
-                {currentStep === 4 && (
+                {currentStep === 5 && (
                   <motion.form 
-                    key="step4"
+                    key="step5-verify"
                     className="waitlist-form" 
                     onSubmit={handleCodeSubmit}
                     custom={direction}
