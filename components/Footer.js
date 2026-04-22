@@ -31,7 +31,7 @@ export default function Footer() {
           <div className="footer-left-content">
             <div className="footer-social-links">
               <a
-                href="http://instagram.com/pavillon46.ch"
+                href="https://www.instagram.com/pavillon.46/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="social-icon-link"
@@ -67,7 +67,7 @@ export default function Footer() {
 
           <div className="footer-right-content">
             <a
-              href="https://www.elle.ch"
+              href="https://elle.ch/151015/lifestyle/pavillon-46-le-gout-des-instants-partages"
               target="_blank"
               rel="noopener noreferrer"
               className="footer-elle-mention"

@@ -739,6 +739,38 @@
         font-size: 13px;
         text-align: left;
     }
+
+    .hear-about-field {
+        z-index: 3;
+    }
+
+    .hear-about-label {
+        font-size: 13px;
+    }
+
+    .hear-about-selector {
+        padding: 11px 14px;
+        font-size: 13px;
+        border-radius: 8px;
+    }
+
+    .hear-about-dropdown {
+        max-height: 240px;
+        border-radius: 10px;
+    }
+
+    .hear-about-option-list {
+        max-height: 228px;
+    }
+
+    .hear-about-option {
+        padding: 10px 12px 10px 14px;
+        font-size: 13px;
+    }
+
+    .hear-about-option:hover {
+        padding-left: 15px;
+    }
     
     /* Step Indicator - Mobile */
     .step-indicator {

@@ -1,14 +1,54 @@
 import sgMail from '@sendgrid/mail'
 import { translations } from '../../lib/translations'
 
+function escapeHtml(text) {
+  if (text == null || text === '') return ''
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
+function normalizeEmailLang(language) {
+  if (language == null) return 'fr'
+  return String(language).trim().toLowerCase() === 'en' ? 'en' : 'fr'
+}
+
+function formatHearAboutHtml(langKey, hearAboutKey) {
+  const opts = translations[langKey]?.waitlist?.hearAboutOptions
+  if (!hearAboutKey || !opts) return '—'
+  const label = opts[hearAboutKey]
+  if (!label) return escapeHtml(String(hearAboutKey))
+  return escapeHtml(label)
+}
+
+function formatHearAboutPlain(langKey, hearAboutKey) {
+  const opts = translations[langKey]?.waitlist?.hearAboutOptions
+  if (!hearAboutKey || !opts) return '—'
+  return String(opts[hearAboutKey] || hearAboutKey)
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ message: 'Method not allowed' })
   }
 
-  const { firstName, lastName, countryCode = '+33', phoneNumber, emailAddress, postalCode, language = 'fr' } = req.body
+  const {
+    firstName,
+    lastName,
+    countryCode = '+33',
+    phoneNumber,
+    emailAddress,
+    postalCode,
+    hearAboutKey,
+    language = 'fr',
+  } = req.body
+  const emailLang = normalizeEmailLang(language)
   const fullName = `${firstName} ${lastName}`
   const fullPhoneNumber = `${countryCode} ${phoneNumber}`
+  const hearAboutHtml = formatHearAboutHtml(emailLang, hearAboutKey)
+  const hearAboutPlain = formatHearAboutPlain(emailLang, hearAboutKey)
 
   if (!process.env.SENDGRID_API_KEY) {
     console.error('SENDGRID_API_KEY is not defined')
@@ -105,7 +145,7 @@ export default async function handler(req, res) {
   `;
 
   // Get email translations
-  const lang = language === 'en' ? 'en' : 'fr'
+  const lang = emailLang
   const t = translations[lang].email
   const currentYear = new Date().getFullYear()
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://pavillon46.ch'
@@ -147,6 +187,10 @@ export default async function handler(req, res) {
             <tr>
               <td style="padding: 12px; border-bottom: 1px solid rgba(238, 238, 238, 0.6); background-color: rgba(248, 249, 250, 0.5);"><strong>${t.admin.postalCodeLabel}</strong></td>
               <td style="padding: 12px; border-bottom: 1px solid rgba(238, 238, 238, 0.6);">${postalCode}</td>
+            </tr>
+            <tr>
+              <td style="padding: 12px; border-bottom: 1px solid rgba(238, 238, 238, 0.6); background-color: rgba(248, 249, 250, 0.5);"><strong>${t.admin.hearAboutLabel}</strong></td>
+              <td style="padding: 12px; border-bottom: 1px solid rgba(238, 238, 238, 0.6);">${hearAboutHtml}</td>
             </tr>
             <tr>
               <td style="padding: 12px; border-top: 2px solid rgba(221, 221, 221, 0.5); background-color: rgba(240, 244, 255, 0.4);" colspan="2">
@@ -245,7 +289,7 @@ export default async function handler(req, res) {
     to: adminEmail,
     from: { email: fromEmail, name: fromName },
     subject: typeof t.admin.subject === 'function' ? t.admin.subject(fullName) : t.admin.subject,
-    text: `${t.admin.intro}\n${t.admin.nameLabel} ${fullName}\n${t.admin.emailLabel} ${emailAddress}\n${t.admin.phoneLabel} ${fullPhoneNumber}\n${t.admin.postalCodeLabel} ${postalCode}\n\n${t.admin.languageNote}`,
+    text: `${t.admin.intro}\n${t.admin.nameLabel} ${fullName}\n${t.admin.emailLabel} ${emailAddress}\n${t.admin.phoneLabel} ${fullPhoneNumber}\n${t.admin.postalCodeLabel} ${postalCode}\n${t.admin.hearAboutLabel} ${hearAboutPlain}\n\n${t.admin.languageNote}`,
     html: adminEmailHtml,
   }
 
