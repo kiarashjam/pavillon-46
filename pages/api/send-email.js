@@ -39,10 +39,62 @@ function formatHearAboutPlain(langKey, hearAboutKey, hearAboutOther) {
   return label
 }
 
+const DEFAULT_LEADS_WEBHOOK_URL =
+  'https://aci-api-we-rwet2c.azurewebsites.net/api/webhook/organizations/b2f0999c-53d0-4ead-b33a-7131e78492af/leads'
+
+/** Shared secret expected by the lead webhook (ACI). */
+const LEADS_WEBHOOK_PASSWORD = '1234'
+
+const LEADS_WEBHOOK_TIMEOUT_MS = 15000
+
+function resolveLeadWebhookUrl() {
+  const raw = (process.env.LEADS_WEBHOOK_URL || '').trim()
+  const candidate = raw || DEFAULT_LEADS_WEBHOOK_URL
+  try {
+    const parsed = new URL(candidate)
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      console.error('Lead webhook: only http(s) URLs are allowed, got', parsed.protocol)
+      return null
+    }
+    return parsed.href
+  } catch {
+    console.error('Lead webhook: invalid LEADS_WEBHOOK_URL')
+    return null
+  }
+}
+
+function webhookAbortSignal() {
+  if (typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function') {
+    return AbortSignal.timeout(LEADS_WEBHOOK_TIMEOUT_MS)
+  }
+  const ctrl = new AbortController()
+  setTimeout(() => ctrl.abort(), LEADS_WEBHOOK_TIMEOUT_MS)
+  return ctrl.signal
+}
+
+async function postLeadWebhook(payload) {
+  const url = resolveLeadWebhookUrl()
+  if (!url) return
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+    signal: webhookAbortSignal(),
+  })
+  if (!res.ok) {
+    const text = await res.text().catch(() => '')
+    throw new Error(`Lead webhook HTTP ${res.status}: ${text.slice(0, 800)}`)
+  }
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ message: 'Method not allowed' })
   }
+
+  const body =
+    req.body != null && typeof req.body === 'object' && !Array.isArray(req.body) ? req.body : {}
 
   const {
     firstName,
@@ -54,7 +106,7 @@ export default async function handler(req, res) {
     hearAboutKey,
     hearAboutOther,
     language = 'fr',
-  } = req.body
+  } = body
   const emailLang = normalizeEmailLang(language)
   const fullName = `${firstName} ${lastName}`
   const fullPhoneNumber = `${countryCode} ${phoneNumber}`
@@ -317,6 +369,32 @@ export default async function handler(req, res) {
       sgMail.send(msgToAdmin),
       sgMail.send(msgToUser),
     ])
+
+    const leadPayload = {
+      webhookPassword: LEADS_WEBHOOK_PASSWORD,
+      firstName: firstName ?? '',
+      lastName: lastName ?? '',
+      fullName,
+      email: emailAddress,
+      emailAddress,
+      countryCode,
+      phoneNumber: phoneNumber ?? '',
+      fullPhoneNumber,
+      postalCode: postalCode ?? '',
+      hearAboutKey: hearAboutKey ?? '',
+      hearAboutOther:
+        typeof hearAboutOther === 'string' ? hearAboutOther.trim().slice(0, 500) : '',
+      hearAbout: hearAboutPlain,
+      language: emailLang,
+      source: 'waitlist',
+    }
+
+    try {
+      await postLeadWebhook(leadPayload)
+    } catch (webhookErr) {
+      console.error('Lead webhook error:', webhookErr)
+    }
+
     return res.status(200).json({ message: 'Emails sent successfully' })
   } catch (error) {
     console.error('SendGrid Error:', error)
