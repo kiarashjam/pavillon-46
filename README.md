@@ -707,6 +707,7 @@ The project is configured for Azure Static Web Apps deployment.
    - Go to GitHub repository → Settings → Secrets → Actions
    - Add secret: `AZURE_STATIC_WEB_APPS_API_TOKEN`
    - Value: Get from Azure Portal → Static Web App → Manage deployment token
+   - Add secret: `ACTIVITY_REPORT_KEY` — same value as Azure **Configuration** → **Application settings** → `ACTIVITY_REPORT_KEY` (required for the scheduled workflow `.github/workflows/activity-daily-report.yml` that emails the daily activity report)
 
 2. **Deploy**:
    - Push to `main` or `master` branch
