@@ -104,10 +104,10 @@ function formatReportDayReadable(reportDay) {
 }
 
 const EMAIL_FOOTER_NOTE =
-  'Données agrégées uniquement, mesure first-party (pas Google Analytics ni publicité). Référents = noms de domaine ; libellés de clics raccourcis et filtrés.'
+  'Données agrégées uniquement, mesure first-party (pas Google Analytics ni publicité). Référents = noms de domaine ; libellés de clics raccourcis et filtrés. Aucune suppression des journaux d’activité ni impact sur le site public : seule une ligne de confirmation « rapport envoyé » est ajoutée.'
 
 const EMAIL_FOOTER_NOTE_EN =
-  'All figures are aggregated first-party usage (no Google Analytics or ad pixels). Referrers are domain names only; click labels are shortened and scrubbed.'
+  'All figures are aggregated first-party usage (no Google Analytics or ad pixels). Referrers are domain names only; click labels are shortened and scrubbed. Sending this email does not delete any activity logs or reset the website; only a small internal “report sent” marker is stored.'
 
 function escapeHtml(value) {
   return String(value ?? '')
@@ -190,7 +190,7 @@ function buildPlainText(reportDay, summary, topPages, topClicks, topReferrers) {
     '  External site hostname · visits that arrived with that referrer',
     referrerRows,
     '',
-    '── Privacy note ──',
+    '── Privacy & data retention ──',
     `  ${EMAIL_FOOTER_NOTE_EN}`,
     `  ${EMAIL_FOOTER_NOTE}`,
     '',
@@ -299,7 +299,7 @@ function buildHtml(reportDay, summary, topPages, topClicks, topReferrers) {
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:600px;background-color:#eef4f1;border:1px solid #d4e3dc;border-radius:12px;">
                 <tr>
                   <td style="padding:16px 20px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.55;color:#3d5248;">
-                    <strong style="color:#1f2d27;">Privacy</strong> — ${escapeHtml(EMAIL_FOOTER_NOTE_EN)}<br><br>
+                    <strong style="color:#1f2d27;">Privacy &amp; data retention</strong> — ${escapeHtml(EMAIL_FOOTER_NOTE_EN)}<br><br>
                     <span style="color:#5c6f66;">${escapeHtml(EMAIL_FOOTER_NOTE)}</span>
                   </td>
                 </tr>
@@ -340,7 +340,7 @@ export default async function handler(req, res) {
     limit: 5,
   })
   if ((markerReport.events || []).some((event) => event.path === markerPath)) {
-    return res.status(200).json({ ok: true, skipped: 'already-sent', reportDay })
+    return res.status(200).json({ ok: true, skipped: 'already-sent', reportDay, activityDataUnchanged: true })
   }
 
   if (!process.env.SENDGRID_API_KEY || !process.env.FROM_EMAIL) {
@@ -390,6 +390,7 @@ export default async function handler(req, res) {
     html: buildHtml(reportDay, summary, summary.topPages || [], summary.topClicks || [], topReferrers),
   })
 
+  // Append-only marker so we do not double-send the same calendar day. This does NOT delete or trim visitor events.
   await recordActivityEvent({
     type: 'daily_report_sent',
     path: markerPath,
@@ -405,6 +406,7 @@ export default async function handler(req, res) {
     ok: true,
     reportDay,
     to: toEmail,
+    activityDataUnchanged: true,
     totals: {
       totalEvents: summary.totalEvents || 0,
       uniqueSessions: summary.uniqueSessions || 0,
