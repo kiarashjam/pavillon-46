@@ -52,11 +52,31 @@ function shiftDay(day, delta) {
   return pivot.toISOString().slice(0, 10)
 }
 
+/** 0–23 hour in Europe/Zurich for the given instant */
+function getZurichHour(date) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: TZ,
+    hour: '2-digit',
+    hour12: false,
+  }).formatToParts(date)
+  return Number(parts.find((p) => p.type === 'hour')?.value ?? 12)
+}
+
+/**
+ * Which calendar day (Europe/Zurich) the report should cover when `day` is not passed.
+ * - 23:00–23:59 Zurich: that same calendar day (end-of-evening send, e.g. cron at ~23:58 local in winter).
+ * - 00:00–03:59 Zurich: previous calendar day (post-midnight send, e.g. cron at ~23:58 local in summer → 00:58 next day UTC slot).
+ * - Otherwise (manual runs): previous complete calendar day.
+ */
 function resolveTargetDay(dayOverride) {
   if (typeof dayOverride === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dayOverride)) {
     return dayOverride
   }
-  const todayZurich = formatDayInZurich(new Date())
+  const now = new Date()
+  const todayZurich = formatDayInZurich(now)
+  const hour = getZurichHour(now)
+  if (hour === 23) return todayZurich
+  if (hour >= 0 && hour <= 3) return shiftDay(todayZurich, -1)
   return shiftDay(todayZurich, -1)
 }
 

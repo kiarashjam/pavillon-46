@@ -2,8 +2,9 @@ name: Send Daily Activity Report
 
 on:
   schedule:
-    # 23:30 UTC daily (~end of day in Switzerland, accounting for DST margin)
-    - cron: '30 23 * * *'
+    # 22:58 UTC ≈ 23:58 Europe/Zurich in winter (CET). In summer (CEST) this is ~00:58 the next local day; the API
+    # still attributes the report to the correct Zurich calendar day (see resolveTargetDay in daily-report.js).
+    - cron: '58 22 * * *'
   workflow_dispatch:
     inputs:
       day:
