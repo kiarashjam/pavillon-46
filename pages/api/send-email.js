@@ -39,13 +39,15 @@ function formatHearAboutPlain(langKey, hearAboutKey, hearAboutOther) {
   return label
 }
 
+/** Default ACI leads endpoint (override with LEADS_WEBHOOK_URL). */
 const DEFAULT_LEADS_WEBHOOK_URL =
-  'https://aci-api-we-rwet2c.azurewebsites.net/api/webhook/organizations/b2f0999c-53d0-4ead-b33a-7131e78492af/leads'
-
-/** Shared secret expected by the lead webhook (ACI). */
-const LEADS_WEBHOOK_PASSWORD = '1234'
+  'https://aci-api-we-rwet2c.azurewebsites.net/api/webhook/leads'
 
 const LEADS_WEBHOOK_TIMEOUT_MS = 15000
+
+function resolveLeadsWebhookApiKey() {
+  return (process.env.LEADS_WEBHOOK_API_KEY || '').trim()
+}
 
 function resolveLeadWebhookUrl() {
   const raw = (process.env.LEADS_WEBHOOK_URL || '').trim()
@@ -79,10 +81,15 @@ function webhookAbortSignal() {
  *   | { ok: false; skipped: true; reason: string }
  * >}
  */
-async function postLeadWebhook(payload) {
+async function postLeadWebhook(leadBody) {
   const url = resolveLeadWebhookUrl()
   if (!url) {
     return { ok: false, skipped: true, reason: 'invalid_or_missing_webhook_url' }
+  }
+
+  const apiKey = resolveLeadsWebhookApiKey()
+  if (!apiKey) {
+    return { ok: false, skipped: true, reason: 'missing_leads_webhook_api_key' }
   }
 
   let destinationHost
@@ -95,8 +102,11 @@ async function postLeadWebhook(payload) {
   try {
     const res = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Api-Key': apiKey,
+      },
+      body: JSON.stringify(leadBody),
       signal: webhookAbortSignal(),
     })
 
@@ -413,23 +423,13 @@ export default async function handler(req, res) {
       sgMail.send(msgToUser),
     ])
 
+    /** ACI webhook: JSON body + X-Api-Key (see LEADS_WEBHOOK_* env vars). */
     const leadPayload = {
-      webhookPassword: LEADS_WEBHOOK_PASSWORD,
-      firstName: firstName ?? '',
-      lastName: lastName ?? '',
-      fullName,
-      email: emailAddress,
-      emailAddress,
-      countryCode,
-      phoneNumber: phoneNumber ?? '',
-      fullPhoneNumber,
-      postalCode: postalCode ?? '',
-      hearAboutKey: hearAboutKey ?? '',
-      hearAboutOther:
-        typeof hearAboutOther === 'string' ? hearAboutOther.trim().slice(0, 500) : '',
-      hearAbout: hearAboutPlain,
-      language: emailLang,
-      source: 'waitlist',
+      name: String(fullName || `${firstName ?? ''} ${lastName ?? ''}`).trim(),
+      email: String(emailAddress || '').trim(),
+      phone: String(fullPhoneNumber || '').trim(),
+      companyName: '',
+      source: 'website-form',
     }
 
     const webhookResult = await postLeadWebhook(leadPayload)
@@ -460,7 +460,10 @@ export default async function handler(req, res) {
             attempted: false,
             skipped: true,
             reason: webhookResult.reason,
-            summary: 'Lead webhook was not called because the webhook URL is missing or invalid.',
+            summary:
+              webhookResult.reason === 'missing_leads_webhook_api_key'
+                ? 'Lead webhook was not called because LEADS_WEBHOOK_API_KEY is not set.'
+                : 'Lead webhook was not called because the webhook URL is missing or invalid.',
           }
         : {
             ok: webhookResult.ok,
