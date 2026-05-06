@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
 import Image from 'next/image'
+import Link from 'next/link'
 import PageLayout from '../components/layouts/PageLayout'
 import { useLanguage } from '../contexts/LanguageContext'
 import { useTranslations } from '../lib/translations'
@@ -261,13 +262,13 @@ export default function Home() {
               </div>
 
               <div className="footer-links-container">
-                <a href="/legal" className="footer-link">
+                <Link href="/legal" className="footer-link">
                   {tCommon.legal}
-                </a>
+                </Link>
                 <span className="footer-separator">•</span>
-                <a href="/privacy" className="footer-link">
+                <Link href="/privacy" className="footer-link">
                   {tCommon.privacy}
-                </a>
+                </Link>
               </div>
 
               <div className="footer-right-content">
