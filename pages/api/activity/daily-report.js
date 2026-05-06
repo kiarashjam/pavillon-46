@@ -70,8 +70,24 @@ function number(value) {
   return new Intl.NumberFormat('en-CH').format(Number(value) || 0)
 }
 
+/** Calendar day label for Pierre (CH): long French date + ISO in parentheses */
+function formatReportDayReadable(reportDay) {
+  const iso = localDateTimeToUtcIso(reportDay, 12, 0, 0, 0)
+  const longFr = new Intl.DateTimeFormat('fr-CH', {
+    timeZone: TZ,
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }).format(new Date(iso))
+  return `${longFr} (${reportDay})`
+}
+
 const EMAIL_FOOTER_NOTE =
-  'Figures are aggregate first-party usage only (no Google Analytics or ad pixels). Referrers are domain names; click labels are shortened and scrubbed for accidental personal data.'
+  'Données agrégées uniquement, mesure first-party (pas Google Analytics ni publicité). Référents = noms de domaine ; libellés de clics raccourcis et filtrés.'
+
+const EMAIL_FOOTER_NOTE_EN =
+  'All figures are aggregated first-party usage (no Google Analytics or ad pixels). Referrers are domain names only; click labels are shortened and scrubbed.'
 
 function escapeHtml(value) {
   return String(value ?? '')
@@ -81,62 +97,207 @@ function escapeHtml(value) {
     .replace(/"/g, '&quot;')
 }
 
+function buildRankedTableRows(items, labelKey, emptyLabel) {
+  if (!items.length) {
+    return `<tr><td colspan="2" style="padding:14px 16px;font-size:14px;color:#6b7f76;font-style:italic;border-bottom:1px solid #edf3f0;">${emptyLabel}</td></tr>`
+  }
+  return items
+    .map(
+      (item, i) => `
+    <tr>
+      <td style="padding:12px 16px;font-size:14px;color:#1f2d27;border-bottom:1px solid #edf3f0;vertical-align:middle;">
+        <span style="display:inline-block;min-width:22px;color:#8aa399;font-size:12px;font-weight:700;">${i + 1}.</span>
+        ${escapeHtml(item[labelKey])}
+      </td>
+      <td align="right" style="padding:12px 16px;font-size:14px;font-weight:700;color:#1f2d27;border-bottom:1px solid #edf3f0;white-space:nowrap;vertical-align:middle;">
+        ${number(item.count)}
+      </td>
+    </tr>`
+    )
+    .join('')
+}
+
+function metricCell(title, subtitle, value) {
+  return `
+    <td width="50%" valign="top" style="padding:6px;">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#f7faf8;border:1px solid #dce8e0;border-radius:14px;">
+        <tr>
+          <td style="padding:18px 20px;">
+            <p style="margin:0 0 4px;font-family:Arial,Helvetica,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#5c7a6e;">${title}</p>
+            <p style="margin:0 0 10px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.4;color:#6b7f76;">${subtitle}</p>
+            <p style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:28px;font-weight:700;line-height:1.05;color:#1f2d27;">${value}</p>
+          </td>
+        </tr>
+      </table>
+    </td>`
+}
+
 function buildPlainText(reportDay, summary, topPages, topClicks, topReferrers) {
-  const pageRows = topPages.map((item) => `- ${item.path}: ${item.count}`).join('\n') || '- none'
-  const clickRows = topClicks.map((item) => `- ${item.label}: ${item.count}`).join('\n') || '- none'
-  const referrerRows = topReferrers.map((item) => `- ${item.referrer}: ${item.count}`).join('\n') || '- none'
+  const readable = formatReportDayReadable(reportDay)
+  const pageRows = topPages.map((item) => `  ${item.count}×  ${item.path}`).join('\n') || '  (none)'
+  const clickRows = topClicks.map((item) => `  ${item.count}×  ${item.label}`).join('\n') || '  (none)'
+  const referrerRows = topReferrers.map((item) => `  ${item.count}×  ${item.referrer}`).join('\n') || '  (none)'
 
   return [
-    `Pavillon 46 - Daily Activity Report (${reportDay}, Europe/Zurich)`,
+    'PAVILLON 46 — Daily website summary',
+    '────────────────────────────────────',
     '',
-    `Total events: ${number(summary.totalEvents)}`,
-    `Unique sessions: ${number(summary.uniqueSessions)}`,
-    `Page views: ${number(summary.pageViews)}`,
-    `Clicks: ${number(summary.clicks)}`,
+    `Period covered: ${readable}`,
+    'Time zone for the day boundary: Europe/Zurich (calendar day 00:00–24:00).',
     '',
-    'Top pages (up to 8):',
+    'This email is an automatic snapshot of traffic on pavillon46.ch: how many people',
+    'browsed, which pages were seen most, which buttons/links were used most, and',
+    'which other sites sent visitors (domain only).',
+    '',
+    '── Key figures ──',
+    `  All events logged     ${number(summary.totalEvents)}`,
+    `    (page opens + tracked clicks; one visitor can generate several events)`,
+    `  Estimated visitors    ${number(summary.uniqueSessions)}`,
+    `    (approximate “sessions”, from an anonymous browser id)`,
+    `  Page views            ${number(summary.pageViews)}`,
+    `  Tracked clicks        ${number(summary.clicks)}`,
+    `    (links & buttons; labels may be shortened)`,
+    '',
+    '── Top pages (max. 8) ──',
+    '  Path on the site · number of views/events in that period',
     pageRows,
     '',
-    'Top clicked elements (up to 8):',
+    '── Top clicks (max. 8) ──',
+    '  Element label · how often it was clicked',
     clickRows,
     '',
-    'Top referring domains (up to 8):',
+    '── Top referring domains (max. 8) ──',
+    '  External site hostname · visits that arrived with that referrer',
     referrerRows,
     '',
-    EMAIL_FOOTER_NOTE,
+    '── Privacy note ──',
+    `  ${EMAIL_FOOTER_NOTE_EN}`,
+    `  ${EMAIL_FOOTER_NOTE}`,
+    '',
+    'Questions? Reply to this thread or write to contact@pavillon46.ch',
+    '',
+    '— Pavillon 46 (automated)',
   ].join('\n')
 }
 
 function buildHtml(reportDay, summary, topPages, topClicks, topReferrers) {
-  const pageRows = topPages
-    .map((item) => `<li><strong>${item.count}</strong> - <span>${escapeHtml(item.path)}</span></li>`)
-    .join('')
-  const clickRows = topClicks
-    .map((item) => `<li><strong>${item.count}</strong> - <span>${escapeHtml(item.label)}</span></li>`)
-    .join('')
-  const referrerRows = topReferrers
-    .map((item) => `<li><strong>${item.count}</strong> - <span>${escapeHtml(item.referrer)}</span></li>`)
-    .join('')
+  const readable = formatReportDayReadable(reportDay)
+  const preheader = `${number(summary.pageViews)} page views · ${number(summary.uniqueSessions)} sessions · ${readable}`
+
+  const pageRows = buildRankedTableRows(topPages, 'path', 'No page data for this day.')
+  const clickRows = buildRankedTableRows(topClicks, 'label', 'No click data for this day.')
+  const referrerRows = buildRankedTableRows(topReferrers, 'referrer', 'No referrer data for this day.')
 
   return `
-  <div style="font-family: Arial, sans-serif; max-width: 760px; margin: 0 auto; color: #1f2d27;">
-    <h2 style="margin-bottom: 4px;">Pavillon 46 Daily Activity Report</h2>
-    <p style="margin-top: 0; color: #4d6a5d;">Day: <strong>${escapeHtml(reportDay)}</strong> (Europe/Zurich)</p>
-    <div style="display: grid; grid-template-columns: repeat(2, minmax(220px, 1fr)); gap: 10px; margin: 16px 0;">
-      <div style="padding: 10px; border: 1px solid #d8e2dc; border-radius: 8px;">Total events: <strong>${number(summary.totalEvents)}</strong></div>
-      <div style="padding: 10px; border: 1px solid #d8e2dc; border-radius: 8px;">Unique sessions: <strong>${number(summary.uniqueSessions)}</strong></div>
-      <div style="padding: 10px; border: 1px solid #d8e2dc; border-radius: 8px;">Page views: <strong>${number(summary.pageViews)}</strong></div>
-      <div style="padding: 10px; border: 1px solid #d8e2dc; border-radius: 8px;">Clicks: <strong>${number(summary.clicks)}</strong></div>
-    </div>
-    <h3>Top pages (up to 8)</h3>
-    <ul>${pageRows || '<li>none</li>'}</ul>
-    <h3>Top clicked elements (up to 8)</h3>
-    <ul>${clickRows || '<li>none</li>'}</ul>
-    <h3>Top referring domains (up to 8)</h3>
-    <ul>${referrerRows || '<li>none</li>'}</ul>
-    <p style="margin-top: 20px; font-size: 12px; color: #5c6f66; line-height: 1.45;">${escapeHtml(EMAIL_FOOTER_NOTE)}</p>
-  </div>
-  `
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width">
+  <title>Daily activity</title>
+</head>
+<body style="margin:0;padding:0;background-color:#ebe8e4;">
+  <div style="display:none;max-height:0;overflow:hidden;mso-hide:all;">${escapeHtml(preheader)}</div>
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#ebe8e4;">
+    <tr>
+      <td align="center" style="padding:28px 16px 40px;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:600px;">
+          <tr>
+            <td bgcolor="#1f2d27" style="background:linear-gradient(135deg,#1f2d27 0%,#2d4a3c 100%);background-color:#1f2d27;border-radius:16px 16px 0 0;padding:28px 28px 24px;">
+              <p style="margin:0 0 6px;font-family:Georgia,'Times New Roman',serif;font-size:22px;font-weight:700;color:#fcf8f7;letter-spacing:0.02em;">Pavillon 46</p>
+              <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#b8d4c4;line-height:1.5;">Résumé d’activité du site · Daily activity summary</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="background-color:#fcf8f7;padding:26px 28px 8px;border-left:1px solid #e0dcd8;border-right:1px solid #e0dcd8;">
+              <p style="margin:0 0 8px;font-family:Georgia,'Times New Roman',serif;font-size:20px;font-weight:700;color:#1f2d27;line-height:1.25;">${escapeHtml(readable)}</p>
+              <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.55;color:#4d5c54;">
+                Automatic report for <strong>one calendar day</strong> in <strong>Europe/Zurich</strong> (midnight to midnight).
+                It shows how the public site was used: traffic level, favourite pages, most-used controls, and where visits came from (domain only).
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="background-color:#fcf8f7;padding:8px 16px 20px;border-left:1px solid #e0dcd8;border-right:1px solid #e0dcd8;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  ${metricCell(
+                    'All events',
+                    'Page views + tracked clicks',
+                    number(summary.totalEvents)
+                  )}
+                  ${metricCell(
+                    'Sessions',
+                    'Approx. distinct browsers',
+                    number(summary.uniqueSessions)
+                  )}
+                </tr>
+                <tr>
+                  ${metricCell(
+                    'Page views',
+                    'Route changes & loads',
+                    number(summary.pageViews)
+                  )}
+                  ${metricCell(
+                    'Clicks',
+                    'Links & buttons',
+                    number(summary.clicks)
+                  )}
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="background-color:#ffffff;padding:8px 28px 6px;border-left:1px solid #e0dcd8;border-right:1px solid #e0dcd8;">
+              <p style="margin:0 0 4px;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.11em;text-transform:uppercase;color:#5c7a6e;">Top pages</p>
+              <p style="margin:0 0 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.45;color:#6b7f76;">Most viewed paths on the site (up to 8).</p>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border:1px solid #e5ebe7;border-radius:12px;overflow:hidden;">
+                ${pageRows}
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="background-color:#ffffff;padding:22px 28px 6px;border-left:1px solid #e0dcd8;border-right:1px solid #e0dcd8;">
+              <p style="margin:0 0 4px;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.11em;text-transform:uppercase;color:#5c7a6e;">Top clicks</p>
+              <p style="margin:0 0 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.45;color:#6b7f76;">Most clicked links and buttons; labels may be shortened for privacy.</p>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border:1px solid #e5ebe7;border-radius:12px;overflow:hidden;">
+                ${clickRows}
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="background-color:#ffffff;padding:22px 28px 24px;border-left:1px solid #e0dcd8;border-right:1px solid #e0dcd8;border-radius:0 0 16px 16px;border-bottom:1px solid #e0dcd8;">
+              <p style="margin:0 0 4px;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.11em;text-transform:uppercase;color:#5c7a6e;">Referring domains</p>
+              <p style="margin:0 0 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.45;color:#6b7f76;">Other websites that linked here (hostname only, no full URL).</p>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border:1px solid #e5ebe7;border-radius:12px;overflow:hidden;">
+                ${referrerRows}
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:20px 8px 0;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:600px;background-color:#eef4f1;border:1px solid #d4e3dc;border-radius:12px;">
+                <tr>
+                  <td style="padding:16px 20px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.55;color:#3d5248;">
+                    <strong style="color:#1f2d27;">Privacy</strong> — ${escapeHtml(EMAIL_FOOTER_NOTE_EN)}<br><br>
+                    <span style="color:#5c6f66;">${escapeHtml(EMAIL_FOOTER_NOTE)}</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td align="center" style="padding:20px 16px 0;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#7a8f85;">
+              Sent automatically · <a href="mailto:contact@pavillon46.ch" style="color:#2d5a45;text-decoration:underline;">contact@pavillon46.ch</a>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `.trim()
 }
 
 export default async function handler(req, res) {
@@ -198,7 +359,7 @@ export default async function handler(req, res) {
 
   const toEmail = process.env.ACTIVITY_DAILY_REPORT_TO || 'pierre.boissart@pavillon46.ch'
   const fromName = process.env.FROM_NAME || 'Pavillon 46'
-  const subject = `Pavillon 46 Daily Activity Report - ${reportDay}`
+  const subject = `Pavillon 46 · Activité du site — ${formatReportDayReadable(reportDay)}`
 
   sgMail.setApiKey(process.env.SENDGRID_API_KEY)
   await sgMail.send({
