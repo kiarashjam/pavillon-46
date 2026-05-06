@@ -534,7 +534,7 @@ export default function ActivityDashboard() {
           </article>
 
           <article className="activity-panel">
-            <h2>Top referrers</h2>
+            <h2>Top referring domains</h2>
             <ul className="activity-top-list">
               {referrers.map((item) => (
                 <li key={item.referrer}>

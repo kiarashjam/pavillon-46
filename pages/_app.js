@@ -72,7 +72,11 @@ function InternalActivityTracker() {
       const target = event.target instanceof Element ? event.target.closest('a,button,[data-track]') : null
       if (!target) return
 
-      const text = (target.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 120)
+      const label =
+        target.getAttribute('data-track')?.trim() ||
+        target.getAttribute('aria-label')?.trim() ||
+        (target.textContent || '').trim().replace(/\s+/g, ' ')
+      const text = label.slice(0, 80)
       sendEvent({
         type: 'click',
         path: window.location.pathname,

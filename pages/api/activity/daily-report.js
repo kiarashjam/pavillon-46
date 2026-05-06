@@ -70,6 +70,17 @@ function number(value) {
   return new Intl.NumberFormat('en-CH').format(Number(value) || 0)
 }
 
+const EMAIL_FOOTER_NOTE =
+  'Figures are aggregate first-party usage only (no Google Analytics or ad pixels). Referrers are domain names; click labels are shortened and scrubbed for accidental personal data.'
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
 function buildPlainText(reportDay, summary, topPages, topClicks, topReferrers) {
   const pageRows = topPages.map((item) => `- ${item.path}: ${item.count}`).join('\n') || '- none'
   const clickRows = topClicks.map((item) => `- ${item.label}: ${item.count}`).join('\n') || '- none'
@@ -83,44 +94,47 @@ function buildPlainText(reportDay, summary, topPages, topClicks, topReferrers) {
     `Page views: ${number(summary.pageViews)}`,
     `Clicks: ${number(summary.clicks)}`,
     '',
-    'Top pages:',
+    'Top pages (up to 8):',
     pageRows,
     '',
-    'Top clicked elements:',
+    'Top clicked elements (up to 8):',
     clickRows,
     '',
-    'Top referrers:',
+    'Top referring domains (up to 8):',
     referrerRows,
+    '',
+    EMAIL_FOOTER_NOTE,
   ].join('\n')
 }
 
 function buildHtml(reportDay, summary, topPages, topClicks, topReferrers) {
   const pageRows = topPages
-    .map((item) => `<li><strong>${item.count}</strong> - <span>${item.path}</span></li>`)
+    .map((item) => `<li><strong>${item.count}</strong> - <span>${escapeHtml(item.path)}</span></li>`)
     .join('')
   const clickRows = topClicks
-    .map((item) => `<li><strong>${item.count}</strong> - <span>${item.label}</span></li>`)
+    .map((item) => `<li><strong>${item.count}</strong> - <span>${escapeHtml(item.label)}</span></li>`)
     .join('')
   const referrerRows = topReferrers
-    .map((item) => `<li><strong>${item.count}</strong> - <span>${item.referrer}</span></li>`)
+    .map((item) => `<li><strong>${item.count}</strong> - <span>${escapeHtml(item.referrer)}</span></li>`)
     .join('')
 
   return `
   <div style="font-family: Arial, sans-serif; max-width: 760px; margin: 0 auto; color: #1f2d27;">
     <h2 style="margin-bottom: 4px;">Pavillon 46 Daily Activity Report</h2>
-    <p style="margin-top: 0; color: #4d6a5d;">Day: <strong>${reportDay}</strong> (Europe/Zurich)</p>
+    <p style="margin-top: 0; color: #4d6a5d;">Day: <strong>${escapeHtml(reportDay)}</strong> (Europe/Zurich)</p>
     <div style="display: grid; grid-template-columns: repeat(2, minmax(220px, 1fr)); gap: 10px; margin: 16px 0;">
       <div style="padding: 10px; border: 1px solid #d8e2dc; border-radius: 8px;">Total events: <strong>${number(summary.totalEvents)}</strong></div>
       <div style="padding: 10px; border: 1px solid #d8e2dc; border-radius: 8px;">Unique sessions: <strong>${number(summary.uniqueSessions)}</strong></div>
       <div style="padding: 10px; border: 1px solid #d8e2dc; border-radius: 8px;">Page views: <strong>${number(summary.pageViews)}</strong></div>
       <div style="padding: 10px; border: 1px solid #d8e2dc; border-radius: 8px;">Clicks: <strong>${number(summary.clicks)}</strong></div>
     </div>
-    <h3>Top pages</h3>
+    <h3>Top pages (up to 8)</h3>
     <ul>${pageRows || '<li>none</li>'}</ul>
-    <h3>Top clicked elements</h3>
+    <h3>Top clicked elements (up to 8)</h3>
     <ul>${clickRows || '<li>none</li>'}</ul>
-    <h3>Top referrers</h3>
+    <h3>Top referring domains (up to 8)</h3>
     <ul>${referrerRows || '<li>none</li>'}</ul>
+    <p style="margin-top: 20px; font-size: 12px; color: #5c6f66; line-height: 1.45;">${escapeHtml(EMAIL_FOOTER_NOTE)}</p>
   </div>
   `
 }
@@ -173,8 +187,9 @@ export default async function handler(req, res) {
 
   const referrerCounts = new Map()
   for (const event of report.events || []) {
-    if (!event.referrer) continue
-    referrerCounts.set(event.referrer, (referrerCounts.get(event.referrer) || 0) + 1)
+    const ref = String(event.referrer || '').trim()
+    if (!ref || ref === 'internal') continue
+    referrerCounts.set(ref, (referrerCounts.get(ref) || 0) + 1)
   }
   const topReferrers = Array.from(referrerCounts.entries())
     .sort((a, b) => b[1] - a[1])
