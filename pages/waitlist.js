@@ -4,7 +4,6 @@ import Head from 'next/head'
 import PageLayout from '../components/layouts/PageLayout'
 import { useLanguage } from '../contexts/LanguageContext'
 import { useTranslations } from '../lib/translations'
-import { animationVariants } from '../lib/constants'
 import { motion, AnimatePresence } from 'framer-motion'
 
 // Country codes with flags
@@ -54,7 +53,8 @@ export default function Waitlist() {
   const [phoneVerified, setPhoneVerified] = useState(false) // track if code was already verified
   const [cooldown, setCooldown] = useState(0)
   const cooldownRef = useRef(null)
-  
+  const thankYouNavRafRef = useRef(null)
+
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -75,6 +75,15 @@ export default function Waitlist() {
     }
     document.addEventListener('pointerdown', handleClickOutside)
     return () => document.removeEventListener('pointerdown', handleClickOutside)
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      if (thankYouNavRafRef.current != null) {
+        cancelAnimationFrame(thankYouNavRafRef.current)
+        thankYouNavRafRef.current = null
+      }
+    }
   }, [])
 
   // Cooldown timer for resend
@@ -206,7 +215,13 @@ export default function Waitlist() {
 
       if (submitRes.ok) {
         setStatus('success')
-        router.push('/thank-you')
+        if (thankYouNavRafRef.current != null) {
+          cancelAnimationFrame(thankYouNavRafRef.current)
+        }
+        thankYouNavRafRef.current = requestAnimationFrame(() => {
+          thankYouNavRafRef.current = null
+          router.push('/thank-you')
+        })
       } else {
         setStatus('error')
         setVerificationError(t.errorMessage)

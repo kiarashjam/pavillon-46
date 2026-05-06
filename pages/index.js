@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
 import Image from 'next/image'
@@ -17,6 +17,12 @@ export default function Home() {
   const [isExiting, setIsExiting] = useState(false)
   const [isBgTransitioning, setIsBgTransitioning] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
+  const exitTimerIdsRef = useRef([])
+
+  const clearExitTimers = () => {
+    exitTimerIdsRef.current.forEach((id) => clearTimeout(id))
+    exitTimerIdsRef.current = []
+  }
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth <= 767)
@@ -25,25 +31,27 @@ export default function Home() {
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
 
+  useEffect(() => () => clearExitTimers(), [])
+
+  const scheduleExit = (fn, delayMs) => {
+    const id = setTimeout(() => {
+      exitTimerIdsRef.current = exitTimerIdsRef.current.filter((x) => x !== id)
+      fn()
+    }, delayMs)
+    exitTimerIdsRef.current.push(id)
+  }
+
   const navigateWithExit = (path) => {
     if (isExiting) return
+    clearExitTimers()
     setIsExiting(true)
 
     if (isMobile) {
-      // Mobile: fade content first (0.8s), then start background transition
-      setTimeout(() => {
-        setIsBgTransitioning(true)
-      }, 800)
-      // Navigate after both animations complete
-      setTimeout(() => {
-        router.push(path)
-      }, 2200)
+      scheduleExit(() => setIsBgTransitioning(true), 800)
+      scheduleExit(() => router.push(path), 2200)
     } else {
-      // Desktop: simultaneous animations
       setIsBgTransitioning(true)
-      setTimeout(() => {
-        router.push(path)
-      }, 1800)
+      scheduleExit(() => router.push(path), 1800)
     }
   }
 

@@ -72,19 +72,62 @@ function webhookAbortSignal() {
   return ctrl.signal
 }
 
+/**
+ * @returns {Promise<
+ *   | { ok: true; attempted: true; httpStatus: number; destinationHost: string }
+ *   | { ok: false; attempted: true; httpStatus?: number; destinationHost?: string; error: string }
+ *   | { ok: false; skipped: true; reason: string }
+ * >}
+ */
 async function postLeadWebhook(payload) {
   const url = resolveLeadWebhookUrl()
-  if (!url) return
+  if (!url) {
+    return { ok: false, skipped: true, reason: 'invalid_or_missing_webhook_url' }
+  }
 
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-    signal: webhookAbortSignal(),
-  })
-  if (!res.ok) {
-    const text = await res.text().catch(() => '')
-    throw new Error(`Lead webhook HTTP ${res.status}: ${text.slice(0, 800)}`)
+  let destinationHost
+  try {
+    destinationHost = new URL(url).host
+  } catch {
+    destinationHost = undefined
+  }
+
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal: webhookAbortSignal(),
+    })
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => '')
+      console.error('Lead webhook HTTP error:', res.status, text.slice(0, 800))
+      return {
+        ok: false,
+        attempted: true,
+        httpStatus: res.status,
+        destinationHost,
+        error: `upstream_http_${res.status}`,
+      }
+    }
+
+    return {
+      ok: true,
+      attempted: true,
+      httpStatus: res.status,
+      destinationHost: destinationHost || '',
+    }
+  } catch (err) {
+    const aborted = err && err.name === 'AbortError'
+    const message = aborted ? 'request_timeout' : err?.message || 'network_error'
+    console.error('Lead webhook error:', err)
+    return {
+      ok: false,
+      attempted: true,
+      destinationHost,
+      error: message,
+    }
   }
 }
 
@@ -389,18 +432,69 @@ export default async function handler(req, res) {
       source: 'waitlist',
     }
 
-    try {
-      await postLeadWebhook(leadPayload)
-    } catch (webhookErr) {
-      console.error('Lead webhook error:', webhookErr)
-    }
+    const webhookResult = await postLeadWebhook(leadPayload)
 
-    return res.status(200).json({ message: 'Emails sent successfully' })
+    return res.status(200).json({
+      message: 'Emails sent successfully',
+      email: {
+        ok: true,
+        provider: 'sendgrid',
+        summary: 'Admin notification and user confirmation were both accepted by SendGrid.',
+        sends: [
+          {
+            role: 'admin_notification',
+            ok: true,
+            description: 'Waitlist signup notification to the configured admin inbox.',
+          },
+          {
+            role: 'user_confirmation',
+            ok: true,
+            description: 'Confirmation email to the address submitted on the form.',
+            sentTo: emailAddress,
+          },
+        ],
+      },
+      webhook: webhookResult.skipped
+        ? {
+            ok: false,
+            attempted: false,
+            skipped: true,
+            reason: webhookResult.reason,
+            summary: 'Lead webhook was not called because the webhook URL is missing or invalid.',
+          }
+        : {
+            ok: webhookResult.ok,
+            attempted: true,
+            skipped: false,
+            httpStatus: webhookResult.httpStatus,
+            destinationHost: webhookResult.destinationHost,
+            summary: webhookResult.ok
+              ? 'Lead payload was posted to the CRM webhook successfully.'
+              : 'Lead webhook call failed after emails were sent; check server logs.',
+            ...(webhookResult.ok ? {} : { error: webhookResult.error }),
+          },
+    })
   } catch (error) {
     console.error('SendGrid Error:', error)
     if (error.response) {
       console.error(error.response.body)
     }
-    return res.status(500).json({ message: 'Error sending emails' })
+    return res.status(500).json({
+      message: 'Error sending emails',
+      email: {
+        ok: false,
+        provider: 'sendgrid',
+        summary:
+          'SendGrid did not accept one or both messages. No lead webhook was called because emails did not complete.',
+        stage: 'sendgrid_send',
+      },
+      webhook: {
+        ok: false,
+        attempted: false,
+        skipped: true,
+        reason: 'emails_not_sent',
+        summary: 'Webhook is only run after both emails send successfully.',
+      },
+    })
   }
 }
