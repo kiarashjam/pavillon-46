@@ -13,6 +13,10 @@ frontend/dist/
 frontend/.vite/
 *.tsbuildinfo
 
+# Legacy Next.js artifacts (should not be regenerated)
+.next/
+out/
+
 # Backend (.NET)
 backend/**/bin/
 backend/**/obj/

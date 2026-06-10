@@ -17,8 +17,12 @@ Next.js API routes (`/pages/api/*`) and exposes the same endpoints under `/api/*
 
 ## Configuration
 
-The legacy `.env.local` variable names are still understood — see `Program.cs:MapLegacyEnvVars`. You
-can either set those env vars directly or use the standard `appsettings.json` sections.
+Place a `.env.local` at the **repo root** (same as the old Next.js app). `dotnet run` loads
+`.env` then `.env.local` automatically via `Configuration/DotEnvLoader.cs` before mapping into
+`IConfiguration`. Existing shell / App Service environment variables are never overwritten.
+
+Legacy variable names are still understood — see `Program.cs:MapLegacyEnvVars`. You can also use
+`appsettings.json` sections or Azure App Service application settings in production.
 
 Required for the waitlist:
 - `SENDGRID_API_KEY`, `FROM_EMAIL`, `ADMIN_EMAIL`

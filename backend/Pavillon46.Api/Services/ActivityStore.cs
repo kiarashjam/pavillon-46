@@ -123,8 +123,18 @@ public class ActivityStore : IActivityStore
         };
     }
 
+    private static void EnsureEventId(ActivityEvent ev)
+    {
+        if (string.IsNullOrEmpty(ev.Id))
+        {
+            ev.Id = $"{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}-{Guid.NewGuid()}";
+        }
+    }
+
     public async Task RecordEventAsync(ActivityEvent ev, CancellationToken ct = default)
     {
+        EnsureEventId(ev);
+
         var client = await GetTableClientAsync();
         if (client is not null)
         {

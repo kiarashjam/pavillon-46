@@ -4,7 +4,13 @@
   "parameters": {
     "resourceGroupName": { "value": "rg-pavillon46" },
     "location": { "value": "italynorth" },
+    "computeLocation": { "value": "westeurope" },
     "staticWebAppLocation": { "value": "westeurope" },
-    "staticWebAppName": { "value": "pavillon46-swa" }
+    "staticWebAppName": { "value": "pavillon46-swa" },
+    "appServicePlanName": { "value": "pavillon46-plan" },
+    "webAppName": { "value": "pavillon46-api" },
+    "appServiceSku": { "value": "B1" },
+    "storageAccountName": { "value": "pavillon46store" },
+    "frontendOrigin": { "value": "https://pavillon46.ch" }
   }
 }

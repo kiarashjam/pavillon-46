@@ -1,12 +1,24 @@
-# Publish the Vite frontend to the Azure Static Web App.
-# The .NET backend is deployed separately (Azure App Service / Container App).
+# Build the Vite frontend and publish to Azure Static Web Apps.
+# Generates staticwebapp.config.json so client-side routes work and /api/* is
+# proxied to the .NET backend (API_BASE_URL secret).
 
 name: Publish Frontend to Azure Static Web App
 
 on:
   push:
     branches: [main, master]
+    paths:
+      - 'frontend/**'
+      - 'azure/**'
+      - '.github/workflows/azure-static-web-app.yml'
   workflow_dispatch:
+
+concurrency:
+  group: swa-deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
 
 env:
   NODE_VERSION: '20'
@@ -25,19 +37,61 @@ jobs:
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Check Azure deploy token
+      - name: Validate deploy secrets
         env:
-          TOKEN: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+          SWA_TOKEN: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+          API_BASE_URL: ${{ secrets.API_BASE_URL }}
         run: |
-          if [ -z "$TOKEN" ]; then
-            echo "::error::AZURE_STATIC_WEB_APPS_API_TOKEN is not set. See azure/README.md and add the secret in repo settings."
+          if [ -z "$SWA_TOKEN" ]; then
+            echo "::error::AZURE_STATIC_WEB_APPS_API_TOKEN is not set. See azure/README.md."
             exit 1
           fi
+          if [ -z "$API_BASE_URL" ]; then
+            echo "::error::API_BASE_URL is not set. Point it at the .NET App Service URL (e.g. https://pavillon46-api.azurewebsites.net)."
+            exit 1
+          fi
+
+      - name: Generate staticwebapp.config.json
+        working-directory: frontend
+        env:
+          API_BASE_URL: ${{ secrets.API_BASE_URL }}
+        run: |
+          API_BASE_URL="${API_BASE_URL%/}"
+          cat > public/staticwebapp.config.json <<EOF
+          {
+            "routes": [
+              {
+                "route": "/api/*",
+                "allowedRoles": ["anonymous"],
+                "rewrite": "${API_BASE_URL}/api/*"
+              }
+            ],
+            "navigationFallback": {
+              "rewrite": "/index.html",
+              "exclude": [
+                "/assets/*",
+                "/*.css",
+                "/*.js",
+                "/favicon.ico",
+                "/images/*",
+                "/fonts/*"
+              ]
+            },
+            "mimeTypes": {
+              ".json": "application/json"
+            },
+            "globalHeaders": {
+              "X-Content-Type-Options": "nosniff",
+              "Referrer-Policy": "strict-origin-when-cross-origin"
+            }
+          }
+          EOF
+          echo "SWA config written (API proxy → ${API_BASE_URL})"
 
       - name: Install & build frontend
         working-directory: frontend
         run: |
-          npm install
+          npm ci
           npm run build
 
       - name: Deploy to Azure Static Web App
@@ -45,7 +99,7 @@ jobs:
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          action: 'upload'
-          app_location: 'frontend'
-          output_location: 'dist'
+          action: upload
+          app_location: frontend
+          output_location: dist
           skip_app_build: true

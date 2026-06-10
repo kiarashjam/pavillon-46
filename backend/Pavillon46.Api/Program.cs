@@ -1,12 +1,14 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Pavillon46.Api.Configuration;
 using Pavillon46.Api.Models;
 using Pavillon46.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Map env vars from the legacy Next.js .env.local naming so deployments can
-// reuse the same configuration without rewriting their secrets store.
+// Load repo-root .env / .env.local (same files as the old Next.js app) before
+// mapping legacy variable names into IConfiguration.
+DotEnvLoader.LoadFromRepositoryRoot();
 builder.Configuration.AddEnvironmentVariables();
 MapLegacyEnvVars(builder.Configuration);
 
@@ -39,7 +41,14 @@ builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.WithOrigins(allowedOrigins)
+        policy.SetIsOriginAllowed(origin =>
+              {
+                  if (string.IsNullOrWhiteSpace(origin)) return false;
+                  if (allowedOrigins.Contains(origin, StringComparer.OrdinalIgnoreCase)) return true;
+                  if (!Uri.TryCreate(origin, UriKind.Absolute, out var uri)) return false;
+                  return uri.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase)
+                      || uri.Host.EndsWith(".azurestaticapps.net", StringComparison.OrdinalIgnoreCase);
+              })
               .AllowAnyHeader()
               .AllowAnyMethod();
     });

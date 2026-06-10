@@ -27,8 +27,8 @@ pavillon-46/
 │       ├── lib/                      # translations.ts, api.ts, constants.ts
 │       └── styles/                   # globals.css + desktop/tablet/mobile responsive CSS
 │
-├── azure/                            # Bicep templates for Azure SWA deployment
-├── .github/workflows/                # CI for both apps + daily activity report cron
+├── azure/                            # Bicep: SWA (frontend) + App Service (API) + Table Storage
+├── .github/workflows/                # CI, SWA deploy, App Service deploy, daily report cron
 └── .env.local.example                # Legacy env var names still understood by the backend
 ```
 
@@ -36,7 +36,8 @@ pavillon-46/
 
 1. The Vite SPA in `/frontend` is served as a static site (Azure Static Web Apps in production).
 2. Client requests to `/api/*` are routed to the ASP.NET Core API in `/backend`. In development,
-   Vite proxies them; in production, configure your reverse proxy or App Service routing.
+   Vite proxies them; in production, `staticwebapp.config.json` (generated in CI) rewrites
+   `/api/*` to the App Service URL from the `API_BASE_URL` GitHub secret.
 3. Activity events from `ActivityTracker.tsx` are POSTed to `/api/activity/log`, where the
    backend hashes the visitor IP and writes to Azure Table Storage (with a file/in-memory
    fallback when Azure isn't configured).
@@ -49,6 +50,7 @@ pavillon-46/
 
 ## Configuration
 
-The backend reads either modern `appsettings.json` sections **or** the legacy `.env.local`
-variable names from the previous Next.js project (see `Program.cs:MapLegacyEnvVars`). Drop in
-the same env file you used before — no changes required to your secret store.
+The backend loads repo-root `.env` / `.env.local` on startup (`Configuration/DotEnvLoader.cs`),
+then maps legacy variable names into `IConfiguration` (`Program.cs:MapLegacyEnvVars`). Production
+uses Azure App Service application settings with the same names. CORS allows `pavillon46.ch`,
+`localhost:5173`, and any `*.azurestaticapps.net` preview hostname.

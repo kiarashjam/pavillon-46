@@ -26,6 +26,14 @@ public class VerificationController : ControllerBase
         try
         {
             var result = await _verify.SendCodeAsync(body.CountryCode!, body.PhoneNumber!, ct);
+            if (!result.Ok)
+            {
+                return StatusCode(500, new
+                {
+                    message = "Error sending verification code",
+                    detail = result.ErrorDetail ?? result.Status,
+                });
+            }
             return Ok(new { message = "Verification code sent", status = result.Status });
         }
         catch (InvalidOperationException ex)

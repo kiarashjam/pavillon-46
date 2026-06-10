@@ -33,9 +33,9 @@ Vite proxies `/api/*` requests to the .NET API automatically — open
 
 ## Configuration
 
-Copy `.env.local.example` to `.env` (or set the variables in your hosting platform). The .NET
-backend understands the legacy env var names from the Next.js version, so the same secret store
-keeps working. See `backend/README.md` and `frontend/README.md` for details.
+Copy `.env.local.example` to `.env.local` at the repo root. `dotnet run` loads it automatically
+(the same file the old Next.js app used). In Azure, set the same names as App Service application
+settings. See `backend/README.md`, `frontend/README.md`, and `azure/README.md` for details.
 
 ## Architecture
 
@@ -43,11 +43,11 @@ See [`ARCHITECTURE.md`](./ARCHITECTURE.md).
 
 ## CI / Deployment
 
-- `.github/workflows/build.yml` builds both apps on every push and PR.
-- `.github/workflows/azure-static-web-app.yml` deploys the Vite build to Azure Static Web Apps.
-- `.github/workflows/activity-daily-report.yml` triggers the backend's daily report endpoint
-  (`POST /api/activity/daily-report`) on a Zurich-time-aware schedule. It now reads an
-  `API_BASE_URL` secret pointing at wherever the .NET backend is hosted.
+- `.github/workflows/build.yml` — CI build on every push and PR.
+- `.github/workflows/azure-static-web-app.yml` — deploys the Vite SPA to Azure Static Web Apps
+  (with `/api/*` proxy to the backend).
+- `.github/workflows/azure-backend-app-service.yml` — deploys the .NET 8 API to Azure App Service.
+- `.github/workflows/activity-daily-report.yml` — daily cron hitting
+  `POST /api/activity/daily-report`.
 
-The .NET backend itself is intended to run on Azure App Service / Container Apps. Add your own
-deployment workflow that targets your chosen host once the resource is provisioned.
+See [`azure/README.md`](./azure/README.md) for Bicep infrastructure and required GitHub secrets.

@@ -1,0 +1,88 @@
+# Build and publish the .NET 8 API to Azure App Service (Linux).
+
+name: Publish Backend to Azure App Service
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'backend/**'
+      - 'azure/**'
+      - '.github/workflows/azure-backend-app-service.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: api-deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_VERSION: '8.0.x'
+
+jobs:
+  build_and_deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate deploy secrets
+        env:
+          WEBAPP_NAME: ${{ secrets.AZURE_WEBAPP_NAME }}
+          PUBLISH_PROFILE: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+        run: |
+          if [ -z "$WEBAPP_NAME" ]; then
+            echo "::error::AZURE_WEBAPP_NAME is not set (e.g. pavillon46-api)."
+            exit 1
+          fi
+          if [ -z "$PUBLISH_PROFILE" ]; then
+            echo "::error::AZURE_WEBAPP_PUBLISH_PROFILE is not set. Download it from Azure Portal → App Service → Get publish profile."
+            exit 1
+          fi
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore & publish
+        run: |
+          dotnet restore Pavillon46.Api/Pavillon46.Api.csproj
+          dotnet publish Pavillon46.Api/Pavillon46.Api.csproj \
+            --configuration Release \
+            --output ./publish \
+            --no-restore
+
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ secrets.AZURE_WEBAPP_NAME }}
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: backend/publish
+
+      - name: Health check
+        env:
+          API_BASE_URL: ${{ secrets.API_BASE_URL }}
+        run: |
+          if [ -z "$API_BASE_URL" ]; then
+            echo "::warning::API_BASE_URL not set — skipping post-deploy health check"
+            exit 0
+          fi
+          API_BASE_URL="${API_BASE_URL%/}"
+          echo "Checking ${API_BASE_URL}/healthz"
+          for attempt in 1 2 3 4 5; do
+            if curl --fail --silent --show-error "${API_BASE_URL}/healthz"; then
+              echo ""
+              echo "Health check passed"
+              exit 0
+            fi
+            echo "Attempt ${attempt}/5 failed, retrying in 15s..."
+            sleep 15
+          done
+          echo "::error::Health check failed after deploy"
+          exit 1
