@@ -2,8 +2,8 @@ name: Send Daily Activity Report
 
 on:
   schedule:
-    # 22:58 UTC ≈ 23:58 Europe/Zurich in winter (CET). In summer (CEST) this is ~00:58 the next local day; the API
-    # still attributes the report to the correct Zurich calendar day (see resolveTargetDay in daily-report.js).
+    # 22:58 UTC ≈ 23:58 Europe/Zurich in winter (CET). The API still attributes the report to
+    # the correct Zurich calendar day — see DailyReportService.ResolveTargetDay in the backend.
     - cron: '58 22 * * *'
   workflow_dispatch:
     inputs:
@@ -19,15 +19,21 @@ jobs:
       - name: Trigger daily report endpoint
         env:
           REPORT_KEY: ${{ secrets.ACTIVITY_REPORT_KEY }}
-          SITE_URL: https://kind-hill-0e0617903.1.azurestaticapps.net
+          # Point this at wherever the .NET backend is hosted (App Service URL or your reverse proxy).
+          API_BASE_URL: ${{ secrets.API_BASE_URL }}
           DAY: ${{ github.event.inputs.day }}
         run: |
           if [ -z "$REPORT_KEY" ]; then
-            echo "::error::Missing ACTIVITY_REPORT_KEY repository secret (must match Azure Application setting ACTIVITY_REPORT_KEY). Add it at: https://github.com/${{ github.repository }}/settings/secrets/actions"
+            echo "::error::Missing ACTIVITY_REPORT_KEY secret. Add it at: https://github.com/${{ github.repository }}/settings/secrets/actions"
             exit 1
           fi
 
-          URL="$SITE_URL/api/activity/daily-report"
+          if [ -z "$API_BASE_URL" ]; then
+            echo "::error::Missing API_BASE_URL secret. Set it to the base URL of the .NET backend (e.g. https://api.pavillon46.ch)."
+            exit 1
+          fi
+
+          URL="$API_BASE_URL/api/activity/daily-report"
           if [ -n "$DAY" ]; then
             URL="$URL?day=$DAY"
           fi

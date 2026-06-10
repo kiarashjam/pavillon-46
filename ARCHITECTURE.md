@@ -1,141 +1,54 @@
 # Pavillon 46 - Architecture Overview
 
-## Directory Structure
+## High-level
 
 ```
 pavillon-46/
-├── pages/                    # Next.js pages (file-based routing)
-│   ├── _app.js              # App wrapper with providers and global setup
-│   ├── _document.js         # Custom HTML document structure
-│   ├── index.js             # Homepage (/)
-│   ├── waitlist.js          # Waitlist form page (/waitlist)
-│   ├── thank-you.js         # Thank you page (/thank-you)
-│   └── api/
-│       └── send-email.js    # Email API endpoint
+├── backend/                          # ASP.NET Core 8 Web API
+│   ├── Pavillon46.sln
+│   └── Pavillon46.Api/
+│       ├── Controllers/              # /api/* HTTP endpoints
+│       ├── Services/                 # SendGrid, Twilio, ActivityStore, LeadsWebhook, DailyReport
+│       ├── Models/                   # DTOs + IOptions classes
+│       ├── Localization/             # Email translations (FR/EN)
+│       ├── Privacy/                  # IP hashing, click/referrer sanitization
+│       └── Program.cs                # Composition root + legacy env var mapping
 │
-├── components/               # React components
-│   ├── layouts/
-│   │   └── PageLayout.js    # Reusable page layout (Header + Footer wrapper)
-│   ├── Header.js            # Site header with logo and language switcher
-│   ├── Footer.js            # Site footer with legal links
-│   └── LanguageNotification.js  # Toast notification for language changes
+├── frontend/                         # React + Vite + TypeScript SPA
+│   ├── index.html
+│   ├── vite.config.ts                # Dev server proxies /api → backend:5246
+│   ├── public/                       # Static assets (logo, fonts, favicon)
+│   └── src/
+│       ├── main.tsx                  # React + BrowserRouter entry point
+│       ├── App.tsx                   # Routes
+│       ├── pages/                    # Home, Waitlist, ThankYou, Login, Legal, Privacy, AdminActivity
+│       ├── components/               # Header, Footer, PageLayout, ActivityTracker
+│       ├── contexts/                 # LanguageContext (FR/EN, localStorage-persisted)
+│       ├── lib/                      # translations.ts, api.ts, constants.ts
+│       └── styles/                   # globals.css + desktop/tablet/mobile responsive CSS
 │
-├── contexts/                # React contexts
-│   └── LanguageContext.js   # Language state management (FR/EN)
-│
-├── lib/                     # Shared utilities and constants
-│   ├── translations.js      # Centralized translations (FR/EN)
-│   └── constants.js         # App constants, animation variants, image paths
-│
-├── styles/                  # Global styles
-│   └── globals.css          # Global CSS with all page styles
-│
-├── public/                  # Static assets
-│   ├── images/              # Image assets
-│   │   ├── logo.png
-│   │   ├── image 4.png
-│   │   ├── image 6.png
-│   │   └── Frame 1000004712.svg
-│   └── fonts/               # Font files (Sogo)
-│
-└── azure/                   # Azure deployment configuration
-    ├── main.bicep
-    └── static-web-app.bicep
+├── azure/                            # Bicep templates for Azure SWA deployment
+├── .github/workflows/                # CI for both apps + daily activity report cron
+└── .env.local.example                # Legacy env var names still understood by the backend
 ```
 
-## Key Architectural Decisions
+## Request flow
 
-### 1. Centralized Translations
-- **Location**: `lib/translations.js`
-- **Purpose**: Single source of truth for all text content
-- **Benefits**: 
-  - Easy to maintain and update translations
-  - Consistent text across the application
-  - Supports function-based translations for dynamic content (emails)
+1. The Vite SPA in `/frontend` is served as a static site (Azure Static Web Apps in production).
+2. Client requests to `/api/*` are routed to the ASP.NET Core API in `/backend`. In development,
+   Vite proxies them; in production, configure your reverse proxy or App Service routing.
+3. Activity events from `ActivityTracker.tsx` are POSTed to `/api/activity/log`, where the
+   backend hashes the visitor IP and writes to Azure Table Storage (with a file/in-memory
+   fallback when Azure isn't configured).
+4. Waitlist submissions:
+   - `POST /api/send-verification` → Twilio Verify SMS
+   - `POST /api/verify-code` → Twilio code check
+   - `POST /api/send-email` → SendGrid (admin + user emails) → ACI lead webhook
+5. The daily report cron (`.github/workflows/activity-daily-report.yml`) hits
+   `POST /api/activity/daily-report` once per day, which queries activity and emails a summary.
 
-### 2. Shared Constants
-- **Location**: `lib/constants.js`
-- **Contains**:
-  - Animation variants (reusable Framer Motion configurations)
-  - Image paths (centralized asset references)
-  - App-wide constants
+## Configuration
 
-### 3. Layout Component
-- **Location**: `components/layouts/PageLayout.js`
-- **Purpose**: Reduces code duplication across pages
-- **Usage**: Wraps page content with Header and Footer
-
-### 4. Component Organization
-- **Layouts**: Reusable page structure components
-- **UI Components**: Header, Footer, LanguageNotification
-- **Clear separation**: Each component has a single responsibility
-
-## Data Flow
-
-### Language Management
-```
-LanguageContext (Provider)
-    ↓
-useLanguage() hook
-    ↓
-Components/Pages
-    ↓
-useTranslations(language, section)
-    ↓
-lib/translations.js
-```
-
-### Form Submission Flow
-```
-Waitlist Page
-    ↓
-Form Submit
-    ↓
-POST /api/send-email
-    ↓
-SendGrid API
-    ↓
-Admin Email + User Confirmation Email
-```
-
-## File Naming Conventions
-
-- **Pages**: kebab-case (`waitlist.js`, `thank-you.js`)
-- **Components**: PascalCase (`Header.js`, `PageLayout.js`)
-- **Utilities**: camelCase (`translations.js`, `constants.js`)
-- **Styles**: kebab-case (`globals.css`)
-
-## Best Practices
-
-1. **Imports**: Always use absolute imports from project root
-2. **Translations**: Use `useTranslations()` hook, never hardcode text
-3. **Images**: Reference via `IMAGE_PATHS` constant from `lib/constants.js`
-4. **Animations**: Use variants from `animationVariants` in `lib/constants.js`
-5. **Layout**: Use `PageLayout` component for all pages
-
-## Adding New Features
-
-### Adding a New Page
-1. Create file in `pages/` directory
-2. Use `PageLayout` component
-3. Import translations: `useTranslations(language, 'sectionName')`
-4. Add translations to `lib/translations.js`
-
-### Adding a New Translation
-1. Add to appropriate section in `lib/translations.js`
-2. Use `useTranslations(language, 'sectionName')` in component
-3. Access via `t.keyName`
-
-### Adding a New Component
-1. Create in `components/` directory
-2. Use PascalCase naming
-3. Import translations if needed
-4. Use animation variants from constants
-
-## Dependencies
-
-- **Next.js 14**: React framework
-- **React 18**: UI library
-- **Framer Motion**: Animation library
-- **SendGrid**: Email service
-- **Google Fonts**: Jost, Great Vibes (via Next.js font optimization)
+The backend reads either modern `appsettings.json` sections **or** the legacy `.env.local`
+variable names from the previous Next.js project (see `Program.cs:MapLegacyEnvVars`). Drop in
+the same env file you used before — no changes required to your secret store.

@@ -1,7 +1,7 @@
-# Publish the Next.js app to the Azure Static Web App in your resource group.
-# Ensure AZURE_STATIC_WEB_APPS_API_TOKEN is set in repo Secrets (see azure/README.md).
+# Publish the Vite frontend to the Azure Static Web App.
+# The .NET backend is deployed separately (Azure App Service / Container App).
 
-name: Publish to Azure Static Web App
+name: Publish Frontend to Azure Static Web App
 
 on:
   push:
@@ -23,15 +23,22 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
 
       - name: Check Azure deploy token
         env:
           TOKEN: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
         run: |
           if [ -z "$TOKEN" ]; then
-            echo "::error::AZURE_STATIC_WEB_APPS_API_TOKEN is not set. Get the token (azure/README.md §2), then: https://github.com/kiarashjam/pavillon-46/settings/secrets/actions → New repository secret → Name: AZURE_STATIC_WEB_APPS_API_TOKEN"
+            echo "::error::AZURE_STATIC_WEB_APPS_API_TOKEN is not set. See azure/README.md and add the secret in repo settings."
             exit 1
           fi
+
+      - name: Install & build frontend
+        working-directory: frontend
+        run: |
+          npm install
+          npm run build
 
       - name: Deploy to Azure Static Web App
         uses: Azure/static-web-apps-deploy@v1
@@ -39,5 +46,6 @@ jobs:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: 'upload'
-          app_location: '/'
-
+          app_location: 'frontend'
+          output_location: 'dist'
+          skip_app_build: true

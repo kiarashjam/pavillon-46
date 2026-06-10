@@ -1,0 +1,102 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using Pavillon46.Api.Models;
+using Pavillon46.Api.Services;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Map env vars from the legacy Next.js .env.local naming so deployments can
+// reuse the same configuration without rewriting their secrets store.
+builder.Configuration.AddEnvironmentVariables();
+MapLegacyEnvVars(builder.Configuration);
+
+builder.Services.Configure<SendGridOptions>(builder.Configuration.GetSection("SendGrid"));
+builder.Services.Configure<TwilioOptions>(builder.Configuration.GetSection("Twilio"));
+builder.Services.Configure<LeadsWebhookOptions>(builder.Configuration.GetSection("LeadsWebhook"));
+builder.Services.Configure<ActivityOptions>(builder.Configuration.GetSection("Activity"));
+builder.Services.Configure<AzureStorageOptions>(builder.Configuration.GetSection("AzureStorage"));
+builder.Services.Configure<SiteOptions>(builder.Configuration.GetSection("Site"));
+
+builder.Services.AddSingleton<IActivityStore, ActivityStore>();
+builder.Services.AddSingleton<IEmailService, EmailService>();
+builder.Services.AddSingleton<IVerificationService, VerificationService>();
+builder.Services.AddSingleton<IDailyReportService, DailyReportService>();
+builder.Services.AddSingleton<RateLimiter>(_ => new RateLimiter { MaxEvents = 30, WindowMs = 15_000 });
+builder.Services.AddHttpClient<ILeadsWebhookService, LeadsWebhookService>();
+
+builder.Services.AddControllers()
+    .AddJsonOptions(opts =>
+    {
+        opts.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+        opts.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+    });
+
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy.WithOrigins(allowedOrigins)
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
+
+var app = builder.Build();
+
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+
+app.UseCors();
+app.UseRouting();
+app.MapControllers();
+app.MapGet("/healthz", () => Results.Ok(new { ok = true }));
+
+app.Run();
+
+static void MapLegacyEnvVars(IConfigurationManager config)
+{
+    void Map(string envName, string key)
+    {
+        var value = Environment.GetEnvironmentVariable(envName);
+        if (!string.IsNullOrWhiteSpace(value)) config[key] = value;
+    }
+
+    Map("SENDGRID_API_KEY", "SendGrid:ApiKey");
+    Map("FROM_EMAIL", "SendGrid:FromEmail");
+    Map("FROM_NAME", "SendGrid:FromName");
+    Map("ADMIN_EMAIL", "SendGrid:AdminEmail");
+
+    Map("TWILIO_ACCOUNT_SID", "Twilio:AccountSid");
+    Map("TWILIO_AUTH_TOKEN", "Twilio:AuthToken");
+    Map("TWILIO_VERIFY_SERVICE_SID", "Twilio:VerifyServiceSid");
+
+    Map("LEADS_WEBHOOK_URL", "LeadsWebhook:Url");
+    Map("LEADS_WEBHOOK_API_KEY", "LeadsWebhook:ApiKey");
+
+    var activityEnabled = Environment.GetEnvironmentVariable("ACTIVITY_LOG_ENABLED");
+    if (!string.IsNullOrEmpty(activityEnabled))
+    {
+        config["Activity:Enabled"] = (!string.Equals(activityEnabled, "false", StringComparison.OrdinalIgnoreCase)).ToString();
+    }
+    Map("ACTIVITY_REPORT_KEY", "Activity:ReportKey");
+    Map("ACTIVITY_IP_SALT", "Activity:IpSalt");
+    Map("ACTIVITY_DAILY_REPORT_TO", "Activity:DailyReportTo");
+    Map("ACTIVITY_REPORT_FILE_PATH", "Activity:FilePath");
+    var maxLimit = Environment.GetEnvironmentVariable("ACTIVITY_REPORT_MAX_LIMIT");
+    if (int.TryParse(maxLimit, out var lim)) config["Activity:MaxReportLimit"] = lim.ToString();
+    var maxScan = Environment.GetEnvironmentVariable("ACTIVITY_REPORT_MAX_SCAN");
+    if (int.TryParse(maxScan, out var scan)) config["Activity:MaxScan"] = scan.ToString();
+
+    Map("AZURE_STORAGE_CONNECTION_STRING", "AzureStorage:ConnectionString");
+    Map("AZURE_STORAGE_TABLE_NAME", "AzureStorage:TableName");
+
+    Map("SITE_URL", "Site:Url");
+    Map("NEXT_PUBLIC_SITE_URL", "Site:Url");
+}
