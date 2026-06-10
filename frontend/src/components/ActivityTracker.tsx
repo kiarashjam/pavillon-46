@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
+import { apiUrl } from '../lib/apiBase'
 
 const BLOCKED_PATH_PREFIXES = ['/admin/activity']
 const SESSION_STORAGE_KEY = 'p46_activity_session_id'
@@ -31,11 +32,11 @@ function sendEvent(payload: ActivityPayload, sessionId: string) {
 
   if (navigator.sendBeacon) {
     const blob = new Blob([body], { type: 'application/json' })
-    navigator.sendBeacon('/api/activity/log', blob)
+    navigator.sendBeacon(apiUrl('/api/activity/log'), blob)
     return
   }
 
-  fetch('/api/activity/log', {
+  fetch(apiUrl('/api/activity/log'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body,

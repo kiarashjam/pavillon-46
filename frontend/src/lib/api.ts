@@ -1,4 +1,5 @@
 // Tiny typed wrapper around the .NET API endpoints.
+import { apiUrl } from './apiBase'
 
 export interface WaitlistSubmitBody {
   firstName: string
@@ -13,7 +14,7 @@ export interface WaitlistSubmitBody {
 }
 
 export async function sendVerification(countryCode: string, phoneNumber: string) {
-  return fetch('/api/send-verification', {
+  return fetch(apiUrl('/api/send-verification'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ countryCode, phoneNumber }),
@@ -21,7 +22,7 @@ export async function sendVerification(countryCode: string, phoneNumber: string)
 }
 
 export async function verifyCode(countryCode: string, phoneNumber: string, code: string) {
-  return fetch('/api/verify-code', {
+  return fetch(apiUrl('/api/verify-code'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ countryCode, phoneNumber, code }),
@@ -29,7 +30,7 @@ export async function verifyCode(countryCode: string, phoneNumber: string, code:
 }
 
 export async function submitWaitlist(body: WaitlistSubmitBody) {
-  return fetch('/api/send-email', {
+  return fetch(apiUrl('/api/send-email'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
@@ -83,7 +84,7 @@ export async function fetchActivityReport(params: {
   if (params.path) search.set('path', params.path)
   if (params.limit) search.set('limit', String(params.limit))
 
-  const response = await fetch(`/api/activity/report?${search.toString()}`, {
+  const response = await fetch(apiUrl(`/api/activity/report?${search.toString()}`), {
     headers: { 'x-report-key': params.key },
   })
   if (!response.ok) {

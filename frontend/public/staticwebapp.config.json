@@ -9,11 +9,5 @@
       "/images/*",
       "/fonts/*"
     ]
-  },
-  "responseOverrides": {
-    "404": {
-      "rewrite": "/index.html",
-      "statusCode": 200
-    }
   }
 }
