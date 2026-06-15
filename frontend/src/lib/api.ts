@@ -92,3 +92,252 @@ export async function fetchActivityReport(params: {
   }
   return response.json()
 }
+
+// ---------------------------------------------------------------------------
+// Member area: auth, profile, referrals, events
+// ---------------------------------------------------------------------------
+
+export interface MemberDto {
+  id: string
+  email: string
+  title: string
+  firstName: string
+  lastName: string
+  phone: string
+  city: string
+  country: string
+  role: string
+  status: string
+  referralCode: string
+  preferredLanguage: 'fr' | 'en'
+  referralCount: number
+  successfulReferrals: number
+  bonusPoints: number
+  mustChangePassword: boolean
+  createdAt: string
+  lastLoginAt: string
+}
+
+export interface LoginResponse {
+  token: string
+  expiresAt: string
+  member: MemberDto
+}
+
+export interface ApplicantDto {
+  id: string
+  firstName: string
+  lastName: string
+  email: string
+  phone: string
+  city: string
+  message: string
+  referralCode: string
+  applicationCode: string
+  referrerMemberId: string
+  referrerName: string
+  referrerEmail: string
+  status: 'pending' | 'reviewing' | 'accepted' | 'declined'
+  bonusAwarded: boolean
+  createdAt: string
+}
+
+export interface ReferralResponse {
+  applicant: ApplicantDto
+  referralCode: string
+  applicationCode: string
+  shareUrl: string
+}
+
+export interface MemberReferralsResponse {
+  applicants: ApplicantDto[]
+  referralCode: string
+  shareUrl: string
+  total: number
+  pending: number
+  accepted: number
+  bonusPoints: number
+}
+
+export interface AnnouncementDto {
+  id: string
+  date: string
+  tag: string
+  title: string
+  body: string
+}
+
+export interface CreateMemberResponse {
+  member: MemberDto
+  password: string
+  emailSent: boolean
+  emailError?: string
+}
+
+export interface ProfileUpdateBody {
+  firstName?: string
+  lastName?: string
+  phone?: string
+  city?: string
+  country?: string
+  preferredLanguage?: 'fr' | 'en'
+}
+
+export interface ReferralBody {
+  firstName: string
+  lastName: string
+  email: string
+  phone: string
+  city?: string
+  message?: string
+  language?: 'fr' | 'en'
+}
+
+export interface CreateMemberBody {
+  title?: string
+  firstName: string
+  lastName: string
+  email: string
+  phone?: string
+  city?: string
+  country?: string
+  contractRef?: string
+  notes?: string
+  language?: 'fr' | 'en'
+  sendEmail: boolean
+}
+
+/** Reads a JSON error message from a failed response, falling back to status. */
+async function readError(response: Response): Promise<string> {
+  try {
+    const data = await response.json()
+    if (data && typeof data.message === 'string') return data.message
+  } catch {
+    /* ignore */
+  }
+  return `Request failed (${response.status})`
+}
+
+async function jsonRequest<T>(path: string, init: RequestInit): Promise<T> {
+  const response = await fetch(apiUrl(path), {
+    ...init,
+    headers: { 'Content-Type': 'application/json', ...(init.headers ?? {}) },
+  })
+  if (!response.ok) {
+    throw new Error(await readError(response))
+  }
+  return response.json() as Promise<T>
+}
+
+const bearer = (token: string) => ({ Authorization: `Bearer ${token}` })
+
+export async function login(email: string, password: string): Promise<LoginResponse> {
+  return jsonRequest<LoginResponse>('/api/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ email, password }),
+  })
+}
+
+export async function getMe(token: string): Promise<MemberDto> {
+  return jsonRequest<MemberDto>('/api/members/me', { headers: bearer(token) })
+}
+
+export async function updateProfile(token: string, body: ProfileUpdateBody): Promise<MemberDto> {
+  return jsonRequest<MemberDto>('/api/members/me', {
+    method: 'PUT',
+    headers: bearer(token),
+    body: JSON.stringify(body),
+  })
+}
+
+export async function changePassword(
+  token: string,
+  newPassword: string,
+  currentPassword?: string,
+): Promise<MemberDto> {
+  return jsonRequest<MemberDto>('/api/members/me/change-password', {
+    method: 'POST',
+    headers: bearer(token),
+    body: JSON.stringify({ newPassword, currentPassword }),
+  })
+}
+
+export async function getMyReferrals(token: string): Promise<MemberReferralsResponse> {
+  return jsonRequest<MemberReferralsResponse>('/api/members/me/referrals', { headers: bearer(token) })
+}
+
+export async function submitReferral(token: string, body: ReferralBody): Promise<ReferralResponse> {
+  return jsonRequest<ReferralResponse>('/api/members/me/referrals', {
+    method: 'POST',
+    headers: bearer(token),
+    body: JSON.stringify(body),
+  })
+}
+
+export async function getEvents(token: string, lang: 'fr' | 'en'): Promise<{ announcements: AnnouncementDto[] }> {
+  return jsonRequest<{ announcements: AnnouncementDto[] }>(`/api/members/events?lang=${lang}`, {
+    headers: bearer(token),
+  })
+}
+
+// ---- Admin (member management) — gated by the admin key header ----
+
+const adminKeyHeader = (key: string) => ({ 'x-report-key': key })
+
+export async function adminListMembers(key: string): Promise<{ members: MemberDto[]; total: number }> {
+  return jsonRequest('/api/admin/members', { headers: adminKeyHeader(key) })
+}
+
+export async function adminCreateMember(key: string, body: CreateMemberBody): Promise<CreateMemberResponse> {
+  return jsonRequest<CreateMemberResponse>('/api/admin/members', {
+    method: 'POST',
+    headers: adminKeyHeader(key),
+    body: JSON.stringify(body),
+  })
+}
+
+export async function adminSendCredentials(
+  key: string,
+  body: { memberId?: string; email?: string; password: string },
+): Promise<{ ok: boolean; emailSent: boolean; sentTo?: string }> {
+  return jsonRequest('/api/admin/members/send-credentials', {
+    method: 'POST',
+    headers: adminKeyHeader(key),
+    body: JSON.stringify(body),
+  })
+}
+
+export async function adminResetPassword(
+  key: string,
+  memberId: string,
+  sendEmail: boolean,
+): Promise<CreateMemberResponse> {
+  return jsonRequest<CreateMemberResponse>(
+    `/api/admin/members/${encodeURIComponent(memberId)}/reset-password?sendEmail=${sendEmail}`,
+    { method: 'POST', headers: adminKeyHeader(key) },
+  )
+}
+
+export interface AdminApplicantsResponse {
+  applicants: ApplicantDto[]
+  total: number
+  pending: number
+  accepted: number
+  declined: number
+}
+
+export async function adminListApplicants(key: string): Promise<AdminApplicantsResponse> {
+  return jsonRequest<AdminApplicantsResponse>('/api/admin/applicants', { headers: adminKeyHeader(key) })
+}
+
+export async function adminUpdateApplicant(
+  key: string,
+  id: string,
+  status: ApplicantDto['status'],
+): Promise<ApplicantDto> {
+  return jsonRequest<ApplicantDto>(`/api/admin/applicants/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    headers: adminKeyHeader(key),
+    body: JSON.stringify({ status }),
+  })
+}

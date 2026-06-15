@@ -1,5 +1,24 @@
-/* CSS Variable for Primary Font (Jost loaded locally in _app.js) */
+/* Load Jost locally (variable font). Without this the --font-jost variable was
+   undefined, which invalidated every `font-family: var(--font-jost), ...`
+   declaration and silently fell the whole site back to the default serif. */
+@font-face {
+    font-family: 'Jost';
+    src: url('/fonts/Jost/Jost-VariableFont_wght.ttf') format('truetype');
+    font-weight: 100 900;
+    font-style: normal;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'Jost';
+    src: url('/fonts/Jost/Jost-Italic-VariableFont_wght.ttf') format('truetype');
+    font-weight: 100 900;
+    font-style: italic;
+    font-display: swap;
+}
+
+/* CSS Variable for Primary Font (Jost loaded locally above) */
 :root {
+    --font-jost: 'Jost';
     --font-primary: var(--font-jost), "Jost", sans-serif;
     --color-green: #265640;
     --color-green-dark: #265640;
@@ -521,8 +540,47 @@ img {
 .header-right {
     display: flex;
     align-items: center;
-    gap: 20px;
+    gap: 16px;
     justify-self: end;
+}
+
+/* Member's Portal link (top-right of the header) */
+.header-portal-link {
+    font-family: var(--font-jost), 'Jost', sans-serif;
+    font-size: 13px;
+    font-weight: 400;
+    letter-spacing: 0.04em;
+    color: #ffffff;
+    text-decoration: none;
+    padding: 7px 16px;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 8px;
+    white-space: nowrap;
+    transition: all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.header-portal-link:hover {
+    background: rgba(255, 255, 255, 0.16);
+    border-color: rgba(255, 255, 255, 0.9);
+    transform: translateY(-1px);
+}
+
+@media (max-width: 600px) {
+    .header-right {
+        gap: 10px;
+    }
+
+    .header-portal-link {
+        font-size: 11px;
+        padding: 5px 11px;
+        letter-spacing: 0.02em;
+    }
+}
+
+@media (max-width: 380px) {
+    .header-right .opening-date-header {
+        display: none;
+    }
 }
 
 /* Mobile: keep opening date on one line */
@@ -1067,40 +1125,21 @@ img {
     border-color: transparent;
 }
 
-/* Login Page Enhancements */
-.form-container.login-form-container {
-    gap: 16px;
-    padding-top: 42px;
-    overflow: hidden;
-    overflow-y: hidden;
-    max-height: none;
-    background:
-        radial-gradient(120% 120% at 100% 0%, rgba(231, 122, 88, 0.08) 0%, rgba(231, 122, 88, 0) 55%),
-        linear-gradient(145deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 252, 250, 0.84) 100%);
-    border: 1px solid rgba(231, 122, 88, 0.28);
-    box-shadow:
-        0 20px 50px rgba(0, 0, 0, 0.12),
-        0 8px 20px rgba(231, 122, 88, 0.08),
-        inset 0 1px 0 rgba(255, 255, 255, 0.7);
+/* Opening-date note under the home CTA (replaces the old "already member" link;
+   member access now lives in the header "Espace membre" link). */
+.invite-opening-note {
+    font-family: var(--font-jost), 'Jost', sans-serif;
+    font-size: 12px;
+    font-weight: 300;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(252, 248, 247, 0.72);
 }
 
-.login-brand {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    margin-top: -2px;
-}
-
-.login-brand-image {
-    width: clamp(160px, 32vw, 224px);
-    height: auto;
-    max-width: 100%;
-    object-fit: contain;
-    opacity: 0.97;
-    filter: brightness(0) saturate(100%) invert(36%) sepia(19%) saturate(656%) hue-rotate(97deg) brightness(91%) contrast(88%);
-}
-
+/* Login Page Enhancements — the auth pages now use the full-screen AuthLayout
+   split (styles/auth.css). The old floating-card chrome and brand-logo rules were
+   removed: the form no longer carries .form-container, and AuthLayout renders the
+   wordmark. The input + field styling below is still used inside the form panel. */
 .login-heading {
     margin-bottom: 0;
 }
@@ -1113,12 +1152,63 @@ img {
 
 .login-form {
     min-height: auto;
-    gap: 12px;
+    gap: 14px;
     margin-bottom: 8px;
 }
 
 .login-field {
     position: relative;
+}
+
+/* Premium inputs — same treatment as the waitlist form (solid, not transparent).
+   Defined before .login-input.password-input so the password right-padding wins. */
+.login-form-container .form-input {
+    background: #ffffff;
+    border: 1px solid rgba(38, 86, 64, 0.3);
+    border-radius: 12px;
+    padding: 15px 18px;
+    font-size: 15px;
+    font-weight: 400;
+    color: #25342d;
+    box-shadow: 0 1px 2px rgba(20, 49, 38, 0.05);
+    transition: border-color 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
+    transform: none;
+}
+
+.login-form-container .form-input::placeholder {
+    color: #6e7c74;
+    font-weight: 300;
+}
+
+.login-form-container .form-input:hover:not(:focus) {
+    border-color: rgba(38, 86, 64, 0.4);
+    box-shadow: 0 2px 8px rgba(20, 49, 38, 0.07);
+}
+
+.login-form-container .form-input:focus {
+    outline: none;
+    border-color: var(--color-green);
+    background: #ffffff;
+    box-shadow: 0 0 0 3px rgba(38, 86, 64, 0.13), 0 4px 14px rgba(20, 49, 38, 0.08);
+    transform: none;
+}
+
+/* Keep browser autofill from painting the inputs pale blue/yellow — force a clean
+   white fill on every premium light input (login, set-password, waitlist, dashboard). */
+.login-form-container .form-input:-webkit-autofill,
+.login-form-container .form-input:-webkit-autofill:hover,
+.login-form-container .form-input:-webkit-autofill:focus,
+.waitlist-form-container .form-input:-webkit-autofill,
+.waitlist-form-container .form-input:-webkit-autofill:hover,
+.waitlist-form-container .form-input:-webkit-autofill:focus,
+.dash-input:-webkit-autofill,
+.dash-input:-webkit-autofill:hover,
+.dash-input:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0 1000px #ffffff inset;
+    box-shadow: 0 0 0 1000px #ffffff inset;
+    -webkit-text-fill-color: #25342d;
+    caret-color: #25342d;
+    transition: background-color 9999s ease-in-out 0s;
 }
 
 .login-input.password-input {
@@ -1190,20 +1280,6 @@ img {
 }
 
 @media (max-width: 767px) {
-    .form-container.login-form-container {
-        padding-top: clamp(26px, 6vw, 36px);
-        gap: 12px;
-    }
-
-    .login-brand-image {
-        width: clamp(140px, 52vw, 200px);
-    }
-
-    .login-subtitle {
-        margin: -2px 0 6px 0;
-        font-size: 12px;
-    }
-
     .login-input.password-input {
         padding-right: 66px;
     }

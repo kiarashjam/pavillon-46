@@ -6,4 +6,6 @@ public interface IEmailService
 {
     Task SendWaitlistEmailsAsync(WaitlistSubmitRequest request, string lang, CancellationToken ct = default);
     Task SendRawEmailAsync(string toEmail, string subject, string plainText, string html, CancellationToken ct = default);
+    Task SendMemberCredentialsAsync(Member member, string plainPassword, string lang, CancellationToken ct = default);
+    Task SendPasswordChangedAsync(Member member, string lang, CancellationToken ct = default);
 }

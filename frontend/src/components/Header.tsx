@@ -9,7 +9,7 @@ export default function Header() {
   const { language, changeLanguage } = useLanguage()
   const location = useLocation()
   const isHomePage = location.pathname === '/'
-  const tHome = useTranslations(language, 'home')
+  const tCommon = useTranslations(language, 'common')
 
   return (
     <motion.header
@@ -49,7 +49,7 @@ export default function Header() {
         </div>
       </div>
       <div className="header-right">
-        <span className="opening-date-header">{tHome.openingDate}</span>
+        <Link to="/login" className="header-portal-link">{tCommon.memberPortal}</Link>
       </div>
     </motion.header>
   )

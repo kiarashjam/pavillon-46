@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Pavillon46.Api.Configuration;
 using Pavillon46.Api.Models;
+using Pavillon46.Api.Security;
 using Pavillon46.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -18,11 +19,16 @@ builder.Services.Configure<LeadsWebhookOptions>(builder.Configuration.GetSection
 builder.Services.Configure<ActivityOptions>(builder.Configuration.GetSection("Activity"));
 builder.Services.Configure<AzureStorageOptions>(builder.Configuration.GetSection("AzureStorage"));
 builder.Services.Configure<SiteOptions>(builder.Configuration.GetSection("Site"));
+builder.Services.Configure<AuthOptions>(builder.Configuration.GetSection("Auth"));
 
 builder.Services.AddSingleton<IActivityStore, ActivityStore>();
 builder.Services.AddSingleton<IEmailService, EmailService>();
 builder.Services.AddSingleton<IVerificationService, VerificationService>();
 builder.Services.AddSingleton<IDailyReportService, DailyReportService>();
+builder.Services.AddSingleton<IMemberStore, MemberStore>();
+builder.Services.AddSingleton<IApplicantStore, ApplicantStore>();
+builder.Services.AddSingleton<ITokenService, TokenService>();
+builder.Services.AddSingleton<IAnnouncementService, AnnouncementService>();
 builder.Services.AddSingleton<RateLimiter>(_ => new RateLimiter { MaxEvents = 30, WindowMs = 15_000 });
 builder.Services.AddHttpClient<ILeadsWebhookService, LeadsWebhookService>();
 
@@ -105,7 +111,18 @@ static void MapLegacyEnvVars(IConfigurationManager config)
 
     Map("AZURE_STORAGE_CONNECTION_STRING", "AzureStorage:ConnectionString");
     Map("AZURE_STORAGE_TABLE_NAME", "AzureStorage:TableName");
+    Map("AZURE_STORAGE_MEMBERS_TABLE", "AzureStorage:MembersTableName");
+    Map("AZURE_STORAGE_APPLICANTS_TABLE", "AzureStorage:ApplicantsTableName");
 
     Map("SITE_URL", "Site:Url");
     Map("NEXT_PUBLIC_SITE_URL", "Site:Url");
+
+    // Member auth + admin member management.
+    Map("AUTH_TOKEN_SECRET", "Auth:TokenSecret");
+    Map("AUTH_ADMIN_KEY", "Auth:AdminKey");
+    Map("AUTH_FILE_PATH", "Auth:FilePath");
+    var ttl = Environment.GetEnvironmentVariable("AUTH_TOKEN_TTL_HOURS");
+    if (int.TryParse(ttl, out var ttlHours)) config["Auth:TokenTtlHours"] = ttlHours.ToString();
+    var bonus = Environment.GetEnvironmentVariable("REFERRAL_BONUS_POINTS");
+    if (int.TryParse(bonus, out var bonusPoints)) config["Auth:ReferralBonusPoints"] = bonusPoints.ToString();
 }
