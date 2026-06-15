@@ -53,6 +53,8 @@ builder.Services.AddCors(options =>
                   if (allowedOrigins.Contains(origin, StringComparer.OrdinalIgnoreCase)) return true;
                   if (!Uri.TryCreate(origin, UriKind.Absolute, out var uri)) return false;
                   return uri.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase)
+                      || uri.Host.Equals("pavillon46.ch", StringComparison.OrdinalIgnoreCase)
+                      || uri.Host.EndsWith(".pavillon46.ch", StringComparison.OrdinalIgnoreCase)
                       || uri.Host.EndsWith(".azurestaticapps.net", StringComparison.OrdinalIgnoreCase);
               })
               .AllowAnyHeader()
