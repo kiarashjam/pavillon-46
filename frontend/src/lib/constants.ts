@@ -18,9 +18,10 @@ export const animationVariants: Record<string, Variants> = {
     },
   },
   item: {
-    hidden: { opacity: 0 },
+    hidden: { opacity: 0, y: 16 },
     visible: {
       opacity: 1,
+      y: 0,
       transition: { duration: 0.6, ease: EASE_OUT },
     },
   },

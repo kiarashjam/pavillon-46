@@ -92,7 +92,9 @@ public record LeadPayload(
     string Email,
     string Phone,
     [property: JsonPropertyName("companyName")] string CompanyName,
-    string Source
+    string Source,
+    [property: JsonPropertyName("referredBy")] string? ReferredBy = null,
+    [property: JsonPropertyName("referrerEmail")] string? ReferrerEmail = null
 );
 
 public class WebhookResult

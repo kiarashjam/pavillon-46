@@ -98,6 +98,122 @@ public class EmailService : IEmailService
         }
     }
 
+    public async Task SendMemberCredentialsAsync(Member member, string plainPassword, string lang, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(_sendgrid.ApiKey)) throw new InvalidOperationException("SENDGRID_API_KEY is missing.");
+        if (string.IsNullOrWhiteSpace(_sendgrid.FromEmail)) throw new InvalidOperationException("FROM_EMAIL is missing.");
+        if (string.IsNullOrWhiteSpace(member.Email)) throw new ArgumentException("Member email is required");
+
+        var isFr = !string.Equals(lang, "en", StringComparison.OrdinalIgnoreCase);
+        var loginUrl = $"{_site.Url.TrimEnd('/')}/login";
+        var greetingName = string.IsNullOrWhiteSpace(member.FirstName) ? member.Email : member.FirstName;
+
+        var subject = isFr ? "Vos accès — Espace membre Pavillon 46" : "Your access — Pavillon 46 member area";
+        var heading = isFr ? "Bienvenue au Pavillon 46" : "Welcome to Pavillon 46";
+        var intro = isFr
+            ? $"Bonjour {greetingName}, votre espace membre privé est désormais ouvert. Voici vos identifiants de connexion."
+            : $"Hello {greetingName}, your private member space is now open. Here are your sign-in credentials.";
+        var emailLabel = isFr ? "Identifiant (e-mail)" : "Login (email)";
+        var passwordLabel = isFr ? "Mot de passe temporaire" : "Temporary password";
+        var cta = isFr ? "Accéder à mon espace" : "Open my member area";
+        var securityNote = isFr
+            ? "Pour votre sécurité, modifiez votre mot de passe après votre première connexion. Ne partagez jamais ces identifiants."
+            : "For your security, change your password after your first sign-in. Never share these credentials.";
+
+        var plain =
+            $"{heading}\n\n{intro}\n\n{emailLabel}: {member.Email}\n{passwordLabel}: {plainPassword}\n\n{cta}: {loginUrl}\n\n{securityNote}";
+
+        var html = BuildCredentialsHtml(lang, heading, intro, emailLabel, member.Email, passwordLabel, plainPassword, cta, loginUrl, securityNote);
+        await SendRawEmailAsync(member.Email, subject, plain, html, ct);
+    }
+
+    public async Task SendPasswordChangedAsync(Member member, string lang, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(_sendgrid.ApiKey)) throw new InvalidOperationException("SENDGRID_API_KEY is missing.");
+        if (string.IsNullOrWhiteSpace(_sendgrid.FromEmail)) throw new InvalidOperationException("FROM_EMAIL is missing.");
+        if (string.IsNullOrWhiteSpace(member.Email)) throw new ArgumentException("Member email is required");
+
+        var isFr = !string.Equals(lang, "en", StringComparison.OrdinalIgnoreCase);
+        var loginUrl = $"{_site.Url.TrimEnd('/')}/login";
+        var greetingName = string.IsNullOrWhiteSpace(member.FirstName) ? member.Email : member.FirstName;
+
+        var subject = isFr ? "Votre mot de passe a été modifié — Pavillon 46" : "Your password was changed — Pavillon 46";
+        var heading = isFr ? "Mot de passe modifié" : "Password changed";
+        var body = isFr
+            ? $"Bonjour {greetingName}, votre mot de passe d'accès à l'espace membre Pavillon 46 a bien été modifié. Si vous n'êtes pas à l'origine de ce changement, contactez-nous immédiatement."
+            : $"Hello {greetingName}, the password for your Pavillon 46 member area has been changed. If you did not make this change, please contact us immediately.";
+        var cta = isFr ? "Accéder à mon espace" : "Open my member area";
+
+        var plain = $"{heading}\n\n{body}\n\n{cta}: {loginUrl}";
+        var html = BuildSimpleHtml(lang, heading, body, cta, loginUrl);
+        await SendRawEmailAsync(member.Email, subject, plain, html, ct);
+    }
+
+    private string BuildSimpleHtml(string lang, string heading, string body, string cta, string loginUrl)
+    {
+        var logo = $"{_site.Url}/images/logo.png";
+        var year = DateTime.UtcNow.Year;
+        return $@"<!DOCTYPE html>
+<html lang=""{lang}"">
+<head><meta charset=""UTF-8""><meta name=""viewport"" content=""width=device-width,initial-scale=1.0""><title>{WebUtility.HtmlEncode(heading)}</title></head>
+<body style=""font-family:Jost,sans-serif;color:#1d2b24;background:#0f261d;margin:0;padding:0;"">
+  <table role=""presentation"" cellspacing=""0"" cellpadding=""0"" border=""0"" width=""100%"" style=""background:#0f261d;padding:24px 0;""><tr><td align=""center"">
+    <table role=""presentation"" cellspacing=""0"" cellpadding=""0"" border=""0"" width=""600"" style=""max-width:600px;margin:0 auto;background:#fcf8f7;border-radius:14px;overflow:hidden;box-shadow:0 18px 48px rgba(0,0,0,0.3);"">
+      <tr><td style=""background:linear-gradient(135deg,#265640 0%,#3a6f58 100%);padding:42px 32px;text-align:center;color:#fff;"">
+        <div style=""text-align:center;margin-bottom:16px;""><img src=""{logo}"" alt=""Pavillon 46"" width=""150"" style=""display:inline-block;max-width:150px;width:100%;height:auto;filter:brightness(0) invert(1);""/></div>
+        <h1 style=""margin:0;font-size:28px;font-weight:500;color:#fff;"">{WebUtility.HtmlEncode(heading)}</h1>
+      </td></tr>
+      <tr><td style=""padding:36px 32px;"">
+        <p style=""margin:0 0 26px 0;font-size:16px;color:#3a4a42;line-height:1.7;"">{WebUtility.HtmlEncode(body)}</p>
+        <div style=""text-align:center;margin:8px 0;"">
+          <a href=""{loginUrl}"" style=""display:inline-block;background:#ff6e50;color:#fff;text-decoration:none;font-size:16px;font-weight:500;padding:14px 34px;border-radius:8px;"">{WebUtility.HtmlEncode(cta)}</a>
+        </div>
+      </td></tr>
+      <tr><td style=""padding:24px 32px;background:#f0ece9;border-top:1px solid rgba(38,86,64,0.1);font-size:12px;color:#8a9a92;text-align:center;line-height:1.7;"">
+        <p style=""margin:0;"">© {year} Pavillon 46 — La Croix-sur-Lutry, Suisse</p>
+      </td></tr>
+    </table>
+  </td></tr></table>
+</body></html>";
+    }
+
+    private string BuildCredentialsHtml(
+        string lang, string heading, string intro, string emailLabel, string email,
+        string passwordLabel, string password, string cta, string loginUrl, string securityNote)
+    {
+        var logo = $"{_site.Url}/images/logo.png";
+        var year = DateTime.UtcNow.Year;
+        return $@"<!DOCTYPE html>
+<html lang=""{lang}"">
+<head><meta charset=""UTF-8""><meta name=""viewport"" content=""width=device-width,initial-scale=1.0""><title>{WebUtility.HtmlEncode(heading)}</title></head>
+<body style=""font-family:Jost,sans-serif;color:#1d2b24;background:#0f261d;margin:0;padding:0;"">
+  <table role=""presentation"" cellspacing=""0"" cellpadding=""0"" border=""0"" width=""100%"" style=""background:#0f261d;padding:24px 0;""><tr><td align=""center"">
+    <table role=""presentation"" cellspacing=""0"" cellpadding=""0"" border=""0"" width=""600"" style=""max-width:600px;margin:0 auto;background:#fcf8f7;border-radius:14px;overflow:hidden;box-shadow:0 18px 48px rgba(0,0,0,0.3);"">
+      <tr><td style=""background:linear-gradient(135deg,#265640 0%,#3a6f58 100%);padding:42px 32px;text-align:center;color:#fff;"">
+        <div style=""text-align:center;margin-bottom:16px;""><img src=""{logo}"" alt=""Pavillon 46"" width=""150"" style=""display:inline-block;max-width:150px;width:100%;height:auto;filter:brightness(0) invert(1);""/></div>
+        <h1 style=""margin:0;font-size:28px;font-weight:500;color:#fff;letter-spacing:0.01em;"">{WebUtility.HtmlEncode(heading)}</h1>
+      </td></tr>
+      <tr><td style=""padding:36px 32px;"">
+        <p style=""margin:0 0 24px 0;font-size:16px;color:#3a4a42;line-height:1.7;"">{WebUtility.HtmlEncode(intro)}</p>
+        <div style=""background:#fff;border:1px solid rgba(38,86,64,0.18);border-radius:12px;padding:22px;margin:0 0 24px 0;"">
+          <p style=""margin:0 0 6px 0;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:#8a9a92;"">{WebUtility.HtmlEncode(emailLabel)}</p>
+          <p style=""margin:0 0 18px 0;font-size:17px;color:#1d2b24;font-weight:500;"">{WebUtility.HtmlEncode(email)}</p>
+          <p style=""margin:0 0 6px 0;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:#8a9a92;"">{WebUtility.HtmlEncode(passwordLabel)}</p>
+          <p style=""margin:0;font-size:20px;color:#265640;font-weight:600;font-family:'Courier New',monospace;letter-spacing:0.04em;"">{WebUtility.HtmlEncode(password)}</p>
+        </div>
+        <div style=""text-align:center;margin:28px 0;"">
+          <a href=""{loginUrl}"" style=""display:inline-block;background:#ff6e50;color:#fff;text-decoration:none;font-size:16px;font-weight:500;padding:14px 34px;border-radius:8px;"">{WebUtility.HtmlEncode(cta)}</a>
+        </div>
+        <p style=""margin:18px 0 0 0;font-size:13px;color:#8a9a92;line-height:1.6;"">{WebUtility.HtmlEncode(securityNote)}</p>
+      </td></tr>
+      <tr><td style=""padding:24px 32px;background:#f0ece9;border-top:1px solid rgba(38,86,64,0.1);font-size:12px;color:#8a9a92;text-align:center;line-height:1.7;"">
+        <p style=""margin:0;"">© {year} Pavillon 46 — La Croix-sur-Lutry, Suisse</p>
+      </td></tr>
+    </table>
+  </td></tr></table>
+</body></html>";
+    }
+
     private string BuildAdminPlainText(EmailTranslations.AdminStrings t, string fullName, string emailAddress, string fullPhone, string postalCode, string hearAboutPlain) =>
         $"{t.Intro}\n{t.NameLabel} {fullName}\n{t.EmailLabel} {emailAddress}\n{t.PhoneLabel} {fullPhone}\n{t.PostalCodeLabel} {postalCode}\n{t.HearAboutLabel} {hearAboutPlain}\n\n{t.LanguageNote}";
 

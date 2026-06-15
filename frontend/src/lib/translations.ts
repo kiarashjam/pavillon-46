@@ -17,6 +17,8 @@ export interface CommonTranslations {
   haveCode: string
   alreadyMember: string
   asSeenOnElle: string
+  memberPortal: string
+  byInvitation: string
 }
 
 export interface HomeTranslations {
@@ -87,6 +89,98 @@ export interface LoginTranslations {
   validationError: string
   successMessage: string
   joinWaitlistLink: string
+  failed: string
+}
+
+export interface DashboardTranslations {
+  navOverview: string
+  navReferral: string
+  navReferrals: string
+  navProfile: string
+  navEvents: string
+  signOut: string
+  greeting: string
+  memberLabel: string
+  loading: string
+  loadError: string
+  copy: string
+  copied: string
+  // Welcome (portal home)
+  welcomeHeading: string
+  welcomeSub: string
+  // Set password (forced reset)
+  setPwTitle: string
+  setPwSubtitle: string
+  newPassword: string
+  confirmPassword: string
+  setPwSubmit: string
+  setPwSaving: string
+  setPwMismatch: string
+  setPwTooShort: string
+  // Overview
+  overviewTitle: string
+  overviewSubtitle: string
+  statReferrals: string
+  statAccepted: string
+  statBonus: string
+  yourCode: string
+  referralCardTitle: string
+  referralCardText: string
+  referralCardButton: string
+  openingTitle: string
+  openingText: string
+  // Referral form
+  referralTitle: string
+  referralSubtitle: string
+  fldFirstName: string
+  fldLastName: string
+  fldEmail: string
+  fldPhone: string
+  fldCity: string
+  fldMessage: string
+  submit: string
+  submitting: string
+  errRequiredName: string
+  errRequiredContact: string
+  successTitle: string
+  successText: string
+  codeLabel: string
+  applicationLabel: string
+  shareLabel: string
+  referAnother: string
+  referSuccessTitle: string
+  referSuccessBody: string
+  rewardTitle: string
+  rewardText: string
+  rewardShort: string
+  // My referrals
+  referralsTitle: string
+  referralsSubtitle: string
+  referralsEmpty: string
+  colName: string
+  colContact: string
+  colDate: string
+  colStatus: string
+  statusPending: string
+  statusReviewing: string
+  statusAccepted: string
+  statusDeclined: string
+  totalLabel: string
+  acceptedLabel: string
+  bonusLabel: string
+  // Profile
+  profileTitle: string
+  profileSubtitle: string
+  fldCountry: string
+  fldLanguage: string
+  emailReadonly: string
+  save: string
+  saving: string
+  saved: string
+  // Events
+  eventsTitle: string
+  eventsSubtitle: string
+  eventsEmpty: string
 }
 
 export interface ThankYouTranslations {
@@ -130,6 +224,7 @@ export interface Translations {
   home: HomeTranslations
   waitlist: WaitlistTranslations
   login: LoginTranslations
+  dashboard: DashboardTranslations
   thankYou: ThankYouTranslations
   privacy: LegalOrPrivacyTranslations
   legal: LegalOrPrivacyTranslations
@@ -144,6 +239,8 @@ export const translations: Record<Language, Translations> = {
       haveCode: "J'ai un code",
       alreadyMember: 'Déjà membre ?',
       asSeenOnElle: 'Vu dans ELLE',
+      memberPortal: 'Espace membre',
+      byInvitation: 'Sur invitation',
     },
     home: {
       title: 'Pavillon 46',
@@ -216,6 +313,90 @@ export const translations: Record<Language, Translations> = {
       validationError: 'Veuillez renseigner votre compte et votre mot de passe.',
       successMessage: 'Portail prive en cours de finalisation. Votre acces sera active tres bientot.',
       joinWaitlistLink: "Pas encore membre ? Rejoindre la liste d'attente",
+      failed: 'E-mail ou mot de passe incorrect.',
+    },
+    dashboard: {
+      navOverview: 'Accueil',
+      navReferral: 'Parrainage',
+      navReferrals: 'Mes parrainages',
+      navProfile: 'Profil',
+      navEvents: 'Actualités',
+      signOut: 'Se déconnecter',
+      greeting: 'Bienvenue,',
+      memberLabel: 'Membre',
+      loading: 'Chargement…',
+      loadError: 'Impossible de charger les données. Veuillez réessayer.',
+      copy: 'Copier',
+      copied: 'Copié',
+      welcomeHeading: 'Bienvenue au Pavillon 46,',
+      welcomeSub: 'Votre espace membre privé. Parrainez une personne de confiance.',
+      setPwTitle: 'Définissez votre mot de passe',
+      setPwSubtitle: 'Pour votre sécurité, choisissez un nouveau mot de passe avant de continuer.',
+      newPassword: 'Nouveau mot de passe',
+      confirmPassword: 'Confirmer le mot de passe',
+      setPwSubmit: 'Enregistrer et continuer',
+      setPwSaving: 'Enregistrement…',
+      setPwMismatch: 'Les mots de passe ne correspondent pas.',
+      setPwTooShort: 'Le mot de passe doit contenir au moins 8 caractères.',
+      overviewTitle: 'Votre espace membre',
+      overviewSubtitle: 'Bienvenue dans le cercle privé du Pavillon 46.',
+      statReferrals: 'Parrainages',
+      statAccepted: 'Acceptés',
+      statBonus: 'Mois offerts',
+      yourCode: 'Votre code de parrainage',
+      referralCardTitle: 'Parrainez une personne de confiance',
+      referralCardText: "L'accès au Pavillon 46 se fait sur invitation. Parrainez une personne — à la signature de son contrat, vous recevez chacun un mois offert.",
+      referralCardButton: 'Parrainer maintenant',
+      openingTitle: 'Ouverture fin 2027',
+      openingText: 'Le Pavillon 46 ouvrira ses portes fin 2027 à La Croix-sur-Lutry. Les membres bénéficient d\'un accès prioritaire.',
+      referralTitle: 'Parrainer une personne',
+      referralSubtitle: 'Recommandez une personne pour devenir membre. Vous recevrez un code de parrainage.',
+      fldFirstName: 'Prénom',
+      fldLastName: 'Nom',
+      fldEmail: 'Adresse e-mail',
+      fldPhone: 'Numéro de téléphone',
+      fldCity: 'Ville',
+      fldMessage: 'Message (optionnel)',
+      submit: 'Envoyer le parrainage',
+      submitting: 'Envoi…',
+      errRequiredName: 'Veuillez indiquer le prénom et le nom.',
+      errRequiredContact: 'Veuillez indiquer au moins un e-mail ou un téléphone.',
+      successTitle: 'Parrainage enregistré',
+      successText: 'Votre recommandation a bien été transmise. Voici votre code de parrainage.',
+      codeLabel: 'Code de parrainage',
+      applicationLabel: 'Référence de candidature',
+      shareLabel: 'Lien de partage',
+      referAnother: 'Parrainer une autre personne',
+      referSuccessTitle: 'Parrainage envoyé',
+      referSuccessBody: 'Vous avez parrainé {name} avec succès. Nous le ou la contacterons très prochainement.',
+      rewardTitle: 'Un mois offert, pour vous deux',
+      rewardText: "Lorsque la personne que vous parrainez signe son contrat de membre, vous et votre invité bénéficiez chacun d'un mois gratuit.",
+      rewardShort: 'À la signature de son contrat, vous recevez chacun un mois offert.',
+      referralsTitle: 'Mes parrainages',
+      referralsSubtitle: 'Suivez les candidatures des personnes que vous avez parrainées.',
+      referralsEmpty: "Vous n'avez encore parrainé personne.",
+      colName: 'Nom',
+      colContact: 'Contact',
+      colDate: 'Date',
+      colStatus: 'Statut',
+      statusPending: 'En attente',
+      statusReviewing: 'En examen',
+      statusAccepted: 'Accepté',
+      statusDeclined: 'Refusé',
+      totalLabel: 'Total',
+      acceptedLabel: 'Acceptés',
+      bonusLabel: 'Mois offerts',
+      profileTitle: 'Mon profil',
+      profileSubtitle: 'Gérez vos informations personnelles.',
+      fldCountry: 'Pays',
+      fldLanguage: 'Langue préférée',
+      emailReadonly: "L'adresse e-mail ne peut pas être modifiée. Contactez le Pavillon 46.",
+      save: 'Enregistrer',
+      saving: 'Enregistrement…',
+      saved: 'Modifications enregistrées',
+      eventsTitle: 'Actualités & événements',
+      eventsSubtitle: 'Les nouvelles réservées aux membres du Pavillon 46.',
+      eventsEmpty: 'Aucune actualité pour le moment.',
     },
     thankYou: {
       title: 'Merci - Pavillon 46',
@@ -286,6 +467,8 @@ export const translations: Record<Language, Translations> = {
       haveCode: 'I have a code',
       alreadyMember: 'Already a member?',
       asSeenOnElle: 'As seen on ELLE',
+      memberPortal: "Member's Portal",
+      byInvitation: 'By invitation',
     },
     home: {
       title: 'Pavillon 46',
@@ -358,6 +541,90 @@ export const translations: Record<Language, Translations> = {
       validationError: 'Please enter both account and password.',
       successMessage: 'The private portal is being finalized. Your access will be enabled very soon.',
       joinWaitlistLink: 'Not a member yet? Join the waitlist',
+      failed: 'Invalid email or password.',
+    },
+    dashboard: {
+      navOverview: 'Overview',
+      navReferral: 'Refer',
+      navReferrals: 'My referrals',
+      navProfile: 'Profile',
+      navEvents: 'News',
+      signOut: 'Sign out',
+      greeting: 'Welcome back,',
+      memberLabel: 'Member',
+      loading: 'Loading…',
+      loadError: 'Could not load data. Please try again.',
+      copy: 'Copy',
+      copied: 'Copied',
+      welcomeHeading: 'Welcome to Pavillon 46,',
+      welcomeSub: 'Your private member space. Refer someone you trust.',
+      setPwTitle: 'Set your password',
+      setPwSubtitle: 'For your security, choose a new password before continuing.',
+      newPassword: 'New password',
+      confirmPassword: 'Confirm password',
+      setPwSubmit: 'Save and continue',
+      setPwSaving: 'Saving…',
+      setPwMismatch: 'The passwords do not match.',
+      setPwTooShort: 'Password must be at least 8 characters.',
+      overviewTitle: 'Your member area',
+      overviewSubtitle: 'Welcome to the private circle of Pavillon 46.',
+      statReferrals: 'Referrals',
+      statAccepted: 'Accepted',
+      statBonus: 'Free months',
+      yourCode: 'Your referral code',
+      referralCardTitle: 'Refer someone you trust',
+      referralCardText: 'Access to Pavillon 46 is by invitation. Refer someone — when they sign their contract, you each get a month free.',
+      referralCardButton: 'Refer now',
+      openingTitle: 'Opening end of 2027',
+      openingText: 'Pavillon 46 will open at the end of 2027 in La Croix-sur-Lutry. Members enjoy priority access.',
+      referralTitle: 'Refer a person',
+      referralSubtitle: 'Recommend someone to become a member. You will receive a referral code.',
+      fldFirstName: 'First name',
+      fldLastName: 'Last name',
+      fldEmail: 'Email address',
+      fldPhone: 'Phone number',
+      fldCity: 'City',
+      fldMessage: 'Message (optional)',
+      submit: 'Send referral',
+      submitting: 'Sending…',
+      errRequiredName: 'Please provide the first and last name.',
+      errRequiredContact: 'Please provide at least an email or a phone number.',
+      successTitle: 'Referral recorded',
+      successText: 'Your recommendation has been submitted. Here is your referral code.',
+      codeLabel: 'Referral code',
+      applicationLabel: 'Application reference',
+      shareLabel: 'Share link',
+      referAnother: 'Refer another person',
+      referSuccessTitle: 'Referral sent',
+      referSuccessBody: 'You have successfully referred {name}. We will contact them shortly.',
+      rewardTitle: 'A month on us — for both of you',
+      rewardText: 'When the person you refer signs their membership contract, you and your guest each receive one month free.',
+      rewardShort: 'When they sign their contract, you each get one month free.',
+      referralsTitle: 'My referrals',
+      referralsSubtitle: 'Track the applications of the people you referred.',
+      referralsEmpty: 'You have not referred anyone yet.',
+      colName: 'Name',
+      colContact: 'Contact',
+      colDate: 'Date',
+      colStatus: 'Status',
+      statusPending: 'Pending',
+      statusReviewing: 'Reviewing',
+      statusAccepted: 'Accepted',
+      statusDeclined: 'Declined',
+      totalLabel: 'Total',
+      acceptedLabel: 'Accepted',
+      bonusLabel: 'Free months',
+      profileTitle: 'My profile',
+      profileSubtitle: 'Manage your personal information.',
+      fldCountry: 'Country',
+      fldLanguage: 'Preferred language',
+      emailReadonly: 'The email address cannot be changed. Please contact Pavillon 46.',
+      save: 'Save',
+      saving: 'Saving…',
+      saved: 'Changes saved',
+      eventsTitle: 'News & events',
+      eventsSubtitle: 'Members-only updates from Pavillon 46.',
+      eventsEmpty: 'No news at the moment.',
     },
     thankYou: {
       title: 'Thank You - Pavillon 46',

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import PageLayout from '../components/PageLayout'
@@ -264,15 +264,29 @@ export default function Waitlist() {
   const renderStepIndicator = () => {
     const steps = [t.stepName, t.stepEmail, t.stepSource, t.stepPhone, t.stepVerify]
     return (
-      <div className="step-indicator" role="progressbar" aria-valuemin={1} aria-valuemax={5} aria-valuenow={currentStep}>
+      <div className="wl-stepper" role="progressbar" aria-valuemin={1} aria-valuemax={5} aria-valuenow={currentStep}>
         {steps.map((label, i) => {
           const stepNumber = i + 1
           const isActive = stepNumber === currentStep
           const isDone = stepNumber < currentStep
           return (
-            <div key={label} className={`step-dot${isActive ? ' active' : ''}${isDone ? ' done' : ''}`} aria-label={label}>
-              <span className="step-dot-label">{label}</span>
-            </div>
+            <Fragment key={label}>
+              {i > 0 && (
+                <span className={`wl-step-line${stepNumber <= currentStep ? ' is-filled' : ''}`} aria-hidden="true" />
+              )}
+              <div className={`wl-step${isActive ? ' is-active' : ''}${isDone ? ' is-done' : ''}`} aria-label={label}>
+                <span className="wl-step-dot">
+                  {isDone ? (
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  ) : (
+                    stepNumber
+                  )}
+                </span>
+                <span className="wl-step-label">{label}</span>
+              </div>
+            </Fragment>
           )
         })}
       </div>
@@ -288,7 +302,7 @@ export default function Waitlist() {
 
         <div className="form-overlay">
           <motion.div
-            className="form-container"
+            className="form-container waitlist-form-container"
             initial={{ opacity: 0, y: 30, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={{ duration: 1, ease: EASE_SOFT }}

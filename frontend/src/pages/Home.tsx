@@ -157,17 +157,7 @@ export default function Home() {
             >
               {t.joinButton}
             </motion.button>
-            <motion.a
-              href="/login"
-              className="form-link invite-member-link"
-              onClick={(e) => {
-                e.preventDefault()
-                navigateWithExit('/login')
-              }}
-              whileHover={{ y: -1, opacity: 0.85 }}
-            >
-              {tCommon.alreadyMember}
-            </motion.a>
+            <span className="invite-opening-note">{t.openingDate}</span>
           </motion.div>
         </motion.div>
 

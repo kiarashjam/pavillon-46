@@ -1,0 +1,429 @@
+/* ============================================================
+   PAVILLON 46 — WAITLIST FORM (premium pass)
+   Scoped entirely under .waitlist-form-container so it never
+   affects the member login / set-password cards (which share
+   the .form-container / .form-input class names).
+   Authoritative layer — loaded last in main.tsx.
+   ============================================================ */
+
+:root {
+  --wl-green: var(--color-green, #265640);
+  --wl-green-soft: #3a6f58;
+  --wl-coral: var(--color-coral, #ff6e50);
+  --wl-ink: #25342d;
+  --wl-muted: #6f8079;
+  --wl-line: rgba(38, 86, 64, 0.22);
+  --wl-ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ---- Card ---- */
+.waitlist-form-container {
+  gap: 20px;
+  border: 1px solid rgba(38, 86, 64, 0.14);
+  border-radius: 18px;
+  background:
+    radial-gradient(130% 120% at 100% 0%, rgba(224, 191, 252, 0.12) 0%, rgba(224, 191, 252, 0) 52%),
+    linear-gradient(165deg, rgba(255, 255, 255, 0.98) 0%, rgba(252, 248, 247, 0.95) 100%);
+  -webkit-backdrop-filter: blur(18px) saturate(120%);
+  backdrop-filter: blur(18px) saturate(120%);
+  box-shadow:
+    0 24px 60px rgba(20, 49, 38, 0.18),
+    0 6px 18px rgba(20, 49, 38, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.waitlist-form-container .form-heading {
+  font-weight: 300;
+  letter-spacing: -0.01em;
+  margin-bottom: 2px;
+}
+
+/* ---- Stepper ---- */
+.wl-stepper {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  width: 100%;
+  gap: 0;
+  margin: 2px 0 4px;
+}
+
+.wl-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.wl-step-dot {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-primary);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--wl-muted);
+  background: #ffffff;
+  border: 1.5px solid rgba(38, 86, 64, 0.28);
+  box-shadow: 0 1px 2px rgba(20, 49, 38, 0.06);
+  transition: all 0.4s var(--wl-ease);
+}
+
+.wl-step-dot svg {
+  width: 17px;
+  height: 17px;
+  display: block;
+}
+
+.wl-step.is-active .wl-step-dot {
+  color: #ffffff;
+  background: linear-gradient(135deg, var(--wl-green) 0%, var(--wl-green-soft) 100%);
+  border-color: var(--wl-green);
+  box-shadow: 0 4px 14px rgba(38, 86, 64, 0.3), 0 0 0 5px rgba(38, 86, 64, 0.08);
+  transform: scale(1.06);
+}
+
+.wl-step.is-done .wl-step-dot {
+  color: #ffffff;
+  background: var(--wl-green);
+  border-color: var(--wl-green);
+}
+
+.wl-step-label {
+  font-family: var(--font-primary);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--wl-muted);
+  white-space: nowrap;
+  transition: color 0.4s var(--wl-ease);
+}
+
+.wl-step.is-active .wl-step-label {
+  color: var(--wl-green);
+  font-weight: 600;
+}
+
+.wl-step.is-done .wl-step-label { color: var(--wl-green-soft); }
+
+.wl-step-line {
+  flex: 1 1 auto;
+  min-width: 14px;
+  height: 2px;
+  margin-top: 16px;
+  border-radius: 2px;
+  background: rgba(38, 86, 64, 0.18);
+  position: relative;
+  overflow: hidden;
+}
+
+.wl-step-line.is-filled {
+  background: linear-gradient(90deg, var(--wl-green), var(--wl-green-soft));
+}
+
+/* ---- Form body ---- */
+.waitlist-form-container .multi-step-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  align-self: stretch;
+}
+
+.waitlist-form-container .step-description {
+  font-family: var(--font-primary);
+  font-size: 14px;
+  color: var(--wl-muted);
+  text-align: center;
+  line-height: 1.55;
+  margin: 0 0 2px;
+}
+
+.waitlist-form-container .form-label {
+  font-family: var(--font-primary);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--wl-green);
+  align-self: flex-start;
+  margin-bottom: -4px;
+}
+
+/* ---- Inputs (the key "transparency" fix) ---- */
+.waitlist-form-container .form-input {
+  width: 100%;
+  padding: 13px 16px;
+  border: 1px solid var(--wl-line);
+  border-radius: 11px;
+  font-family: var(--font-primary);
+  font-size: 14.5px;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  color: var(--wl-ink);
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(20, 49, 38, 0.05);
+  transition: border-color 0.25s var(--wl-ease), box-shadow 0.25s var(--wl-ease), background 0.25s var(--wl-ease);
+  transform: none;
+}
+
+.waitlist-form-container .form-input::placeholder {
+  color: #9aa8a1;
+  font-weight: 300;
+}
+
+.waitlist-form-container .form-input:hover:not(:focus) {
+  border-color: rgba(38, 86, 64, 0.4);
+  box-shadow: 0 2px 8px rgba(20, 49, 38, 0.07);
+}
+
+.waitlist-form-container .form-input:focus {
+  outline: none;
+  border-color: var(--wl-green);
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(38, 86, 64, 0.13), 0 4px 14px rgba(20, 49, 38, 0.08);
+  transform: none;
+}
+
+.waitlist-form-container select.form-input {
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%23265640' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  padding-right: 40px;
+}
+
+.waitlist-form-container .form-textarea {
+  resize: vertical;
+  min-height: 78px;
+  line-height: 1.5;
+}
+
+/* ---- Phone step + country dropdown ---- */
+.waitlist-form-container .phone-row {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  width: 100%;
+}
+
+.waitlist-form-container .country-dropdown {
+  position: relative;
+  flex: 0 0 auto;
+  /* Neutralize the legacy .country-dropdown rule (it styled the old absolute
+     list, but here this element is the wrapper around the trigger button). */
+  width: auto;
+  max-height: none;
+  overflow: visible;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  margin-top: 0;
+}
+
+.waitlist-form-container .country-selector {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 100%;
+  min-height: 48px;
+  padding: 0 14px;
+  border: 1px solid var(--wl-line);
+  border-radius: 11px;
+  background: #ffffff;
+  font-family: var(--font-primary);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--wl-ink);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.25s var(--wl-ease), box-shadow 0.25s var(--wl-ease);
+}
+
+.waitlist-form-container .country-selector:hover {
+  border-color: rgba(38, 86, 64, 0.4);
+  box-shadow: 0 2px 8px rgba(20, 49, 38, 0.07);
+}
+
+.waitlist-form-container .country-selector .country-flag { font-size: 20px; line-height: 1; }
+.waitlist-form-container .country-selector .country-code { font-size: 14px; color: var(--wl-ink); }
+.waitlist-form-container .phone-input { flex: 1 1 auto; }
+
+.waitlist-form-container .country-list {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 50;
+  width: 264px;
+  max-height: 248px;
+  overflow-y: auto;
+  list-style: none;
+  margin: 0;
+  padding: 6px;
+  background: rgba(255, 255, 255, 0.99);
+  border: 1px solid rgba(38, 86, 64, 0.2);
+  border-radius: 14px;
+  box-shadow: 0 18px 44px rgba(20, 49, 38, 0.18), 0 4px 12px rgba(38, 86, 64, 0.08);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+}
+
+.waitlist-form-container .country-list-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 9px;
+  cursor: pointer;
+  font-family: var(--font-primary);
+  font-size: 14px;
+  color: var(--wl-ink);
+  border-left: 3px solid transparent;
+  transition: background 0.18s ease, border-color 0.18s ease;
+}
+
+.waitlist-form-container .country-list-item:hover {
+  background: rgba(38, 86, 64, 0.07);
+  border-left-color: rgba(38, 86, 64, 0.45);
+}
+
+.waitlist-form-container .country-list-item[aria-selected='true'] {
+  background: rgba(38, 86, 64, 0.1);
+  border-left-color: var(--wl-green);
+}
+
+.waitlist-form-container .country-list-item .country-flag { font-size: 19px; line-height: 1; }
+.waitlist-form-container .country-list-item .country-code { font-size: 13px; color: var(--wl-muted); min-width: 42px; }
+.waitlist-form-container .country-list-item .country-name { flex: 1; }
+
+/* ---- Messages ---- */
+.waitlist-form-container .form-error {
+  margin: 0;
+  font-family: var(--font-primary);
+  font-size: 13px;
+  color: #b23a23;
+  text-align: center;
+  background: rgba(255, 110, 80, 0.1);
+  border: 1px solid rgba(255, 110, 80, 0.28);
+  border-radius: 9px;
+  padding: 9px 12px;
+}
+
+.waitlist-form-container .form-info {
+  margin: 0;
+  font-family: var(--font-primary);
+  font-size: 13px;
+  color: var(--wl-green);
+  text-align: center;
+  background: rgba(38, 86, 64, 0.07);
+  border: 1px solid rgba(38, 86, 64, 0.2);
+  border-radius: 9px;
+  padding: 9px 12px;
+}
+
+.waitlist-form-container .resend-row {
+  display: flex;
+  justify-content: center;
+  margin-top: 2px;
+}
+
+/* ---- Actions ---- */
+.waitlist-form-container .form-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  margin-top: 6px;
+}
+
+.waitlist-form-container .submit-button {
+  flex: 1 1 auto;
+  width: auto;
+  margin-top: 0;
+  padding: 14px 22px;
+  border-radius: 11px;
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #ffffff;
+  background: linear-gradient(135deg, var(--wl-green) 0%, var(--wl-green-soft) 100%);
+  box-shadow: 0 8px 20px rgba(38, 86, 64, 0.26);
+  transition: transform 0.25s var(--wl-ease), box-shadow 0.3s var(--wl-ease), filter 0.25s var(--wl-ease);
+}
+
+.waitlist-form-container .submit-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 26px rgba(38, 86, 64, 0.32);
+  filter: brightness(1.03);
+}
+
+.waitlist-form-container .submit-button:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 6px 16px rgba(38, 86, 64, 0.26);
+}
+
+.waitlist-form-container .back-button {
+  flex: 0 0 auto;
+  padding: 14px 20px;
+  border-radius: 11px;
+  border: 1px solid rgba(38, 86, 64, 0.28);
+  background: #ffffff;
+  color: var(--wl-green);
+  font-family: var(--font-primary);
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: border-color 0.25s var(--wl-ease), background 0.25s var(--wl-ease), transform 0.2s var(--wl-ease);
+}
+
+.waitlist-form-container .back-button:hover:not(:disabled) {
+  border-color: var(--wl-green);
+  background: rgba(38, 86, 64, 0.05);
+  transform: translateY(-1px);
+}
+
+/* ---- Bottom link ---- */
+.waitlist-form-container .form-link-row {
+  width: 100%;
+  text-align: center;
+  margin: 2px 0 0;
+}
+
+.waitlist-form-container .form-link-row .form-link {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--wl-muted);
+  font-size: 12.5px;
+}
+
+.waitlist-form-container .form-link-row .form-link:hover { color: var(--wl-green); }
+
+/* ---- Responsive ---- */
+@media (max-width: 600px) {
+  .waitlist-form-container { border-radius: 16px; gap: 16px; }
+  .wl-step-dot { width: 30px; height: 30px; font-size: 12px; }
+  .wl-step-dot svg { width: 15px; height: 15px; }
+  /* Long FR labels (Téléphone, Vérification) overflow on narrow screens —
+     show a clean numbered dots-and-lines progress bar instead. */
+  .wl-step-label { display: none; }
+  .wl-step-line { margin-top: 14px; min-width: 16px; }
+  .waitlist-form-container .country-list { width: 232px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wl-step-dot,
+  .waitlist-form-container .form-input,
+  .waitlist-form-container .submit-button,
+  .waitlist-form-container .back-button { transition: none; }
+}
