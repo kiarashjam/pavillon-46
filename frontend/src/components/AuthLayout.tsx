@@ -52,7 +52,6 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
               <span className="auth-visual-accent">{tHome.sloganPart2}</span>{' '}
               <span>{tHome.sloganPart3}</span>
             </p>
-            <p className="auth-visual-desc">{tHome.footerText}</p>
           </motion.div>
 
           <motion.div

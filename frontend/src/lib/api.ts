@@ -27,6 +27,7 @@ export interface WaitlistSubmitBody {
   postalCode: string
   hearAboutKey: string
   hearAboutOther: string
+  referralCode?: string
   language: 'fr' | 'en'
 }
 

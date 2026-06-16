@@ -11,12 +11,14 @@ public class EmailController : ControllerBase
 {
     private readonly IEmailService _email;
     private readonly ILeadsWebhookService _webhook;
+    private readonly IMemberStore _members;
     private readonly ILogger<EmailController> _logger;
 
-    public EmailController(IEmailService email, ILeadsWebhookService webhook, ILogger<EmailController> logger)
+    public EmailController(IEmailService email, ILeadsWebhookService webhook, IMemberStore members, ILogger<EmailController> logger)
     {
         _email = email;
         _webhook = webhook;
+        _members = members;
         _logger = logger;
     }
 
@@ -55,12 +57,33 @@ public class EmailController : ControllerBase
 
         var fullName = $"{body.FirstName} {body.LastName}".Trim();
         var fullPhone = $"{body.CountryCode ?? "+33"} {body.PhoneNumber}".Trim();
+
+        // If a referral code was supplied (typed, or pre-filled from a member's
+        // share link), resolve it to the referring member so Cadence sees who
+        // referred this signup — same semantics as a dashboard referral.
+        var source = "website-form";
+        string? referredBy = null;
+        string? referrerEmail = null;
+        var referralCode = body.ReferralCode?.Trim();
+        if (!string.IsNullOrEmpty(referralCode))
+        {
+            var referrer = await _members.GetByReferralCodeAsync(referralCode, ct);
+            if (referrer is not null)
+            {
+                referredBy = $"{referrer.FirstName} {referrer.LastName}".Trim();
+                referrerEmail = referrer.Email;
+                source = "Referral from pavillon46.ch";
+            }
+        }
+
         var lead = new LeadPayload(
             Name: fullName,
             Email: (body.EmailAddress ?? "").Trim(),
             Phone: fullPhone,
             CompanyName: "",
-            Source: "website-form");
+            Source: source,
+            ReferredBy: referredBy,
+            ReferrerEmail: referrerEmail);
 
         var webhookResult = await _webhook.PostLeadAsync(lead, ct);
 

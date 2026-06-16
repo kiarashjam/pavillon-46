@@ -11,7 +11,8 @@ public record WaitlistSubmitRequest(
     string? PostalCode,
     string? HearAboutKey,
     string? HearAboutOther,
-    string? Language
+    string? Language,
+    string? ReferralCode = null
 );
 
 public record SendVerificationRequest(string? CountryCode, string? PhoneNumber);

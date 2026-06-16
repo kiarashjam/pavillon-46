@@ -170,7 +170,15 @@ export default function DashboardLayout() {
               <span>|</span>
               <button className={language === 'en' ? 'is-active' : ''} onClick={() => changeLanguage('en')}>EN</button>
             </div>
-            <div className="dash-avatar" title={fullName}>{initials}</div>
+            <button
+              type="button"
+              className="dash-avatar"
+              title={fullName}
+              aria-label={t.navProfile}
+              onClick={() => navigate('/dashboard/profile')}
+            >
+              {initials}
+            </button>
           </div>
         </header>
 
@@ -178,10 +186,10 @@ export default function DashboardLayout() {
           <AnimatePresence mode="wait">
             <motion.div
               key={location.pathname}
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.45, ease: EASE_SMOOTH_OUT }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3, ease: EASE_SMOOTH_OUT }}
               className="dash-page"
             >
               <Outlet />

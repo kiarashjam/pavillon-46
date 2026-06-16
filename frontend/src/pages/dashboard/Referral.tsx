@@ -7,7 +7,7 @@ import { animationVariants } from '../../lib/constants'
 import { EASE_BOUNCE } from '../../lib/motion'
 import { submitReferral } from '../../lib/api'
 
-const emptyForm = { firstName: '', lastName: '', email: '', phone: '' }
+const emptyForm = { firstName: '', lastName: '', email: '', phone: '', message: '' }
 
 export default function Referral() {
   const { token } = useAuth()
@@ -18,7 +18,7 @@ export default function Referral() {
   const [error, setError] = useState<string | null>(null)
   const [referredName, setReferredName] = useState<string | null>(null)
 
-  const update = (key: keyof typeof emptyForm) => (e: React.ChangeEvent<HTMLInputElement>) =>
+  const update = (key: keyof typeof emptyForm) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm((f) => ({ ...f, [key]: e.target.value }))
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -40,6 +40,7 @@ export default function Referral() {
         lastName: form.lastName.trim(),
         email: form.email.trim(),
         phone: form.phone.trim(),
+        message: form.message.trim(),
         language,
       })
       setReferredName(`${form.firstName.trim()} ${form.lastName.trim()}`.trim())
@@ -89,16 +90,31 @@ export default function Referral() {
       </motion.header>
 
       <motion.div variants={animationVariants.item} className="dash-reward">
-        <span className="dash-reward-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none">
-            <rect x="3.5" y="8.5" width="17" height="12" rx="1.6" stroke="currentColor" strokeWidth="1.7" />
-            <path d="M3 12h18M12 8.5v12" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-            <path d="M12 8.5C12 8.5 11 4.8 8.4 5.2 6.2 5.5 6.8 8.5 12 8.5Zm0 0c0 0 1-3.7 3.6-3.3 2.2.3 1.6 3.3-3.6 3.3Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
-          </svg>
-        </span>
-        <div className="dash-reward-copy">
-          <h2>{t.rewardTitle}</h2>
-          <p>{t.rewardText}</p>
+        <div className="dash-reward-glow" aria-hidden="true" />
+        <div className="dash-reward-head">
+          <span className="dash-reward-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <rect x="3.5" y="8.5" width="17" height="12" rx="1.6" stroke="currentColor" strokeWidth="1.7" />
+              <path d="M3 12h18M12 8.5v12" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+              <path d="M12 8.5C12 8.5 11 4.8 8.4 5.2 6.2 5.5 6.8 8.5 12 8.5Zm0 0c0 0 1-3.7 3.6-3.3 2.2.3 1.6 3.3-3.6 3.3Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+            </svg>
+          </span>
+          <div className="dash-reward-copy">
+            <span className="dash-reward-eyebrow">{t.rewardEyebrow}</span>
+            <h2>{t.rewardTitle}</h2>
+            <p>{t.rewardText}</p>
+          </div>
+        </div>
+        <div className="dash-reward-split">
+          <div className="dash-reward-pill">
+            <span className="dash-reward-pill-who">{t.rewardYou}</span>
+            <span className="dash-reward-pill-amt">{t.rewardMonthFree}</span>
+          </div>
+          <span className="dash-reward-plus" aria-hidden="true">+</span>
+          <div className="dash-reward-pill">
+            <span className="dash-reward-pill-who">{t.rewardGuest}</span>
+            <span className="dash-reward-pill-amt">{t.rewardMonthFree}</span>
+          </div>
         </div>
       </motion.div>
 
@@ -119,6 +135,15 @@ export default function Referral() {
           <label className="dash-field">
             <span>{t.fldPhone}</span>
             <input value={form.phone} onChange={update('phone')} className="dash-input" />
+          </label>
+          <label className="dash-field dash-field-full">
+            <span>{t.fldMessage}</span>
+            <textarea
+              value={form.message}
+              onChange={update('message')}
+              className="dash-input dash-textarea"
+              rows={3}
+            />
           </label>
         </div>
 

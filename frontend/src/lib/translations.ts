@@ -42,6 +42,7 @@ export interface WaitlistTranslations {
   phonePlaceholder: string
   emailPlaceholder: string
   postalCodePlaceholder: string
+  referralCodePlaceholder: string
   submitButton: string
   continueButton: string
   backButton: string
@@ -105,6 +106,10 @@ export interface DashboardTranslations {
   loadError: string
   copy: string
   copied: string
+  copyLink: string
+  linkCopied: string
+  inviteWaysTitle: string
+  inviteWaysSub: string
   // Welcome (portal home)
   welcomeHeading: string
   welcomeSub: string
@@ -153,6 +158,10 @@ export interface DashboardTranslations {
   rewardTitle: string
   rewardText: string
   rewardShort: string
+  rewardEyebrow: string
+  rewardYou: string
+  rewardGuest: string
+  rewardMonthFree: string
   // My referrals
   referralsTitle: string
   referralsSubtitle: string
@@ -262,6 +271,7 @@ export const translations: Record<Language, Translations> = {
       phonePlaceholder: 'Votre numéro de téléphone',
       emailPlaceholder: 'Votre adresse e-mail',
       postalCodePlaceholder: 'Votre code postal',
+      referralCodePlaceholder: 'Code de parrainage (optionnel)',
       submitButton: "Rejoindre la liste d'attente",
       continueButton: 'Continuer',
       backButton: 'Retour',
@@ -323,11 +333,15 @@ export const translations: Record<Language, Translations> = {
       navEvents: 'Actualités',
       signOut: 'Se déconnecter',
       greeting: 'Bienvenue,',
-      memberLabel: 'Membre',
+      memberLabel: 'Membre fondateur',
       loading: 'Chargement…',
       loadError: 'Impossible de charger les données. Veuillez réessayer.',
       copy: 'Copier',
       copied: 'Copié',
+      copyLink: 'Copier le lien',
+      linkCopied: 'Lien copié',
+      inviteWaysTitle: "Deux façons d'inviter",
+      inviteWaysSub: 'Parrainez directement avec leurs coordonnées, ou partagez votre code personnel.',
       welcomeHeading: 'Bienvenue au Pavillon 46,',
       welcomeSub: 'Votre espace membre privé. Parrainez une personne de confiance.',
       setPwTitle: 'Définissez votre mot de passe',
@@ -372,6 +386,10 @@ export const translations: Record<Language, Translations> = {
       rewardTitle: 'Un mois offert, pour vous deux',
       rewardText: "Lorsque la personne que vous parrainez signe son contrat de membre, vous et votre invité bénéficiez chacun d'un mois gratuit.",
       rewardShort: 'À la signature de son contrat, vous recevez chacun un mois offert.',
+      rewardEyebrow: 'Récompense de parrainage',
+      rewardYou: 'Vous',
+      rewardGuest: 'Votre invité',
+      rewardMonthFree: '1 mois offert',
       referralsTitle: 'Mes parrainages',
       referralsSubtitle: 'Suivez les candidatures des personnes que vous avez parrainées.',
       referralsEmpty: "Vous n'avez encore parrainé personne.",
@@ -490,6 +508,7 @@ export const translations: Record<Language, Translations> = {
       phonePlaceholder: 'Your Phone Number',
       emailPlaceholder: 'Your Email Address',
       postalCodePlaceholder: 'Your Postal Code',
+      referralCodePlaceholder: 'Referral code (optional)',
       submitButton: 'Join the Waitlist',
       continueButton: 'Continue',
       backButton: 'Back',
@@ -551,11 +570,15 @@ export const translations: Record<Language, Translations> = {
       navEvents: 'News',
       signOut: 'Sign out',
       greeting: 'Welcome back,',
-      memberLabel: 'Member',
+      memberLabel: 'Founding Member',
       loading: 'Loading…',
       loadError: 'Could not load data. Please try again.',
       copy: 'Copy',
       copied: 'Copied',
+      copyLink: 'Copy link',
+      linkCopied: 'Link copied',
+      inviteWaysTitle: 'Two ways to invite',
+      inviteWaysSub: 'Refer someone directly with their details, or share your personal code.',
       welcomeHeading: 'Welcome to Pavillon 46,',
       welcomeSub: 'Your private member space. Refer someone you trust.',
       setPwTitle: 'Set your password',
@@ -600,6 +623,10 @@ export const translations: Record<Language, Translations> = {
       rewardTitle: 'A month on us — for both of you',
       rewardText: 'When the person you refer signs their membership contract, you and your guest each receive one month free.',
       rewardShort: 'When they sign their contract, you each get one month free.',
+      rewardEyebrow: 'Referral reward',
+      rewardYou: 'You',
+      rewardGuest: 'Your guest',
+      rewardMonthFree: '1 month free',
       referralsTitle: 'My referrals',
       referralsSubtitle: 'Track the applications of the people you referred.',
       referralsEmpty: 'You have not referred anyone yet.',

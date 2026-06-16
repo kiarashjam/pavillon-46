@@ -15,7 +15,9 @@ export default function Overview() {
 
   const [applicants, setApplicants] = useState<ApplicantDto[]>([])
   const [stats, setStats] = useState<{ total: number; pending: number; freeMonths: number } | null>(null)
+  const [shareUrl, setShareUrl] = useState('')
   const [copied, setCopied] = useState(false)
+  const [linkCopied, setLinkCopied] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -25,6 +27,7 @@ export default function Overview() {
         if (!active) return
         setApplicants(refs.applicants)
         setStats({ total: refs.total, pending: refs.pending, freeMonths: refs.accepted })
+        setShareUrl(refs.shareUrl)
       })
       .catch(() => {
         /* fall back to member fields below */
@@ -50,6 +53,17 @@ export default function Overview() {
       await navigator.clipboard.writeText(member.referralCode)
       setCopied(true)
       window.setTimeout(() => setCopied(false), 1800)
+    } catch {
+      /* clipboard unavailable */
+    }
+  }
+
+  const copyLink = async () => {
+    if (!shareUrl) return
+    try {
+      await navigator.clipboard.writeText(shareUrl)
+      setLinkCopied(true)
+      window.setTimeout(() => setLinkCopied(false), 1800)
     } catch {
       /* clipboard unavailable */
     }
@@ -100,32 +114,58 @@ export default function Overview() {
         </div>
       </motion.div>
 
-      {/* Referral CTA + code */}
-      <div className="dash-two-col">
-        <motion.div variants={animationVariants.item} className="dash-feature-card dash-cta-card">
-          <h2>{t.referralCardTitle}</h2>
-          <p>{t.referralCardText}</p>
-          <button type="button" className="dash-btn dash-btn-primary" onClick={() => navigate('/dashboard/referral')}>
-            {t.referralCardButton}
-          </button>
-        </motion.div>
+      {/* Two ways to invite */}
+      <motion.section variants={animationVariants.item} className="dash-invite">
+        <div className="dash-section-head">
+          <h2>{t.inviteWaysTitle}</h2>
+        </div>
+        <p className="dash-invite-sub">{t.inviteWaysSub}</p>
 
-        <motion.div variants={animationVariants.item} className="dash-code-card">
-          <div>
-            <span className="dash-card-eyebrow">{t.yourCode}</span>
-            <p className="dash-code-value">{member.referralCode}</p>
+        <div className="dash-two-col">
+          {/* Option 1 — refer with their details */}
+          <div className="dash-feature-card dash-cta-card">
+            <span className="dash-method-badge">1</span>
+            <h2>{t.referralCardTitle}</h2>
+            <p>{t.referralCardText}</p>
+            <button type="button" className="dash-btn dash-btn-primary" onClick={() => navigate('/dashboard/referral')}>
+              {t.referralCardButton}
+            </button>
           </div>
-          <button
-            type="button"
-            className="dash-btn dash-btn-ghost"
-            aria-label={copied ? t.copied : `${t.copy} — ${member.referralCode}`}
-            onClick={copyCode}
-          >
-            {copied ? t.copied : t.copy}
-          </button>
-          <span className="sr-only" role="status" aria-live="polite">{copied ? t.copied : ''}</span>
-        </motion.div>
-      </div>
+
+          {/* Option 2 — share your code / link */}
+          <div className="dash-code-card dash-code-card-stack">
+            <span className="dash-method-badge is-alt">2</span>
+            <div className="dash-code-top">
+              <div>
+                <span className="dash-card-eyebrow">{t.yourCode}</span>
+                <p className="dash-code-value">{member.referralCode}</p>
+              </div>
+              <button
+                type="button"
+                className="dash-btn dash-btn-ghost"
+                aria-label={copied ? t.copied : `${t.copy} — ${member.referralCode}`}
+                onClick={copyCode}
+              >
+                {copied ? t.copied : t.copy}
+              </button>
+            </div>
+            {shareUrl && (
+              <div className="dash-code-share">
+                <div className="dash-code-share-info">
+                  <span className="dash-card-eyebrow">{t.shareLabel}</span>
+                  <span className="dash-share-url-text">{shareUrl}</span>
+                </div>
+                <button type="button" className="dash-btn dash-btn-ghost" onClick={copyLink}>
+                  {linkCopied ? t.linkCopied : t.copyLink}
+                </button>
+              </div>
+            )}
+            <span className="sr-only" role="status" aria-live="polite">
+              {copied ? t.copied : linkCopied ? t.linkCopied : ''}
+            </span>
+          </div>
+        </div>
+      </motion.section>
 
       {/* Recent referrals */}
       <motion.section variants={animationVariants.item} className="dash-panel" aria-labelledby="dash-recent-h">
