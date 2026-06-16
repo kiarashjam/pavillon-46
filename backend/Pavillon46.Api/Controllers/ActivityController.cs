@@ -3,6 +3,7 @@ using System.Text;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Pavillon46.Api.Models;
+using Pavillon46.Api.Security;
 using Pavillon46.Api.Services;
 
 namespace Pavillon46.Api.Controllers;
@@ -15,6 +16,7 @@ public class ActivityController : ControllerBase
     private readonly IDailyReportService _dailyReport;
     private readonly RateLimiter _rateLimiter;
     private readonly ActivityOptions _options;
+    private readonly ITokenService _tokens;
     private readonly ILogger<ActivityController> _logger;
 
     public ActivityController(
@@ -22,12 +24,14 @@ public class ActivityController : ControllerBase
         IDailyReportService dailyReport,
         RateLimiter rateLimiter,
         IOptions<ActivityOptions> options,
+        ITokenService tokens,
         ILogger<ActivityController> logger)
     {
         _store = store;
         _dailyReport = dailyReport;
         _rateLimiter = rateLimiter;
         _options = options.Value;
+        _tokens = tokens;
         _logger = logger;
     }
 
@@ -49,6 +53,16 @@ public class ActivityController : ControllerBase
 
     private bool IsAuthorized()
     {
+        // Preferred: a valid admin session token from the admin console.
+        var authHeader = Request.Headers.Authorization.ToString();
+        if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+        {
+            var principal = _tokens.Validate(authHeader["Bearer ".Length..].Trim());
+            if (principal is not null && principal.IsAdmin) return true;
+        }
+
+        // Legacy report key — still accepted for the daily-report cron and any
+        // external tooling that calls the report endpoint directly.
         var expected = _options.ReportKey;
         if (string.IsNullOrEmpty(expected)) return false;
         var provided =

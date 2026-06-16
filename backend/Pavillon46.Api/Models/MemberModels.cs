@@ -254,3 +254,60 @@ public class MemberPrincipal
     [JsonIgnore]
     public bool IsAdmin => string.Equals(Role, "admin", StringComparison.OrdinalIgnoreCase);
 }
+
+// ---------------------------------------------------------------------------
+// Admin accounts — a separate identity from members. Admins manage members,
+// referrals and analytics; they never appear in the member list and cannot use
+// the member dashboard. They reuse the same PBKDF2 hashing + signed-token +
+// forced-first-login-reset machinery as members.
+// ---------------------------------------------------------------------------
+
+public class Admin
+{
+    public string Id { get; set; } = "";
+    public string Email { get; set; } = "";
+    public string PasswordHash { get; set; } = "";
+    public string Title { get; set; } = "";
+    public string FirstName { get; set; } = "";
+    public string LastName { get; set; } = "";
+    public string Role { get; set; } = "admin";
+    public string Status { get; set; } = "active";
+    // Temporary password set at seed/reset time → force a change on first login.
+    public bool MustChangePassword { get; set; }
+    public string CreatedAt { get; set; } = "";
+    public string UpdatedAt { get; set; } = "";
+    public string LastLoginAt { get; set; } = "";
+}
+
+public class AdminDto
+{
+    public string Id { get; set; } = "";
+    public string Email { get; set; } = "";
+    public string Title { get; set; } = "";
+    public string FirstName { get; set; } = "";
+    public string LastName { get; set; } = "";
+    public string Role { get; set; } = "admin";
+    public bool MustChangePassword { get; set; }
+    public string CreatedAt { get; set; } = "";
+    public string LastLoginAt { get; set; } = "";
+
+    public static AdminDto From(Admin a) => new()
+    {
+        Id = a.Id,
+        Email = a.Email,
+        Title = a.Title,
+        FirstName = a.FirstName,
+        LastName = a.LastName,
+        Role = a.Role,
+        MustChangePassword = a.MustChangePassword,
+        CreatedAt = a.CreatedAt,
+        LastLoginAt = a.LastLoginAt,
+    };
+}
+
+public class AdminLoginResponse
+{
+    public string Token { get; set; } = "";
+    public string ExpiresAt { get; set; } = "";
+    public AdminDto Admin { get; set; } = new();
+}

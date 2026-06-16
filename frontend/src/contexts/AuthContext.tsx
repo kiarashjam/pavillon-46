@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { getMe, login as apiLogin, type MemberDto } from '../lib/api'
+import { ApiError, getMe, login as apiLogin, type MemberDto } from '../lib/api'
 
 const TOKEN_KEY = 'pavillon46_member_token'
 const MEMBER_KEY = 'pavillon46_member'
@@ -72,11 +72,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const fresh = await getMe(current)
       setMemberState(fresh)
       localStorage.setItem(MEMBER_KEY, JSON.stringify(fresh))
-    } catch {
-      // Token invalid / expired — clear the session.
-      setToken(null)
-      setMemberState(null)
-      persist(null, null)
+    } catch (err) {
+      // Only end the session on a real auth failure. Keep it through transient
+      // network / 5xx errors so a flaky connection doesn't evict a valid session.
+      if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
+        setToken(null)
+        setMemberState(null)
+        persist(null, null)
+      }
     } finally {
       setLoading(false)
     }
@@ -87,6 +90,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     void refresh()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // End the member session if a member-area request 401s mid-session. Admin-area
+  // 401s (/api/admin, /api/activity) are ignored here — the admin context owns them.
+  useEffect(() => {
+    const onUnauthorized = (e: Event) => {
+      const path = (e as CustomEvent<{ path?: string }>).detail?.path ?? ''
+      if (path.includes('/api/admin') || path.includes('/api/activity')) return
+      logout()
+    }
+    window.addEventListener('pavillon46:unauthorized', onUnauthorized)
+    return () => window.removeEventListener('pavillon46:unauthorized', onUnauthorized)
+  }, [logout])
 
   const value = useMemo<AuthContextValue>(
     () => ({ token, member, loading, login, logout, setMember, refresh }),

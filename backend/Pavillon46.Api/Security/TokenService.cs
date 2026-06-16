@@ -9,6 +9,7 @@ namespace Pavillon46.Api.Security;
 public interface ITokenService
 {
     (string Token, DateTimeOffset ExpiresAt) Create(Member member);
+    (string Token, DateTimeOffset ExpiresAt) CreateForAdmin(Admin admin);
     MemberPrincipal? Validate(string? token);
 }
 
@@ -33,14 +34,22 @@ public class TokenService : ITokenService
         public long Exp { get; set; }
     }
 
-    public (string Token, DateTimeOffset ExpiresAt) Create(Member member)
+    public (string Token, DateTimeOffset ExpiresAt) Create(Member member) =>
+        Issue(member.Id, member.Email, member.Role);
+
+    // Admins are a separate identity (see AdminStore); their token always carries
+    // role "admin" so [AdminAuthorize] can distinguish them from members.
+    public (string Token, DateTimeOffset ExpiresAt) CreateForAdmin(Admin admin) =>
+        Issue(admin.Id, admin.Email, "admin");
+
+    private (string Token, DateTimeOffset ExpiresAt) Issue(string sub, string email, string role)
     {
         var expires = DateTimeOffset.UtcNow.AddHours(Math.Max(1, _options.TokenTtlHours));
         var payload = new TokenPayload
         {
-            Sub = member.Id,
-            Email = member.Email,
-            Role = member.Role,
+            Sub = sub,
+            Email = email,
+            Role = string.IsNullOrEmpty(role) ? "member" : role,
             Exp = expires.ToUnixTimeSeconds(),
         };
 

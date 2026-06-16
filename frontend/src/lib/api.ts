@@ -1,6 +1,23 @@
 // Tiny typed wrapper around the .NET API endpoints.
 import { apiUrl } from './apiBase'
 
+/** Error carrying the HTTP status, so callers can distinguish auth failures
+ *  (401/403) from transient network / 5xx errors. */
+export class ApiError extends Error {
+  constructor(public status: number, message: string) {
+    super(message)
+    this.name = 'ApiError'
+  }
+}
+
+/** Broadcast a 401 so the relevant auth context can end the session. The path
+ *  lets each context react only to its own domain (admin vs member). */
+function notifyUnauthorized(path: string) {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('pavillon46:unauthorized', { detail: { path } }))
+  }
+}
+
 export interface WaitlistSubmitBody {
   firstName: string
   lastName: string
@@ -70,7 +87,7 @@ export interface ActivityReportDto {
 }
 
 export async function fetchActivityReport(params: {
-  key: string
+  token: string
   from?: string
   to?: string
   type?: string
@@ -85,10 +102,11 @@ export async function fetchActivityReport(params: {
   if (params.limit) search.set('limit', String(params.limit))
 
   const response = await fetch(apiUrl(`/api/activity/report?${search.toString()}`), {
-    headers: { 'x-report-key': params.key },
+    headers: { Authorization: `Bearer ${params.token}` },
   })
   if (!response.ok) {
-    throw new Error(`Activity report failed: ${response.status}`)
+    if (response.status === 401) notifyUnauthorized('/api/activity/report')
+    throw new ApiError(response.status, `Activity report failed: ${response.status}`)
   }
   return response.json()
 }
@@ -122,6 +140,24 @@ export interface LoginResponse {
   token: string
   expiresAt: string
   member: MemberDto
+}
+
+export interface AdminDto {
+  id: string
+  email: string
+  title: string
+  firstName: string
+  lastName: string
+  role: string
+  mustChangePassword: boolean
+  createdAt: string
+  lastLoginAt: string
+}
+
+export interface AdminLoginResponse {
+  token: string
+  expiresAt: string
+  admin: AdminDto
 }
 
 export interface ApplicantDto {
@@ -224,7 +260,8 @@ async function jsonRequest<T>(path: string, init: RequestInit): Promise<T> {
     headers: { 'Content-Type': 'application/json', ...(init.headers ?? {}) },
   })
   if (!response.ok) {
-    throw new Error(await readError(response))
+    if (response.status === 401) notifyUnauthorized(path)
+    throw new ApiError(response.status, await readError(response))
   }
   return response.json() as Promise<T>
 }
@@ -280,41 +317,68 @@ export async function getEvents(token: string, lang: 'fr' | 'en'): Promise<{ ann
   })
 }
 
-// ---- Admin (member management) — gated by the admin key header ----
+// ---------------------------------------------------------------------------
+// Admin account auth — a dedicated admin login (email + password), separate
+// from members. All admin endpoints below authenticate with the admin's bearer
+// token, exactly like the member endpoints.
+// ---------------------------------------------------------------------------
 
-const adminKeyHeader = (key: string) => ({ 'x-report-key': key })
-
-export async function adminListMembers(key: string): Promise<{ members: MemberDto[]; total: number }> {
-  return jsonRequest('/api/admin/members', { headers: adminKeyHeader(key) })
+export async function adminLogin(email: string, password: string): Promise<AdminLoginResponse> {
+  return jsonRequest<AdminLoginResponse>('/api/admin/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ email, password }),
+  })
 }
 
-export async function adminCreateMember(key: string, body: CreateMemberBody): Promise<CreateMemberResponse> {
+export async function adminGetMe(token: string): Promise<AdminDto> {
+  return jsonRequest<AdminDto>('/api/admin/auth/me', { headers: bearer(token) })
+}
+
+export async function adminChangePassword(
+  token: string,
+  newPassword: string,
+  currentPassword?: string,
+): Promise<AdminDto> {
+  return jsonRequest<AdminDto>('/api/admin/auth/change-password', {
+    method: 'POST',
+    headers: bearer(token),
+    body: JSON.stringify({ newPassword, currentPassword }),
+  })
+}
+
+// ---- Admin member / referral management — gated by the admin bearer token ----
+
+export async function adminListMembers(token: string): Promise<{ members: MemberDto[]; total: number }> {
+  return jsonRequest('/api/admin/members', { headers: bearer(token) })
+}
+
+export async function adminCreateMember(token: string, body: CreateMemberBody): Promise<CreateMemberResponse> {
   return jsonRequest<CreateMemberResponse>('/api/admin/members', {
     method: 'POST',
-    headers: adminKeyHeader(key),
+    headers: bearer(token),
     body: JSON.stringify(body),
   })
 }
 
 export async function adminSendCredentials(
-  key: string,
+  token: string,
   body: { memberId?: string; email?: string; password: string },
 ): Promise<{ ok: boolean; emailSent: boolean; sentTo?: string }> {
   return jsonRequest('/api/admin/members/send-credentials', {
     method: 'POST',
-    headers: adminKeyHeader(key),
+    headers: bearer(token),
     body: JSON.stringify(body),
   })
 }
 
 export async function adminResetPassword(
-  key: string,
+  token: string,
   memberId: string,
   sendEmail: boolean,
 ): Promise<CreateMemberResponse> {
   return jsonRequest<CreateMemberResponse>(
     `/api/admin/members/${encodeURIComponent(memberId)}/reset-password?sendEmail=${sendEmail}`,
-    { method: 'POST', headers: adminKeyHeader(key) },
+    { method: 'POST', headers: bearer(token) },
   )
 }
 
@@ -326,18 +390,18 @@ export interface AdminApplicantsResponse {
   declined: number
 }
 
-export async function adminListApplicants(key: string): Promise<AdminApplicantsResponse> {
-  return jsonRequest<AdminApplicantsResponse>('/api/admin/applicants', { headers: adminKeyHeader(key) })
+export async function adminListApplicants(token: string): Promise<AdminApplicantsResponse> {
+  return jsonRequest<AdminApplicantsResponse>('/api/admin/applicants', { headers: bearer(token) })
 }
 
 export async function adminUpdateApplicant(
-  key: string,
+  token: string,
   id: string,
   status: ApplicantDto['status'],
 ): Promise<ApplicantDto> {
   return jsonRequest<ApplicantDto>(`/api/admin/applicants/${encodeURIComponent(id)}`, {
     method: 'PATCH',
-    headers: adminKeyHeader(key),
+    headers: bearer(token),
     body: JSON.stringify({ status }),
   })
 }
