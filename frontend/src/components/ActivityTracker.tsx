@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 import { apiUrl } from '../lib/apiBase'
 
-const BLOCKED_PATH_PREFIXES = ['/admin/activity']
+const BLOCKED_PATH_PREFIXES = ['/admin']
 const SESSION_STORAGE_KEY = 'p46_activity_session_id'
 
 interface ActivityPayload {

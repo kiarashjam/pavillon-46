@@ -5,9 +5,12 @@ import {
   adminCreateMember,
   adminResetPassword,
   adminSendCredentials,
+  adminUpdateMember,
+  adminDeleteMember,
   type MemberDto,
   type CreateMemberBody,
   type CreateMemberResponse,
+  type UpdateMemberBody,
 } from '../../lib/api'
 import type { AdminCtx } from '../../components/admin/AdminLayout'
 import AdminModal from '../../components/admin/AdminModal'
@@ -29,6 +32,9 @@ export default function AdminMembersSection() {
   const [created, setCreated] = useState<CreateMemberResponse | null>(null)
   const [sendState, setSendState] = useState<string | null>(null)
   const [selected, setSelected] = useState<MemberDto | null>(null)
+  const [editing, setEditing] = useState<MemberDto | null>(null)
+  const [editForm, setEditForm] = useState<UpdateMemberBody>({})
+  const [editBusy, setEditBusy] = useState(false)
 
   const load = () => {
     setLoading(true)
@@ -77,6 +83,41 @@ export default function AdminMembersSection() {
     } catch (err) { setSendState(err instanceof Error ? err.message : 'Failed to send') }
   }
 
+  const editSet = (k: keyof UpdateMemberBody) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
+    setEditForm((f) => ({ ...f, [k]: e.target.value }))
+
+  const openEdit = (m: MemberDto) => {
+    setError(null)
+    setSelected(null)
+    setEditForm({
+      title: m.title, firstName: m.firstName, lastName: m.lastName, email: m.email,
+      phone: m.phone, city: m.city, country: m.country,
+      language: m.preferredLanguage, status: m.status,
+    })
+    setEditing(m)
+  }
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editing) return
+    setEditBusy(true); setError(null)
+    try {
+      await adminUpdateMember(token, editing.id, editForm)
+      setEditing(null); load()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update member')
+    } finally { setEditBusy(false) }
+  }
+
+  const handleDelete = async (m: MemberDto) => {
+    if (!window.confirm(`Delete ${`${m.firstName} ${m.lastName}`.trim() || m.email} (${m.email})? This permanently removes the member and cannot be undone.`)) return
+    setError(null)
+    try {
+      await adminDeleteMember(token, m.id)
+      setSelected(null); setEditing(null); load()
+    } catch (err) { setError(err instanceof Error ? err.message : 'Failed to delete member') }
+  }
+
   const copy = (v: string) => void navigator.clipboard?.writeText(v)
   const initials = (m: MemberDto) => `${m.firstName?.[0] ?? ''}${m.lastName?.[0] ?? ''}`.toUpperCase() || m.email[0]?.toUpperCase()
 
@@ -92,7 +133,7 @@ export default function AdminMembersSection() {
             <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.7" /><path d="m20 20-3.2-3.2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" /></svg>
             <input className="adash-input" aria-label="Search members" placeholder="Search members…" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
-          <button className="adash-btn adash-btn-primary" onClick={() => { setForm(emptyForm); setModal(true) }}>+ Add member</button>
+          <button className="adash-btn adash-btn-primary" onClick={() => { setError(null); setForm(emptyForm); setModal(true) }}>+ Add member</button>
         </div>
       </div>
 
@@ -160,7 +201,7 @@ export default function AdminMembersSection() {
                     {search ? 'No members match your search.' : (
                       <span style={{ display: 'inline-flex', flexDirection: 'column', gap: 12, alignItems: 'center' }}>
                         No members yet.
-                        <button className="adash-btn adash-btn-primary adash-btn-sm" onClick={() => { setForm(emptyForm); setModal(true) }}>+ Add the first member</button>
+                        <button className="adash-btn adash-btn-primary adash-btn-sm" onClick={() => { setError(null); setForm(emptyForm); setModal(true) }}>+ Add the first member</button>
                       </span>
                     )}
                   </td></tr>
@@ -195,7 +236,9 @@ export default function AdminMembersSection() {
             <div className="full"><div className="adash-dt">Password</div><div className="adash-dd muted">{selected.mustChangePassword ? 'Temporary — reset pending' : 'Set by member'}</div></div>
           </div>
           <div className="adash-detail-foot">
+            <button type="button" className="adash-btn adash-btn-primary adash-btn-sm" onClick={() => openEdit(selected)}>Edit</button>
             <button type="button" className="adash-btn adash-btn-ghost adash-btn-sm" onClick={() => { const m = selected; setSelected(null); void handleReset(m) }}>Reset password</button>
+            <button type="button" className="adash-btn adash-btn-danger adash-btn-sm" onClick={() => handleDelete(selected)}>Delete</button>
             <button type="button" className="adash-btn adash-btn-ghost adash-btn-sm" style={{ marginLeft: 'auto' }} onClick={() => setSelected(null)}>Close</button>
           </div>
         </AdminModal>
@@ -235,6 +278,48 @@ export default function AdminMembersSection() {
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button type="button" className="adash-btn adash-btn-ghost" onClick={() => setModal(false)}>Cancel</button>
               <button type="submit" className="adash-btn adash-btn-primary" disabled={busy}>{busy ? 'Creating…' : 'Create member'}</button>
+            </div>
+          </form>
+        </AdminModal>
+      )}
+
+      {editing && (
+        <AdminModal titleId="adm-edit-member" onClose={() => setEditing(null)}>
+          <form onSubmit={handleEditSubmit} style={{ display: 'contents' }}>
+            <div className="adash-modal-head">
+              <div><h2 id="adm-edit-member">Edit member</h2><p>{editing.email}</p></div>
+              <button type="button" className="adash-modal-close" onClick={() => setEditing(null)} aria-label="Close">×</button>
+            </div>
+            <div className="adash-form-grid">
+              <div className="adash-field">
+                <label>Title</label>
+                <select className="adash-select" value={editForm.title ?? ''} onChange={editSet('title')}>
+                  <option value="">—</option><option value="Mr">Mr</option><option value="Ms">Ms</option><option value="Mme">Mme</option><option value="M.">M.</option>
+                </select>
+              </div>
+              <div className="adash-field">
+                <label>Status</label>
+                <select className="adash-select" value={editForm.status ?? 'active'} onChange={editSet('status')}>
+                  <option value="active">Active</option><option value="inactive">Inactive</option><option value="suspended">Suspended</option>
+                </select>
+              </div>
+              <div className="adash-field"><label>First name</label><input className="adash-input" value={editForm.firstName ?? ''} onChange={editSet('firstName')} /></div>
+              <div className="adash-field"><label>Last name</label><input className="adash-input" value={editForm.lastName ?? ''} onChange={editSet('lastName')} /></div>
+              <div className="adash-field full"><label>Email</label><input className="adash-input" type="email" value={editForm.email ?? ''} onChange={editSet('email')} /></div>
+              <div className="adash-field"><label>Phone</label><input className="adash-input" value={editForm.phone ?? ''} onChange={editSet('phone')} /></div>
+              <div className="adash-field"><label>City</label><input className="adash-input" value={editForm.city ?? ''} onChange={editSet('city')} /></div>
+              <div className="adash-field"><label>Country</label><input className="adash-input" value={editForm.country ?? ''} onChange={editSet('country')} /></div>
+              <div className="adash-field">
+                <label>Language</label>
+                <select className="adash-select" value={editForm.language ?? 'fr'} onChange={editSet('language')}><option value="fr">Français</option><option value="en">English</option></select>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
+              <button type="button" className="adash-btn adash-btn-danger" onClick={() => handleDelete(editing)}>Delete member</button>
+              <div style={{ display: 'flex', gap: 10, marginLeft: 'auto' }}>
+                <button type="button" className="adash-btn adash-btn-ghost" onClick={() => setEditing(null)}>Cancel</button>
+                <button type="submit" className="adash-btn adash-btn-primary" disabled={editBusy}>{editBusy ? 'Saving…' : 'Save changes'}</button>
+              </div>
             </div>
           </form>
         </AdminModal>

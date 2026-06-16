@@ -24,7 +24,7 @@ public abstract class JsonTableStore<T> where T : class
     private TableClient? _client;
     private readonly SemaphoreSlim _init = new(1, 1);
     private readonly SemaphoreSlim _fileLock = new(1, 1);
-    private readonly ConcurrentDictionary<string, T> _memory = new();
+    private readonly ConcurrentDictionary<string, T> _memory = new(StringComparer.OrdinalIgnoreCase);
 
     private static readonly JsonSerializerOptions JsonOpts = new() { PropertyNamingPolicy = null };
 
@@ -142,6 +142,43 @@ public abstract class JsonTableStore<T> where T : class
         return all.FirstOrDefault(x => string.Equals(GetId(x), id, StringComparison.OrdinalIgnoreCase));
     }
 
+    // Expects the canonical stored id. Azure Table RowKeys are case-sensitive, so a
+    // differently-cased id (which GetByIdAsync would still match) would not delete the
+    // Azure row — callers should pass the id loaded from the store (the controller does).
+    public async Task DeleteAsync(string id, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(id)) return;
+
+        var client = await GetTableClientAsync();
+        if (client is not null)
+        {
+            try
+            {
+                await client.DeleteEntityAsync(Partition, id, ETag.All, ct);
+            }
+            catch (RequestFailedException ex) when (ex.Status == 404)
+            {
+                // Already gone — treat a delete of a missing row as success.
+            }
+            return;
+        }
+
+        if (HasFile)
+        {
+            try
+            {
+                await DeleteFromFileAsync(id, ct);
+                return;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "{Table} file delete failed, falling back to memory", _tableName);
+            }
+        }
+
+        _memory.TryRemove(id, out _);
+    }
+
     // ---- file fallback helpers (full rewrite keyed by id; small data sets) ----
 
     private async Task<Dictionary<string, T>> ReadFileAsync(CancellationToken ct)
@@ -175,6 +212,29 @@ public abstract class JsonTableStore<T> where T : class
         {
             var map = await ReadFileAsync(ct);
             map[id] = item;
+            var sb = new System.Text.StringBuilder();
+            foreach (var value in map.Values)
+            {
+                sb.Append(JsonSerializer.Serialize(value, JsonOpts)).Append('\n');
+            }
+            await File.WriteAllTextAsync(path, sb.ToString(), ct);
+        }
+        finally
+        {
+            _fileLock.Release();
+        }
+    }
+
+    private async Task DeleteFromFileAsync(string id, CancellationToken ct)
+    {
+        var path = ResolveFilePath();
+        if (!File.Exists(path)) return;
+
+        await _fileLock.WaitAsync(ct);
+        try
+        {
+            var map = await ReadFileAsync(ct);
+            if (!map.Remove(id)) return;
             var sb = new System.Text.StringBuilder();
             foreach (var value in map.Values)
             {
