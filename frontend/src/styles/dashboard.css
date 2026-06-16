@@ -558,45 +558,99 @@
 }
 .dash-cta-card h2 { font-size: 22px; }
 
-/* ---- Invite — two ways (overview main page) ---- */
-.dash-invite { display: flex; flex-direction: column; gap: 14px; }
-.dash-invite-sub { margin: -6px 0 2px; color: var(--dash-muted); font-size: 14px; }
-.dash-method-badge {
-  align-self: flex-start;
-  width: 27px;
-  height: 27px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 13px;
-  font-weight: 600;
-  color: #fff;
-  background: linear-gradient(135deg, var(--dash-green) 0%, var(--dash-green-soft) 100%);
-  box-shadow: 0 4px 10px rgba(38, 86, 64, 0.22);
+/* ---- Invite — two ways (overview main page), premium ---- */
+.dash-invite { display: flex; flex-direction: column; gap: 20px; }
+.dash-invite-head { display: flex; flex-direction: column; gap: 7px; }
+.dash-invite-eyebrow {
+  font-size: 11px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--dash-green);
+  display: inline-flex; align-items: center; gap: 10px;
 }
-.dash-method-badge.is-alt {
-  background: linear-gradient(135deg, var(--dash-coral) 0%, #f98b73 100%);
-  box-shadow: 0 4px 10px rgba(255, 110, 80, 0.26);
-}
-.dash-code-card.dash-code-card-stack { flex-direction: column; align-items: stretch; gap: 14px; }
-.dash-code-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-.dash-code-share {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding-top: 14px;
-  border-top: 1px solid var(--dash-line);
-}
-.dash-code-share-info { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
-.dash-share-url-text {
-  font-size: 12.5px;
-  color: var(--dash-muted);
+.dash-invite-eyebrow::before { content: ''; width: 26px; height: 1px; background: var(--dash-coral); }
+.dash-invite-head h2 { margin: 0; font-size: 24px; font-weight: 500; letter-spacing: -0.01em; color: var(--dash-ink); }
+.dash-invite-sub { margin: 0; color: var(--dash-muted); font-size: 14.5px; line-height: 1.55; max-width: 62ch; }
+
+.dash-invite-grid { display: grid; grid-template-columns: 1.12fr 1fr; gap: 18px; align-items: stretch; }
+.dash-invite-card {
+  position: relative;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 230px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 26px;
+  border-radius: 20px;
+  border: 1px solid var(--dash-line);
+  background: var(--dash-card);
+  box-shadow: var(--dash-shadow-sm);
+  transition: transform 0.3s var(--dash-ease), box-shadow 0.3s var(--dash-ease);
+}
+.dash-invite-card:hover { transform: translateY(-3px); box-shadow: var(--dash-shadow); }
+.dash-invite-card--form {
+  background:
+    radial-gradient(150% 150% at 0% 0%, rgba(38, 86, 64, 0.13) 0%, rgba(38, 86, 64, 0) 55%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(255, 255, 255, 0.9));
+  border-color: rgba(38, 86, 64, 0.2);
+}
+.dash-invite-card--code {
+  background:
+    radial-gradient(150% 150% at 100% 0%, rgba(224, 191, 252, 0.22) 0%, rgba(224, 191, 252, 0) 55%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(255, 255, 255, 0.9));
+}
+.dash-invite-card-top { display: flex; align-items: center; gap: 12px; }
+.dash-method-num {
+  font-family: 'Courier New', monospace;
+  font-size: 13px; font-weight: 700; letter-spacing: 0.04em;
+  min-width: 40px; height: 30px; padding: 0 6px; border-radius: 9px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: #fff; background: linear-gradient(135deg, var(--dash-green) 0%, var(--dash-green-soft) 100%);
+  box-shadow: 0 5px 12px rgba(38, 86, 64, 0.26);
+}
+.dash-method-num.is-alt { background: linear-gradient(135deg, #8a63b8 0%, #b48fd8 100%); box-shadow: 0 5px 12px rgba(138, 99, 184, 0.26); }
+.dash-method-label { font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--dash-muted); }
+.dash-invite-card-title { margin: 2px 0 0; font-size: 20px; font-weight: 500; letter-spacing: -0.01em; color: var(--dash-ink); }
+.dash-invite-card-text { margin: 0; color: var(--dash-muted); font-size: 14.5px; line-height: 1.6; flex: 1; }
+.dash-invite-cta { align-self: flex-start; display: inline-flex; align-items: center; gap: 9px; margin-top: 4px; }
+.dash-invite-cta svg { width: 18px; height: 18px; transition: transform 0.25s var(--dash-ease); }
+.dash-invite-cta:hover svg { transform: translateX(3px); }
+
+/* code "ticket" + share link field */
+.dash-code-ticket {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  padding: 16px 18px; border-radius: 14px;
+  background: rgba(38, 86, 64, 0.05);
+  border: 1px dashed rgba(38, 86, 64, 0.28);
+}
+.dash-code-ticket-info { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.dash-code-ticket .dash-code-value { margin: 0; }
+.dash-code-copybtn {
+  flex-shrink: 0;
+  font-family: var(--font-primary); font-size: 13.5px; font-weight: 600;
+  padding: 9px 16px; border-radius: 9px; cursor: pointer;
+  color: #fff; border: 1px solid transparent;
+  background: linear-gradient(135deg, var(--dash-green) 0%, var(--dash-green-soft) 100%);
+  box-shadow: 0 6px 14px rgba(38, 86, 64, 0.22);
+  transition: transform 0.2s var(--dash-ease), box-shadow 0.3s var(--dash-ease);
+}
+.dash-code-copybtn:hover { transform: translateY(-1px); box-shadow: 0 9px 18px rgba(38, 86, 64, 0.28); }
+.dash-code-copybtn.is-ghost { color: var(--dash-green); background: #fff; border-color: var(--dash-line); box-shadow: none; }
+.dash-code-copybtn.is-ghost:hover { border-color: var(--dash-green); background: rgba(38, 86, 64, 0.05); transform: none; box-shadow: none; }
+.dash-code-copybtn:focus-visible, .dash-invite-cta:focus-visible { outline: 2px solid var(--dash-green); outline-offset: 2px; }
+.dash-code-linkfield { display: flex; flex-direction: column; gap: 7px; }
+.dash-code-linkfield-label { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--dash-muted); }
+.dash-code-linkfield-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 7px 7px 14px; border-radius: 11px;
+  background: #fff; border: 1px solid var(--dash-line);
+}
+.dash-share-url-text {
+  flex: 1; min-width: 0;
+  font-size: 12.5px; color: var(--dash-muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+@media (max-width: 900px) { .dash-invite-grid { grid-template-columns: 1fr; } }
+@media (max-width: 480px) {
+  .dash-code-ticket { flex-direction: column; align-items: stretch; gap: 12px; }
+  .dash-code-ticket .dash-code-copybtn { width: 100%; }
 }
 
 /* ---- Referral reward callout (1 month free for both) ---- */
@@ -610,9 +664,9 @@
   padding: 24px;
   border-radius: var(--dash-radius);
   background:
-    radial-gradient(150% 190% at 0% 0%, rgba(255, 110, 80, 0.16) 0%, rgba(255, 110, 80, 0) 58%),
+    radial-gradient(150% 190% at 0% 0%, rgba(38, 86, 64, 0.14) 0%, rgba(38, 86, 64, 0) 58%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.9));
-  border: 1px solid rgba(255, 110, 80, 0.3);
+  border: 1px solid rgba(38, 86, 64, 0.26);
   box-shadow: var(--dash-shadow-sm);
 }
 .dash-reward-glow {
@@ -623,7 +677,7 @@
   width: 220px;
   height: 220px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 110, 80, 0.2) 0%, rgba(255, 110, 80, 0) 70%);
+  background: radial-gradient(circle, rgba(38, 86, 64, 0.2) 0%, rgba(38, 86, 64, 0) 70%);
   pointer-events: none;
 }
 .dash-reward-head {
@@ -641,8 +695,8 @@
   align-items: center;
   justify-content: center;
   color: #fff;
-  background: linear-gradient(135deg, var(--dash-coral) 0%, #f98b73 100%);
-  box-shadow: 0 8px 20px rgba(255, 110, 80, 0.34);
+  background: linear-gradient(135deg, var(--dash-green) 0%, var(--dash-green-soft) 100%);
+  box-shadow: 0 8px 20px rgba(38, 86, 64, 0.34);
 }
 .dash-reward-icon svg { width: 26px; height: 26px; }
 .dash-reward-eyebrow {
@@ -650,7 +704,7 @@
   font-weight: 600;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--dash-coral);
+  color: var(--dash-green);
 }
 .dash-reward-copy h2 { margin: 5px 0 5px; font-size: 19px; font-weight: 500; letter-spacing: -0.01em; color: var(--dash-ink); }
 .dash-reward-copy p { margin: 0; font-size: 14px; line-height: 1.55; color: var(--dash-muted); }
@@ -667,19 +721,19 @@
   gap: 3px;
   padding: 12px 16px;
   border-radius: 14px;
-  background: rgba(255, 110, 80, 0.08);
-  border: 1px solid rgba(255, 110, 80, 0.2);
+  background: rgba(38, 86, 64, 0.06);
+  border: 1px solid rgba(38, 86, 64, 0.18);
 }
 .dash-reward-pill-who { font-size: 12px; letter-spacing: 0.03em; color: var(--dash-muted); }
-.dash-reward-pill-amt { font-size: 16px; font-weight: 600; color: #c2543a; }
-.dash-reward-plus { align-self: center; font-size: 22px; font-weight: 300; color: var(--dash-coral); }
+.dash-reward-pill-amt { font-size: 16px; font-weight: 600; color: var(--dash-green); }
+.dash-reward-plus { align-self: center; font-size: 22px; font-weight: 300; color: var(--dash-green-soft); }
 .dash-reward-note {
   margin: 2px 0 4px;
   font-size: 13.5px;
   font-weight: 500;
-  color: #c2543a;
-  background: rgba(255, 110, 80, 0.12);
-  border: 1px solid rgba(255, 110, 80, 0.26);
+  color: var(--dash-green);
+  background: rgba(38, 86, 64, 0.1);
+  border: 1px solid rgba(38, 86, 64, 0.24);
   border-radius: 999px;
   padding: 9px 18px;
 }

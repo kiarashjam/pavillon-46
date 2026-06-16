@@ -110,6 +110,9 @@ export interface DashboardTranslations {
   linkCopied: string
   inviteWaysTitle: string
   inviteWaysSub: string
+  inviteWaysEyebrow: string
+  methodForm: string
+  methodCode: string
   // Welcome (portal home)
   welcomeHeading: string
   welcomeSub: string
@@ -342,6 +345,9 @@ export const translations: Record<Language, Translations> = {
       linkCopied: 'Lien copié',
       inviteWaysTitle: "Deux façons d'inviter",
       inviteWaysSub: 'Parrainez directement avec leurs coordonnées, ou partagez votre code personnel.',
+      inviteWaysEyebrow: 'Inviter',
+      methodForm: 'Avec leurs coordonnées',
+      methodCode: 'Avec votre code',
       welcomeHeading: 'Bienvenue au Pavillon 46,',
       welcomeSub: 'Votre espace membre privé. Parrainez une personne de confiance.',
       setPwTitle: 'Définissez votre mot de passe',
@@ -363,8 +369,8 @@ export const translations: Record<Language, Translations> = {
       referralCardButton: 'Parrainer maintenant',
       openingTitle: 'Ouverture fin 2027',
       openingText: 'Le Pavillon 46 ouvrira ses portes fin 2027 à La Croix-sur-Lutry. Les membres bénéficient d\'un accès prioritaire.',
-      referralTitle: 'Parrainer une personne',
-      referralSubtitle: 'Recommandez une personne pour devenir membre. Vous recevrez un code de parrainage.',
+      referralTitle: 'Parrainer un membre fondateur',
+      referralSubtitle: 'Recommandez une personne pour devenir membre fondateur. Vous recevrez un code de parrainage.',
       fldFirstName: 'Prénom',
       fldLastName: 'Nom',
       fldEmail: 'Adresse e-mail',
@@ -579,6 +585,9 @@ export const translations: Record<Language, Translations> = {
       linkCopied: 'Link copied',
       inviteWaysTitle: 'Two ways to invite',
       inviteWaysSub: 'Refer someone directly with their details, or share your personal code.',
+      inviteWaysEyebrow: 'Invite',
+      methodForm: 'By their details',
+      methodCode: 'With your code',
       welcomeHeading: 'Welcome to Pavillon 46,',
       welcomeSub: 'Your private member space. Refer someone you trust.',
       setPwTitle: 'Set your password',
@@ -600,8 +609,8 @@ export const translations: Record<Language, Translations> = {
       referralCardButton: 'Refer now',
       openingTitle: 'Opening end of 2027',
       openingText: 'Pavillon 46 will open at the end of 2027 in La Croix-sur-Lutry. Members enjoy priority access.',
-      referralTitle: 'Refer a person',
-      referralSubtitle: 'Recommend someone to become a member. You will receive a referral code.',
+      referralTitle: 'Refer a founding member',
+      referralSubtitle: 'Recommend someone to become a founding member. You will receive a referral code.',
       fldFirstName: 'First name',
       fldLastName: 'Last name',
       fldEmail: 'Email address',
