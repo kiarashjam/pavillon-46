@@ -8,13 +8,13 @@ namespace Pavillon46.Api.Controllers;
 
 [ApiController]
 [Route("api/admin")]
+[AdminAuthorize]
 public class AdminMembersController : ControllerBase
 {
     private readonly IMemberStore _members;
     private readonly IApplicantStore _applicants;
     private readonly IEmailService _email;
     private readonly AuthOptions _auth;
-    private readonly ActivityOptions _activity;
     private readonly ILogger<AdminMembersController> _logger;
 
     public AdminMembersController(
@@ -22,31 +22,13 @@ public class AdminMembersController : ControllerBase
         IApplicantStore applicants,
         IEmailService email,
         IOptions<AuthOptions> auth,
-        IOptions<ActivityOptions> activity,
         ILogger<AdminMembersController> logger)
     {
         _members = members;
         _applicants = applicants;
         _email = email;
         _auth = auth.Value;
-        _activity = activity.Value;
         _logger = logger;
-    }
-
-    // Reuse the existing admin secret (Activity ReportKey) unless an explicit
-    // Auth:AdminKey is configured.
-    private string EffectiveAdminKey =>
-        !string.IsNullOrWhiteSpace(_auth.AdminKey) ? _auth.AdminKey : _activity.ReportKey;
-
-    private bool IsAuthorized()
-    {
-        var expected = EffectiveAdminKey;
-        if (string.IsNullOrEmpty(expected)) return false;
-        var provided =
-            Request.Headers["x-report-key"].ToString() ??
-            Request.Headers["x-admin-key"].ToString() ??
-            Request.Query["key"].ToString() ?? "";
-        return provided == expected;
     }
 
     private static string NormalizeLang(string? lang) =>
@@ -54,9 +36,7 @@ public class AdminMembersController : ControllerBase
 
     [HttpGet("members")]
     public async Task<IActionResult> ListMembers(CancellationToken ct)
-    {
-        if (!IsAuthorized()) return Unauthorized(new { message = "Unauthorized" });
-        var members = await _members.ListAsync(ct);
+    {        var members = await _members.ListAsync(ct);
         var dtos = members
             .OrderByDescending(m => m.CreatedAt, StringComparer.Ordinal)
             .Select(MemberDto.From)
@@ -67,8 +47,6 @@ public class AdminMembersController : ControllerBase
     [HttpPost("members")]
     public async Task<IActionResult> CreateMember([FromBody] CreateMemberRequest body, CancellationToken ct)
     {
-        if (!IsAuthorized()) return Unauthorized(new { message = "Unauthorized" });
-
         var email = body.Email?.Trim() ?? "";
         var firstName = body.FirstName?.Trim() ?? "";
         var lastName = body.LastName?.Trim() ?? "";
@@ -145,8 +123,6 @@ public class AdminMembersController : ControllerBase
     [HttpPost("members/send-credentials")]
     public async Task<IActionResult> SendCredentials([FromBody] SendCredentialsRequest body, CancellationToken ct)
     {
-        if (!IsAuthorized()) return Unauthorized(new { message = "Unauthorized" });
-
         Member? member = null;
         if (!string.IsNullOrWhiteSpace(body.MemberId))
             member = await _members.GetByIdAsync(body.MemberId!.Trim(), ct);
@@ -172,8 +148,6 @@ public class AdminMembersController : ControllerBase
     [HttpPost("members/{id}/reset-password")]
     public async Task<IActionResult> ResetPassword(string id, [FromQuery] bool sendEmail, CancellationToken ct)
     {
-        if (!IsAuthorized()) return Unauthorized(new { message = "Unauthorized" });
-
         var member = await _members.GetByIdAsync(id, ct);
         if (member is null) return NotFound(new { message = "Member not found." });
 
@@ -210,9 +184,7 @@ public class AdminMembersController : ControllerBase
 
     [HttpGet("applicants")]
     public async Task<IActionResult> ListApplicants(CancellationToken ct)
-    {
-        if (!IsAuthorized()) return Unauthorized(new { message = "Unauthorized" });
-        var applicants = await _applicants.ListAsync(ct);
+    {        var applicants = await _applicants.ListAsync(ct);
         var dtos = applicants.Select(ApplicantDto.From).ToList();
         return Ok(new
         {
@@ -227,8 +199,6 @@ public class AdminMembersController : ControllerBase
     [HttpPatch("applicants/{id}")]
     public async Task<IActionResult> UpdateApplicant(string id, [FromBody] UpdateApplicantRequest body, CancellationToken ct)
     {
-        if (!IsAuthorized()) return Unauthorized(new { message = "Unauthorized" });
-
         var allowed = new[] { "pending", "reviewing", "accepted", "declined" };
         var status = (body.Status ?? "").Trim().ToLowerInvariant();
         if (!allowed.Contains(status))

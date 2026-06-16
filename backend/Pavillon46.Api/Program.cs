@@ -1,5 +1,8 @@
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.Extensions.Options;
 using Pavillon46.Api.Configuration;
 using Pavillon46.Api.Models;
 using Pavillon46.Api.Security;
@@ -27,6 +30,7 @@ builder.Services.AddSingleton<IVerificationService, VerificationService>();
 builder.Services.AddSingleton<IDailyReportService, DailyReportService>();
 builder.Services.AddSingleton<IMemberStore, MemberStore>();
 builder.Services.AddSingleton<IApplicantStore, ApplicantStore>();
+builder.Services.AddSingleton<IAdminStore, AdminStore>();
 builder.Services.AddSingleton<ITokenService, TokenService>();
 builder.Services.AddSingleton<IAnnouncementService, AnnouncementService>();
 builder.Services.AddSingleton<RateLimiter>(_ => new RateLimiter { MaxEvents = 30, WindowMs = 15_000 });
@@ -53,6 +57,8 @@ builder.Services.AddCors(options =>
                   if (allowedOrigins.Contains(origin, StringComparer.OrdinalIgnoreCase)) return true;
                   if (!Uri.TryCreate(origin, UriKind.Absolute, out var uri)) return false;
                   return uri.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase)
+                      || uri.Host.Equals("pavillon46.ch", StringComparison.OrdinalIgnoreCase)
+                      || uri.Host.EndsWith(".pavillon46.ch", StringComparison.OrdinalIgnoreCase)
                       || uri.Host.EndsWith(".azurestaticapps.net", StringComparison.OrdinalIgnoreCase);
               })
               .AllowAnyHeader()
@@ -73,7 +79,79 @@ app.UseRouting();
 app.MapControllers();
 app.MapGet("/healthz", () => Results.Ok(new { ok = true }));
 
+await SeedInitialAdminAsync(app);
+
 app.Run();
+
+// Seed the first admin account on startup if none exists yet. The seeded admin
+// must change its password on first login. The password comes from
+// Auth:AdminSeedPassword (ADMIN_SEED_PASSWORD) when set; otherwise a strong
+// temporary one is generated and logged once for bootstrapping.
+static async Task SeedInitialAdminAsync(WebApplication app)
+{
+    using var scope = app.Services.CreateScope();
+    var sp = scope.ServiceProvider;
+    var admins = sp.GetRequiredService<IAdminStore>();
+    var auth = sp.GetRequiredService<IOptions<AuthOptions>>().Value;
+    var logger = sp.GetRequiredService<ILoggerFactory>().CreateLogger("AdminSeed");
+
+    var seedEmail = (auth.AdminSeedEmail ?? "").Trim().ToLowerInvariant();
+    if (string.IsNullOrEmpty(seedEmail)) return;
+
+    try
+    {
+        if (await admins.GetByEmailAsync(seedEmail) is not null) return;
+
+        var generated = string.IsNullOrEmpty(auth.AdminSeedPassword);
+
+        // In production, never auto-generate a log-only password: it would either
+        // leak a credential into telemetry or leave an admin nobody can sign in
+        // as. Require an explicit ADMIN_SEED_PASSWORD instead — fail loud.
+        if (generated && !app.Environment.IsDevelopment())
+        {
+            logger.LogWarning(
+                "No initial admin created for {Email}: set ADMIN_SEED_PASSWORD to seed the admin account, then restart.",
+                seedEmail);
+            return;
+        }
+
+        var password = generated ? PasswordHasher.GeneratePassword() : auth.AdminSeedPassword;
+        var now = DateTime.UtcNow.ToString("o");
+
+        // Deterministic id from the normalized email so that if several instances
+        // cold-boot at once they converge on a single row, rather than creating
+        // duplicate admins with different password hashes (which breaks login).
+        var id = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes("admin:" + seedEmail)))
+            .ToLowerInvariant()[..32];
+
+        await admins.UpsertAsync(new Admin
+        {
+            Id = id,
+            Email = seedEmail,
+            PasswordHash = PasswordHasher.Hash(password),
+            FirstName = "Admin",
+            Role = "admin",
+            Status = "active",
+            MustChangePassword = true,
+            CreatedAt = now,
+            UpdatedAt = now,
+        });
+
+        // Only ever write the cleartext temporary password to logs in Development.
+        if (generated)
+            logger.LogWarning(
+                "Seeded initial admin {Email} with a generated temporary password (Development only): {Password} — change it on first login.",
+                seedEmail, password);
+        else
+            logger.LogInformation(
+                "Seeded initial admin {Email} from configured seed password — change it on first login.",
+                seedEmail);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Failed to seed the initial admin account.");
+    }
+}
 
 static void MapLegacyEnvVars(IConfigurationManager config)
 {
@@ -113,6 +191,7 @@ static void MapLegacyEnvVars(IConfigurationManager config)
     Map("AZURE_STORAGE_TABLE_NAME", "AzureStorage:TableName");
     Map("AZURE_STORAGE_MEMBERS_TABLE", "AzureStorage:MembersTableName");
     Map("AZURE_STORAGE_APPLICANTS_TABLE", "AzureStorage:ApplicantsTableName");
+    Map("AZURE_STORAGE_ADMINS_TABLE", "AzureStorage:AdminsTableName");
 
     Map("SITE_URL", "Site:Url");
     Map("NEXT_PUBLIC_SITE_URL", "Site:Url");
@@ -121,6 +200,8 @@ static void MapLegacyEnvVars(IConfigurationManager config)
     Map("AUTH_TOKEN_SECRET", "Auth:TokenSecret");
     Map("AUTH_ADMIN_KEY", "Auth:AdminKey");
     Map("AUTH_FILE_PATH", "Auth:FilePath");
+    Map("ADMIN_SEED_EMAIL", "Auth:AdminSeedEmail");
+    Map("ADMIN_SEED_PASSWORD", "Auth:AdminSeedPassword");
     var ttl = Environment.GetEnvironmentVariable("AUTH_TOKEN_TTL_HOURS");
     if (int.TryParse(ttl, out var ttlHours)) config["Auth:TokenTtlHours"] = ttlHours.ToString();
     var bonus = Environment.GetEnvironmentVariable("REFERRAL_BONUS_POINTS");

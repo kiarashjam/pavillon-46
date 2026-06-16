@@ -41,6 +41,7 @@ public class AzureStorageOptions
     public string TableName { get; set; } = "ActivityEvents";
     public string MembersTableName { get; set; } = "Members";
     public string ApplicantsTableName { get; set; } = "Applicants";
+    public string AdminsTableName { get; set; } = "Admins";
 }
 
 public class SiteOptions
@@ -55,10 +56,17 @@ public class AuthOptions
     public string TokenSecret { get; set; } = "pavillon46-dev-token-secret-change-me";
     public int TokenTtlHours { get; set; } = 72;
 
-    // Admin key that gates the member-management endpoints. Falls back to the
-    // existing activity ReportKey when left blank so there is a single admin
-    // secret to manage (see Program.MapLegacyEnvVars).
+    // Legacy admin key — still accepted by the analytics report endpoint for the
+    // daily-report cron / external tooling. The admin console itself now uses a
+    // real admin account login (see AdminAuthController) rather than this key.
     public string AdminKey { get; set; } = "";
+
+    // The first admin account is seeded on startup if no admin exists yet.
+    // AdminSeedPassword is optional: when blank a strong temporary password is
+    // generated and written to the logs once. Either way the seeded admin must
+    // change the password on first login.
+    public string AdminSeedEmail { get; set; } = "kia@bonapp.group";
+    public string AdminSeedPassword { get; set; } = "";
 
     // Bonus points granted to the referrer when one of their referrals is
     // accepted as a member.
