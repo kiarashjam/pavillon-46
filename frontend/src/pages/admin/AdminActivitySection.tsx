@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
-import { fetchActivityReport, type ActivityReportDto, type ActivityEventDto } from '../../lib/api'
+import { fetchActivityReport, type ActivityReportDto } from '../../lib/api'
 import type { AdminCtx } from '../../components/admin/AdminLayout'
 
 type RangeKey = '24h' | '7d' | '30d' | '90d' | 'all'
@@ -35,8 +35,6 @@ function parseUA(ua: string) {
   else if (!s) os = 'Unknown'
   return { device, browser, os }
 }
-
-const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
 function topN(map: Map<string, number>, n: number) {
   return [...map.entries()].sort((a, b) => b[1] - a[1]).slice(0, n).map(([label, count]) => ({ label, count }))
@@ -76,7 +74,10 @@ export default function AdminActivitySection() {
       if (id === reqId.current) setLoading(false)
     }
   }
-  useEffect(() => { void runReport() /* eslint-disable-next-line */ }, [token])
+  useEffect(() => {
+    void runReport()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token])
 
   const pickRange = (r: RangeKey) => { setRange(r); void runReport({ range: r }) }
 
