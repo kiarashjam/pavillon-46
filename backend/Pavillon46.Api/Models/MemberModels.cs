@@ -100,6 +100,20 @@ public record SendCredentialsRequest(string? MemberId, string? Email, string? Pa
 
 public record ChangePasswordRequest(string? CurrentPassword, string? NewPassword);
 
+public record UpdateMemberRequest(
+    string? Title,
+    string? FirstName,
+    string? LastName,
+    string? Email,
+    string? Phone,
+    string? City,
+    string? Country,
+    string? ContractRef,
+    string? Notes,
+    string? Language,
+    string? Status
+);
+
 public record UpdateApplicantRequest(string? Status);
 
 // ---------------------------------------------------------------------------

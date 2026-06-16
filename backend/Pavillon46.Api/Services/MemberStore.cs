@@ -10,6 +10,7 @@ public interface IMemberStore
     Task<Member?> GetByEmailAsync(string email, CancellationToken ct = default);
     Task<Member?> GetByReferralCodeAsync(string code, CancellationToken ct = default);
     Task<List<Member>> ListAsync(CancellationToken ct = default);
+    Task DeleteAsync(string id, CancellationToken ct = default);
 }
 
 public class MemberStore : IMemberStore
@@ -52,6 +53,8 @@ public class MemberStore : IMemberStore
     }
 
     public Task<List<Member>> ListAsync(CancellationToken ct = default) => _inner.ListAsync(ct);
+
+    public Task DeleteAsync(string id, CancellationToken ct = default) => _inner.DeleteAsync(id, ct);
 
     private sealed class InnerStore : JsonTableStore<Member>
     {

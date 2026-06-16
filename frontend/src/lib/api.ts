@@ -244,6 +244,20 @@ export interface CreateMemberBody {
   sendEmail: boolean
 }
 
+export interface UpdateMemberBody {
+  title?: string
+  firstName?: string
+  lastName?: string
+  email?: string
+  phone?: string
+  city?: string
+  country?: string
+  contractRef?: string
+  notes?: string
+  language?: 'fr' | 'en'
+  status?: string
+}
+
 /** Reads a JSON error message from a failed response, falling back to status. */
 async function readError(response: Response): Promise<string> {
   try {
@@ -381,6 +395,21 @@ export async function adminResetPassword(
     `/api/admin/members/${encodeURIComponent(memberId)}/reset-password?sendEmail=${sendEmail}`,
     { method: 'POST', headers: bearer(token) },
   )
+}
+
+export async function adminUpdateMember(token: string, id: string, body: UpdateMemberBody): Promise<MemberDto> {
+  return jsonRequest<MemberDto>(`/api/admin/members/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    headers: bearer(token),
+    body: JSON.stringify(body),
+  })
+}
+
+export async function adminDeleteMember(token: string, id: string): Promise<{ ok: boolean; id: string }> {
+  return jsonRequest(`/api/admin/members/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    headers: bearer(token),
+  })
 }
 
 export interface AdminApplicantsResponse {
