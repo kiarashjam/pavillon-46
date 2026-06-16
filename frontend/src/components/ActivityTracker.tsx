@@ -30,17 +30,18 @@ function sendEvent(payload: ActivityPayload, sessionId: string) {
     ts: new Date().toISOString(),
   })
 
-  if (navigator.sendBeacon) {
-    const blob = new Blob([body], { type: 'application/json' })
-    navigator.sendBeacon(apiUrl('/api/activity/log'), blob)
-    return
-  }
-
+  // Sent cross-origin to the API (VITE_API_BASE_URL). We deliberately avoid
+  // navigator.sendBeacon here: it always sends in credentials mode 'include',
+  // which forces the server to return Access-Control-Allow-Credentials: true or
+  // the request is blocked by CORS. The API is stateless (bearer tokens, no
+  // cookies), so we use fetch with keepalive — same fire-on-unload reliability,
+  // no credentials, works with a plain Access-Control-Allow-Origin response.
   fetch(apiUrl('/api/activity/log'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body,
     keepalive: true,
+    credentials: 'omit',
   }).catch(() => {
     /* ignore */
   })
