@@ -116,33 +116,47 @@ export default function Overview() {
 
       {/* Two ways to invite */}
       <motion.section variants={animationVariants.item} className="dash-invite">
-        <div className="dash-section-head">
+        <div className="dash-invite-head">
+          <span className="dash-invite-eyebrow">{t.inviteWaysEyebrow}</span>
           <h2>{t.inviteWaysTitle}</h2>
+          <p className="dash-invite-sub">{t.inviteWaysSub}</p>
         </div>
-        <p className="dash-invite-sub">{t.inviteWaysSub}</p>
 
-        <div className="dash-two-col">
+        <div className="dash-invite-grid">
           {/* Option 1 — refer with their details */}
-          <div className="dash-feature-card dash-cta-card">
-            <span className="dash-method-badge">1</span>
-            <h2>{t.referralCardTitle}</h2>
-            <p>{t.referralCardText}</p>
-            <button type="button" className="dash-btn dash-btn-primary" onClick={() => navigate('/dashboard/referral')}>
+          <div className="dash-invite-card dash-invite-card--form">
+            <div className="dash-invite-card-top">
+              <span className="dash-method-num">01</span>
+              <span className="dash-method-label">{t.methodForm}</span>
+            </div>
+            <h3 className="dash-invite-card-title">{t.referralCardTitle}</h3>
+            <p className="dash-invite-card-text">{t.referralCardText}</p>
+            <button
+              type="button"
+              className="dash-btn dash-btn-primary dash-invite-cta"
+              onClick={() => navigate('/dashboard/referral')}
+            >
               {t.referralCardButton}
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M5 12h14m-6-6 6 6-6 6" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
             </button>
           </div>
 
           {/* Option 2 — share your code / link */}
-          <div className="dash-code-card dash-code-card-stack">
-            <span className="dash-method-badge is-alt">2</span>
-            <div className="dash-code-top">
-              <div>
+          <div className="dash-invite-card dash-invite-card--code">
+            <div className="dash-invite-card-top">
+              <span className="dash-method-num is-alt">02</span>
+              <span className="dash-method-label">{t.methodCode}</span>
+            </div>
+            <div className="dash-code-ticket">
+              <div className="dash-code-ticket-info">
                 <span className="dash-card-eyebrow">{t.yourCode}</span>
                 <p className="dash-code-value">{member.referralCode}</p>
               </div>
               <button
                 type="button"
-                className="dash-btn dash-btn-ghost"
+                className="dash-code-copybtn"
                 aria-label={copied ? t.copied : `${t.copy} — ${member.referralCode}`}
                 onClick={copyCode}
               >
@@ -150,14 +164,14 @@ export default function Overview() {
               </button>
             </div>
             {shareUrl && (
-              <div className="dash-code-share">
-                <div className="dash-code-share-info">
-                  <span className="dash-card-eyebrow">{t.shareLabel}</span>
+              <div className="dash-code-linkfield">
+                <span className="dash-code-linkfield-label">{t.shareLabel}</span>
+                <div className="dash-code-linkfield-row">
                   <span className="dash-share-url-text">{shareUrl}</span>
+                  <button type="button" className="dash-code-copybtn is-ghost" onClick={copyLink}>
+                    {linkCopied ? t.linkCopied : t.copyLink}
+                  </button>
                 </div>
-                <button type="button" className="dash-btn dash-btn-ghost" onClick={copyLink}>
-                  {linkCopied ? t.linkCopied : t.copyLink}
-                </button>
               </div>
             )}
             <span className="sr-only" role="status" aria-live="polite">
