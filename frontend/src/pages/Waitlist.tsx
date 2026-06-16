@@ -49,6 +49,7 @@ interface FormData {
   postalCode: string
   hearAboutKey: string
   hearAboutOther: string
+  referralCode: string
 }
 
 export default function Waitlist() {
@@ -73,7 +74,7 @@ export default function Waitlist() {
   const [cooldown, setCooldown] = useState(0)
   const cooldownRef = useRef<number | null>(null)
 
-  const [formData, setFormData] = useState<FormData>({
+  const [formData, setFormData] = useState<FormData>(() => ({
     firstName: '',
     lastName: '',
     countryCode: '+41',
@@ -82,7 +83,9 @@ export default function Waitlist() {
     postalCode: '',
     hearAboutKey: '',
     hearAboutOther: '',
-  })
+    // Pre-fill from a member's share link (/waitlist?ref=CODE).
+    referralCode: new URLSearchParams(window.location.search).get('ref')?.trim() ?? '',
+  }))
 
   useEffect(() => {
     document.title = t.title
@@ -354,6 +357,11 @@ export default function Waitlist() {
                       type="text" name="postalCode" placeholder={t.postalCodePlaceholder}
                       value={formData.postalCode} onChange={handleChange}
                       required className="form-input"
+                    />
+                    <input
+                      type="text" name="referralCode" placeholder={t.referralCodePlaceholder}
+                      value={formData.referralCode} onChange={handleChange}
+                      className="form-input" autoComplete="off"
                     />
                   </>
                 )}

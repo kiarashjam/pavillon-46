@@ -12,7 +12,6 @@ export default function Login() {
   const { token, login } = useAuth()
   const navigate = useNavigate()
   const t = useTranslations(language, 'login')
-  const tCommon = useTranslations(language, 'common')
   const [account, setAccount] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -52,7 +51,6 @@ export default function Login() {
         initial="hidden"
         animate="visible"
       >
-        <span className="auth-form-eyebrow">{tCommon.byInvitation}</span>
             <h1 className="form-heading login-heading">{t.heading}</h1>
             <p className="form-subtitle login-subtitle">{t.subtitle}</p>
 

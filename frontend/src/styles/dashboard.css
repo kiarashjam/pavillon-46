@@ -67,6 +67,9 @@
   background:
     radial-gradient(900px circle at 12% -10%, rgba(224, 191, 252, 0.20), transparent 55%),
     radial-gradient(820px circle at 100% 0%, rgba(255, 110, 80, 0.12), transparent 52%);
+  /* Promote to its own compositor layer so the fixed gradient doesn't repaint
+     with every scroll frame on iOS Safari. */
+  transform: translateZ(0);
 }
 
 /* ---- Sidebar ---- */
@@ -82,9 +85,10 @@
   flex-direction: column;
   padding: 28px 18px;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   background: linear-gradient(165deg, #1f4a39 0%, #15362a 55%, #0e271e 100%);
   color: rgba(252, 248, 247, 0.92);
-  box-shadow: 4px 0 30px rgba(13, 35, 27, 0.18);
+  box-shadow: 2px 0 16px rgba(13, 35, 27, 0.14);
 }
 .dash-brand {
   display: flex;
@@ -175,9 +179,9 @@
   align-items: center;
   gap: 16px;
   padding: 18px 34px;
-  background: rgba(244, 239, 233, 0.78);
-  -webkit-backdrop-filter: blur(14px);
-  backdrop-filter: blur(14px);
+  background: rgba(244, 239, 233, 0.82);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--dash-line);
 }
 .dash-burger {
@@ -220,11 +224,17 @@
   justify-content: center;
   font-size: 15px;
   font-weight: 600;
+  font-family: var(--font-primary);
   color: #fff;
   background: linear-gradient(135deg, var(--dash-green) 0%, var(--dash-green-soft) 100%);
   box-shadow: var(--dash-shadow-sm);
   flex-shrink: 0;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.2s var(--dash-ease), box-shadow 0.3s var(--dash-ease);
 }
+.dash-avatar:hover { transform: translateY(-1px); box-shadow: var(--dash-shadow); }
+.dash-avatar:focus-visible { outline: 2px solid var(--dash-green); outline-offset: 2px; }
 
 /* ---- Content ---- */
 .dash-content { padding: 34px; flex: 1; }
@@ -273,10 +283,8 @@
   font-size: 12px;
   letter-spacing: 0.04em;
   color: rgba(252, 248, 247, 0.92);
-  background: rgba(252, 248, 247, 0.12);
+  background: rgba(252, 248, 247, 0.16);
   border: 1px solid rgba(252, 248, 247, 0.25);
-  -webkit-backdrop-filter: blur(6px);
-  backdrop-filter: blur(6px);
 }
 .dash-hero-eyebrow {
   font-size: 11px;
@@ -550,34 +558,121 @@
 }
 .dash-cta-card h2 { font-size: 22px; }
 
-/* ---- Referral reward callout (1 month free for both) ---- */
-.dash-reward {
+/* ---- Invite — two ways (overview main page) ---- */
+.dash-invite { display: flex; flex-direction: column; gap: 14px; }
+.dash-invite-sub { margin: -6px 0 2px; color: var(--dash-muted); font-size: 14px; }
+.dash-method-badge {
+  align-self: flex-start;
+  width: 27px;
+  height: 27px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 18px 22px;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  background: linear-gradient(135deg, var(--dash-green) 0%, var(--dash-green-soft) 100%);
+  box-shadow: 0 4px 10px rgba(38, 86, 64, 0.22);
+}
+.dash-method-badge.is-alt {
+  background: linear-gradient(135deg, var(--dash-coral) 0%, #f98b73 100%);
+  box-shadow: 0 4px 10px rgba(255, 110, 80, 0.26);
+}
+.dash-code-card.dash-code-card-stack { flex-direction: column; align-items: stretch; gap: 14px; }
+.dash-code-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.dash-code-share {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 14px;
+  border-top: 1px solid var(--dash-line);
+}
+.dash-code-share-info { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.dash-share-url-text {
+  font-size: 12.5px;
+  color: var(--dash-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 230px;
+}
+
+/* ---- Referral reward callout (1 month free for both) ---- */
+.dash-reward {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 24px;
   border-radius: var(--dash-radius);
   background:
-    radial-gradient(130% 170% at 0% 0%, rgba(255, 110, 80, 0.13) 0%, rgba(255, 110, 80, 0) 60%),
-    var(--dash-card);
-  border: 1px solid rgba(255, 110, 80, 0.28);
+    radial-gradient(150% 190% at 0% 0%, rgba(255, 110, 80, 0.16) 0%, rgba(255, 110, 80, 0) 58%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.9));
+  border: 1px solid rgba(255, 110, 80, 0.3);
   box-shadow: var(--dash-shadow-sm);
+}
+.dash-reward-glow {
+  position: absolute;
+  z-index: -1;
+  top: -70px;
+  right: -50px;
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 110, 80, 0.2) 0%, rgba(255, 110, 80, 0) 70%);
+  pointer-events: none;
+}
+.dash-reward-head {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
 }
 .dash-reward-icon {
   flex-shrink: 0;
-  width: 46px;
-  height: 46px;
-  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  border-radius: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #fff;
   background: linear-gradient(135deg, var(--dash-coral) 0%, #f98b73 100%);
-  box-shadow: 0 6px 16px rgba(255, 110, 80, 0.3);
+  box-shadow: 0 8px 20px rgba(255, 110, 80, 0.34);
 }
-.dash-reward-icon svg { width: 24px; height: 24px; }
-.dash-reward-copy h2 { margin: 0 0 4px; font-size: 17px; font-weight: 500; color: var(--dash-ink); }
+.dash-reward-icon svg { width: 26px; height: 26px; }
+.dash-reward-eyebrow {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--dash-coral);
+}
+.dash-reward-copy h2 { margin: 5px 0 5px; font-size: 19px; font-weight: 500; letter-spacing: -0.01em; color: var(--dash-ink); }
 .dash-reward-copy p { margin: 0; font-size: 14px; line-height: 1.55; color: var(--dash-muted); }
+.dash-reward-split {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+}
+.dash-reward-pill {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: rgba(255, 110, 80, 0.08);
+  border: 1px solid rgba(255, 110, 80, 0.2);
+}
+.dash-reward-pill-who { font-size: 12px; letter-spacing: 0.03em; color: var(--dash-muted); }
+.dash-reward-pill-amt { font-size: 16px; font-weight: 600; color: #c2543a; }
+.dash-reward-plus { align-self: center; font-size: 22px; font-weight: 300; color: var(--dash-coral); }
 .dash-reward-note {
   margin: 2px 0 4px;
   font-size: 13.5px;
@@ -589,7 +684,7 @@
   padding: 9px 18px;
 }
 @media (max-width: 520px) {
-  .dash-reward { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .dash-reward-split { flex-direction: column; }
 }
 
 /* ---- Forms ---- */
@@ -829,7 +924,14 @@
     backdrop-filter: blur(2px);
   }
   .dash-burger { display: flex; }
-  .dash-topbar { padding: 16px 18px; }
+  .dash-topbar {
+    padding: 16px 18px;
+    /* iOS Safari janks hard when a sticky bar repaints a backdrop-filter blur on
+       every scroll frame — use a near-opaque solid bar on mobile instead. */
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: rgba(244, 239, 233, 0.96);
+  }
   .dash-content { padding: 22px 16px; }
   .dash-two-col { grid-template-columns: 1fr; }
   .adm-form-grid { grid-template-columns: 1fr; }
