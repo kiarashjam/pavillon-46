@@ -37,11 +37,10 @@ public class ActivityController : ControllerBase
 
     private string GetClientIp()
     {
-        var forwardedFor = Request.Headers["X-Forwarded-For"].ToString();
-        if (!string.IsNullOrEmpty(forwardedFor))
-        {
-            return forwardedFor.Split(',')[0].Trim();
-        }
+        // ForwardedHeadersMiddleware (see Program.cs) writes the real client IP
+        // into RemoteIpAddress once the proxy-set XFF passes its trust check.
+        // Reading the raw header would let a caller poison the rate-limit key
+        // and the hashed IP that lands in the activity table.
         return HttpContext.Connection.RemoteIpAddress?.ToString() ?? "";
     }
 

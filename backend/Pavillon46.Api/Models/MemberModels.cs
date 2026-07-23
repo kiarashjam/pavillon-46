@@ -29,9 +29,41 @@ public class Member
     public int SuccessfulReferrals { get; set; }
     public int BonusPoints { get; set; }
     public bool MustChangePassword { get; set; }
+    // Bumped every time PasswordHash changes (reset, admin reset, self-change).
+    // Embedded in issued auth tokens as `pv`; a token whose pv doesn't match the
+    // current row is rejected by MemberAuthorizeFilter, so a password change
+    // logs out every existing session.
+    public int PasswordVersion { get; set; }
     public string CreatedAt { get; set; } = "";
     public string UpdatedAt { get; set; } = "";
     public string LastLoginAt { get; set; } = "";
+}
+
+// A single-use, short-lived credential issued when a member asks to reset their
+// password. Stored hash-only — the raw token never touches disk. Multiple rows
+// may exist per member but at most one is ever "live" (see PasswordResetTokenStore).
+public class PasswordResetToken
+{
+    // Same value as TokenHash. JsonTableStore<T> uses this as the RowKey.
+    public string Id { get; set; } = "";
+    // Hex-lowercase SHA-256 of the raw base64url token. Canonical case.
+    public string TokenHash { get; set; } = "";
+    // FK into Member.Id. Case-preserved as stored.
+    public string MemberId { get; set; } = "";
+    // Snapshot of the member's email at issuance time (lowercased). Useful for
+    // audit context when the member later changes email.
+    public string Email { get; set; } = "";
+    // ISO-8601 UTC.
+    public string CreatedAtUtc { get; set; } = "";
+    public string ExpiresAtUtc { get; set; } = "";
+    // ISO-8601 UTC when the token was burned; null while live.
+    public string? UsedAtUtc { get; set; }
+    // "consumed" | "superseded" | "password_changed" | "brute_force" | null.
+    public string? UsedReason { get; set; }
+    // Salted-hash of the requesting IP (see ActivityController.HashIp pattern).
+    public string? RequestIp { get; set; }
+    // Truncated to 200 chars.
+    public string? RequestUserAgent { get; set; }
 }
 
 public class Applicant
@@ -99,6 +131,10 @@ public record CreateMemberRequest(
 public record SendCredentialsRequest(string? MemberId, string? Email, string? Password);
 
 public record ChangePasswordRequest(string? CurrentPassword, string? NewPassword);
+
+public record ForgotPasswordRequest(string? Email);
+
+public record ResetPasswordRequest(string? Token, string? NewPassword);
 
 public record UpdateMemberRequest(
     string? Title,
@@ -264,6 +300,11 @@ public class MemberPrincipal
     public string MemberId { get; set; } = "";
     public string Email { get; set; } = "";
     public string Role { get; set; } = "member";
+    // Copied from the token payload. The filter compares this against
+    // Member.PasswordVersion to reject tokens issued before the current
+    // password. 0 = pre-versioning token, which matches a member that has
+    // never had their password changed since the feature landed.
+    public int PasswordVersion { get; set; }
 
     [JsonIgnore]
     public bool IsAdmin => string.Equals(Role, "admin", StringComparison.OrdinalIgnoreCase);

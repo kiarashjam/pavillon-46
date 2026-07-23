@@ -32,17 +32,20 @@ public class TokenService : ITokenService
         public string Email { get; set; } = "";
         public string Role { get; set; } = "member";
         public long Exp { get; set; }
+        // Snapshot of Member.PasswordVersion at issuance. 0 for admins (they use
+        // a separate identity and don't participate in the version check).
+        public int Pv { get; set; }
     }
 
     public (string Token, DateTimeOffset ExpiresAt) Create(Member member) =>
-        Issue(member.Id, member.Email, member.Role);
+        Issue(member.Id, member.Email, member.Role, member.PasswordVersion);
 
     // Admins are a separate identity (see AdminStore); their token always carries
     // role "admin" so [AdminAuthorize] can distinguish them from members.
     public (string Token, DateTimeOffset ExpiresAt) CreateForAdmin(Admin admin) =>
-        Issue(admin.Id, admin.Email, "admin");
+        Issue(admin.Id, admin.Email, "admin", 0);
 
-    private (string Token, DateTimeOffset ExpiresAt) Issue(string sub, string email, string role)
+    private (string Token, DateTimeOffset ExpiresAt) Issue(string sub, string email, string role, int passwordVersion)
     {
         var expires = DateTimeOffset.UtcNow.AddHours(Math.Max(1, _options.TokenTtlHours));
         var payload = new TokenPayload
@@ -51,6 +54,7 @@ public class TokenService : ITokenService
             Email = email,
             Role = string.IsNullOrEmpty(role) ? "member" : role,
             Exp = expires.ToUnixTimeSeconds(),
+            Pv = passwordVersion,
         };
 
         var payloadJson = JsonSerializer.SerializeToUtf8Bytes(payload);
@@ -87,6 +91,7 @@ public class TokenService : ITokenService
             MemberId = payload.Sub,
             Email = payload.Email,
             Role = string.IsNullOrEmpty(payload.Role) ? "member" : payload.Role,
+            PasswordVersion = payload.Pv,
         };
     }
 

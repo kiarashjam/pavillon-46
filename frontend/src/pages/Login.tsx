@@ -96,6 +96,8 @@ export default function Login() {
             </form>
 
         <p className="form-link-row login-form-links">
+          <Link to="/forgot-password" className="form-link">{t.forgotPasswordLink}</Link>
+          <span className="form-link-sep" aria-hidden>·</span>
           <Link to="/waitlist" className="form-link">{t.joinWaitlistLink}</Link>
         </p>
       </motion.div>

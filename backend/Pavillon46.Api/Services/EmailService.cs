@@ -170,6 +170,73 @@ public class EmailService : IEmailService
         await SendRawEmailAsync(member.Email, subject, plain, html, ct);
     }
 
+    public async Task SendPasswordResetEmailAsync(Member member, string resetUrl, DateTime expiresAtUtc, int ttlMinutes, string lang, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(_sendgrid.ApiKey)) throw new InvalidOperationException("SENDGRID_API_KEY is missing.");
+        if (string.IsNullOrWhiteSpace(_sendgrid.FromEmail)) throw new InvalidOperationException("FROM_EMAIL is missing.");
+        if (string.IsNullOrWhiteSpace(member.Email)) throw new ArgumentException("Member email is required");
+        if (string.IsNullOrWhiteSpace(resetUrl)) throw new ArgumentException("Reset URL is required");
+
+        var normalized = EmailTranslations.NormalizeLang(lang);
+        var t = EmailTranslations.PasswordReset(normalized);
+        var greetingName = string.IsNullOrWhiteSpace(member.FirstName) ? member.Email : member.FirstName;
+
+        // Swiss local time for the human-readable expiration line. Falls back
+        // to UTC on Windows/Linux where the tzdata id might be missing (rare).
+        string expiryLocal;
+        try
+        {
+            var swiss = TimeZoneInfo.FindSystemTimeZoneById(
+                OperatingSystem.IsWindows() ? "W. Europe Standard Time" : "Europe/Zurich");
+            var local = TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(expiresAtUtc, DateTimeKind.Utc), swiss);
+            var culture = normalized == "en" ? new System.Globalization.CultureInfo("en-GB") : new System.Globalization.CultureInfo("fr-CH");
+            expiryLocal = local.ToString("HH:mm", culture);
+        }
+        catch (TimeZoneNotFoundException)
+        {
+            expiryLocal = expiresAtUtc.ToString("HH:mm") + " UTC";
+        }
+
+        var body1 = t.Body1(greetingName, ttlMinutes);
+        var expiry = t.ExpiryLine(expiryLocal);
+
+        var plain =
+            $"{t.Heading}\n\n{body1}\n\n{t.Body2}\n\n{t.Cta}: {resetUrl}\n\n{expiry}";
+
+        var html = BuildResetPasswordHtml(normalized, t.Heading, body1, t.Body2, expiry, t.Cta, resetUrl);
+        await SendRawEmailAsync(member.Email, t.Subject, plain, html, ct);
+    }
+
+    private string BuildResetPasswordHtml(string lang, string heading, string body1, string body2, string expiryLine, string cta, string ctaUrl)
+    {
+        var logo = $"{_site.Url}/images/logo.png";
+        var year = DateTime.UtcNow.Year;
+        return $@"<!DOCTYPE html>
+<html lang=""{lang}"">
+<head><meta charset=""UTF-8""><meta name=""viewport"" content=""width=device-width,initial-scale=1.0""><title>{WebUtility.HtmlEncode(heading)}</title></head>
+<body style=""font-family:Jost,sans-serif;color:#1d2b24;background:#0f261d;margin:0;padding:0;"">
+  <table role=""presentation"" cellspacing=""0"" cellpadding=""0"" border=""0"" width=""100%"" style=""background:#0f261d;padding:24px 0;""><tr><td align=""center"">
+    <table role=""presentation"" cellspacing=""0"" cellpadding=""0"" border=""0"" width=""600"" style=""max-width:600px;margin:0 auto;background:#fcf8f7;border-radius:14px;overflow:hidden;box-shadow:0 18px 48px rgba(0,0,0,0.3);"">
+      <tr><td style=""background:linear-gradient(135deg,#265640 0%,#3a6f58 100%);padding:42px 32px;text-align:center;color:#fff;"">
+        <div style=""text-align:center;margin-bottom:16px;""><img src=""{logo}"" alt=""Pavillon 46"" width=""150"" style=""display:inline-block;max-width:150px;width:100%;height:auto;filter:brightness(0) invert(1);""/></div>
+        <h1 style=""margin:0;font-size:28px;font-weight:500;color:#fff;"">{WebUtility.HtmlEncode(heading)}</h1>
+      </td></tr>
+      <tr><td style=""padding:36px 32px;"">
+        <p style=""margin:0 0 18px 0;font-size:16px;color:#3a4a42;line-height:1.7;"">{WebUtility.HtmlEncode(body1)}</p>
+        <p style=""margin:0 0 26px 0;font-size:15px;color:#6f8079;line-height:1.7;"">{WebUtility.HtmlEncode(body2)}</p>
+        <div style=""text-align:center;margin:8px 0;"">
+          <a href=""{ctaUrl}"" style=""display:inline-block;background:#ff6e50;color:#fff;text-decoration:none;font-size:16px;font-weight:500;padding:14px 34px;border-radius:8px;"">{WebUtility.HtmlEncode(cta)}</a>
+        </div>
+        <p style=""margin:22px 0 0 0;font-size:13px;color:#8a9a92;text-align:center;line-height:1.6;"">{WebUtility.HtmlEncode(expiryLine)}</p>
+      </td></tr>
+      <tr><td style=""padding:24px 32px;background:#f0ece9;border-top:1px solid rgba(38,86,64,0.1);font-size:12px;color:#8a9a92;text-align:center;line-height:1.7;"">
+        <p style=""margin:0;"">© {year} Pavillon 46 — La Croix-sur-Lutry, Suisse</p>
+      </td></tr>
+    </table>
+  </td></tr></table>
+</body></html>";
+    }
+
     private string BuildSimpleHtml(string lang, string heading, string body, string cta, string loginUrl)
     {
         var logo = $"{_site.Url}/images/logo.png";
