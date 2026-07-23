@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Pavillon46.Api.Models;
+using Pavillon46.Api.Services;
 
 namespace Pavillon46.Api.Security;
 
@@ -19,13 +20,15 @@ public class MemberAuthorizeFilter : IAsyncAuthorizationFilter
     public const string ItemsKey = "MemberPrincipal";
 
     private readonly ITokenService _tokens;
+    private readonly IMemberStore _members;
 
-    public MemberAuthorizeFilter(ITokenService tokens)
+    public MemberAuthorizeFilter(ITokenService tokens, IMemberStore members)
     {
         _tokens = tokens;
+        _members = members;
     }
 
-    public Task OnAuthorizationAsync(AuthorizationFilterContext context)
+    public async Task OnAuthorizationAsync(AuthorizationFilterContext context)
     {
         var header = context.HttpContext.Request.Headers.Authorization.ToString();
         string? token = null;
@@ -38,11 +41,27 @@ public class MemberAuthorizeFilter : IAsyncAuthorizationFilter
         if (principal is null)
         {
             context.Result = new UnauthorizedObjectResult(new { message = "Unauthorized" });
-            return Task.CompletedTask;
+            return;
+        }
+
+        // Version check: a password reset (or any other password change) bumps
+        // Member.PasswordVersion, invalidating every token issued before the
+        // change. Admin tokens carry Pv = 0 and skip this check — they are a
+        // separate identity handled by AdminAuthorize.
+        if (!principal.IsAdmin)
+        {
+            var ct = context.HttpContext.RequestAborted;
+            var member = await _members.GetByIdAsync(principal.MemberId, ct);
+            if (member is null
+                || !string.Equals(member.Status, "active", StringComparison.OrdinalIgnoreCase)
+                || member.PasswordVersion != principal.PasswordVersion)
+            {
+                context.Result = new UnauthorizedObjectResult(new { message = "Unauthorized" });
+                return;
+            }
         }
 
         context.HttpContext.Items[ItemsKey] = principal;
-        return Task.CompletedTask;
     }
 }
 

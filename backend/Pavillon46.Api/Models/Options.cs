@@ -42,6 +42,7 @@ public class AzureStorageOptions
     public string MembersTableName { get; set; } = "Members";
     public string ApplicantsTableName { get; set; } = "Applicants";
     public string AdminsTableName { get; set; } = "Admins";
+    public string PasswordResetTokensTableName { get; set; } = "PasswordResetTokens";
 }
 
 public class SiteOptions
@@ -71,6 +72,11 @@ public class AuthOptions
     // Bonus points granted to the referrer when one of their referrals is
     // accepted as a member.
     public int ReferralBonusPoints { get; set; } = 100;
+
+    // Lifetime of a password-reset token, in minutes. Short by design so a
+    // leaked email screenshot has a narrow attack window; long enough for the
+    // user to find and forward the email. Override via PASSWORD_RESET_TTL_MINUTES.
+    public int PasswordResetTtlMinutes { get; set; } = 60;
 
     // Where to store the JSONL fallback files when Azure Storage is not
     // configured. Empty => ~/.pavillon46/.

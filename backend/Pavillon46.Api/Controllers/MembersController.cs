@@ -16,6 +16,7 @@ public class MembersController : ControllerBase
     private readonly IAnnouncementService _announcements;
     private readonly ILeadsWebhookService _webhook;
     private readonly IEmailService _email;
+    private readonly IPasswordResetTokenStore _resetTokens;
     private readonly SiteOptions _site;
     private readonly ILogger<MembersController> _logger;
 
@@ -25,6 +26,7 @@ public class MembersController : ControllerBase
         IAnnouncementService announcements,
         ILeadsWebhookService webhook,
         IEmailService email,
+        IPasswordResetTokenStore resetTokens,
         IOptions<SiteOptions> site,
         ILogger<MembersController> logger)
     {
@@ -33,6 +35,7 @@ public class MembersController : ControllerBase
         _announcements = announcements;
         _webhook = webhook;
         _email = email;
+        _resetTokens = resetTokens;
         _site = site.Value;
         _logger = logger;
     }
@@ -101,8 +104,22 @@ public class MembersController : ControllerBase
 
         member.PasswordHash = PasswordHasher.Hash(newPassword);
         member.MustChangePassword = false;
+        // Invalidate every session issued before this change.
+        member.PasswordVersion = unchecked(member.PasswordVersion + 1);
         member.UpdatedAt = DateTime.UtcNow.ToString("o");
         await _members.UpsertAsync(member, ct);
+
+        // Any password change invalidates all outstanding reset tokens for
+        // this member — a leaked email link can no longer take over the
+        // account after the owner has knowingly rotated their password.
+        try
+        {
+            await _resetTokens.InvalidateAllForMemberAsync(member.Id, "password_changed", ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to invalidate reset tokens for {MemberId} after password change", member.Id);
+        }
 
         // Best-effort confirmation email; never fail the change if email is down.
         try

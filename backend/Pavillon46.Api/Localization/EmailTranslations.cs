@@ -119,4 +119,47 @@ public static class EmailTranslations
 
     public static string NormalizeLang(string? lang) =>
         string.Equals((lang ?? "").Trim(), "en", StringComparison.OrdinalIgnoreCase) ? "en" : "fr";
+
+    // -----------------------------------------------------------------------
+    // Password reset — user-facing email sent by AuthController.ForgotPassword.
+    // Mirrors the shape of SendMemberCredentialsAsync (dark-green frame,
+    // gradient header, orange CTA, single-paragraph body + expiration line).
+    // -----------------------------------------------------------------------
+    public record PasswordResetStrings(
+        string Subject,
+        string Heading,
+        Func<string, int, string> Body1,
+        string Body2,
+        Func<string, string> ExpiryLine,
+        string Cta
+    );
+
+    public static PasswordResetStrings PasswordReset(string lang) => lang == "en"
+        ? new PasswordResetStrings(
+            Subject: "Reset your Pavillon 46 password",
+            Heading: "Reset your password",
+            Body1: (name, ttlMinutes) => $"Hi {name}, we received a request to reset the password for your Pavillon 46 account. Click the button below to choose a new password. This link will expire in {FormatTtl(ttlMinutes, "en")}.",
+            Body2: "If you didn't request this, you can safely ignore this email — your password will not change.",
+            ExpiryLine: when => $"This link expires at {when} (Swiss time).",
+            Cta: "Choose a new password")
+        : new PasswordResetStrings(
+            Subject: "Réinitialisation de votre mot de passe — Pavillon 46",
+            Heading: "Réinitialisation de votre mot de passe",
+            Body1: (name, ttlMinutes) => $"Bonjour {name}, nous avons reçu une demande de réinitialisation de mot de passe pour votre compte Pavillon 46. Cliquez sur le bouton ci-dessous pour choisir un nouveau mot de passe. Ce lien expirera dans {FormatTtl(ttlMinutes, "fr")}.",
+            Body2: "Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet e-mail — votre mot de passe restera inchangé.",
+            ExpiryLine: when => $"Ce lien expire à {when} (heure suisse).",
+            Cta: "Choisir un nouveau mot de passe");
+
+    private static string FormatTtl(int minutes, string lang)
+    {
+        var safe = Math.Max(1, minutes);
+        if (safe % 60 == 0)
+        {
+            var hours = safe / 60;
+            if (lang == "en") return hours == 1 ? "1 hour" : $"{hours} hours";
+            return hours == 1 ? "1 heure" : $"{hours} heures";
+        }
+        if (lang == "en") return safe == 1 ? "1 minute" : $"{safe} minutes";
+        return safe == 1 ? "1 minute" : $"{safe} minutes";
+    }
 }

@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Options;
 using Pavillon46.Api.Configuration;
 using Pavillon46.Api.Models;
@@ -31,9 +32,11 @@ builder.Services.AddSingleton<IDailyReportService, DailyReportService>();
 builder.Services.AddSingleton<IMemberStore, MemberStore>();
 builder.Services.AddSingleton<IApplicantStore, ApplicantStore>();
 builder.Services.AddSingleton<IAdminStore, AdminStore>();
+builder.Services.AddSingleton<IPasswordResetTokenStore, PasswordResetTokenStore>();
 builder.Services.AddSingleton<ITokenService, TokenService>();
 builder.Services.AddSingleton<IAnnouncementService, AnnouncementService>();
 builder.Services.AddSingleton<RateLimiter>(_ => new RateLimiter { MaxEvents = 30, WindowMs = 15_000 });
+builder.Services.AddSingleton<KeyedRateLimiter>();
 builder.Services.AddHttpClient<ILeadsWebhookService, LeadsWebhookService>();
 
 builder.Services.AddControllers()
@@ -45,6 +48,21 @@ builder.Services.AddControllers()
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+// The API sits behind a reverse proxy in every non-dev environment (Azure App
+// Service, App Gateway, Front Door). ForwardedHeadersMiddleware promotes the
+// proxy-set X-Forwarded-For into HttpContext.Connection.RemoteIpAddress so
+// rate limiting and audit logging see the real client IP — never the raw,
+// caller-supplied header. KnownNetworks/KnownProxies are cleared: we trust
+// exactly one hop (ForwardLimit = 1) — the last proxy in front of us — which
+// is Azure's managed ingress. Direct callers can't spoof XFF.
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.ForwardLimit = 1;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
 
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
 builder.Services.AddCors(options =>
@@ -67,6 +85,9 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
+// MUST run before anything that reads client IP or scheme.
+app.UseForwardedHeaders();
 
 if (app.Environment.IsDevelopment())
 {
@@ -192,6 +213,7 @@ static void MapLegacyEnvVars(IConfigurationManager config)
     Map("AZURE_STORAGE_MEMBERS_TABLE", "AzureStorage:MembersTableName");
     Map("AZURE_STORAGE_APPLICANTS_TABLE", "AzureStorage:ApplicantsTableName");
     Map("AZURE_STORAGE_ADMINS_TABLE", "AzureStorage:AdminsTableName");
+    Map("AZURE_STORAGE_RESET_TOKENS_TABLE", "AzureStorage:PasswordResetTokensTableName");
 
     Map("SITE_URL", "Site:Url");
     Map("NEXT_PUBLIC_SITE_URL", "Site:Url");
@@ -206,4 +228,6 @@ static void MapLegacyEnvVars(IConfigurationManager config)
     if (int.TryParse(ttl, out var ttlHours)) config["Auth:TokenTtlHours"] = ttlHours.ToString();
     var bonus = Environment.GetEnvironmentVariable("REFERRAL_BONUS_POINTS");
     if (int.TryParse(bonus, out var bonusPoints)) config["Auth:ReferralBonusPoints"] = bonusPoints.ToString();
+    var resetTtl = Environment.GetEnvironmentVariable("PASSWORD_RESET_TTL_MINUTES");
+    if (int.TryParse(resetTtl, out var resetTtlMinutes)) config["Auth:PasswordResetTtlMinutes"] = resetTtlMinutes.ToString();
 }

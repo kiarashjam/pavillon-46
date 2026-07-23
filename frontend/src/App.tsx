@@ -10,6 +10,8 @@ import Waitlist from './pages/Waitlist'
 import ThankYou from './pages/ThankYou'
 import Login from './pages/Login'
 import SetPassword from './pages/SetPassword'
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
 import LegalOrPrivacy from './pages/LegalOrPrivacy'
 import AdminLayout from './components/admin/AdminLayout'
 import AdminLogin from './pages/admin/AdminLogin'
@@ -35,6 +37,8 @@ export default function App() {
             <Route path="/thank-you" element={<ThankYou />} />
             <Route path="/login" element={<Login />} />
             <Route path="/set-password" element={<SetPassword />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/legal" element={<LegalOrPrivacy section="legal" />} />
             <Route path="/privacy" element={<LegalOrPrivacy section="privacy" />} />
 

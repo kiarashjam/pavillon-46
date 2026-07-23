@@ -19,6 +19,7 @@ export interface CommonTranslations {
   asSeenOnElle: string
   memberPortal: string
   byInvitation: string
+  backToLogin: string
 }
 
 export interface HomeTranslations {
@@ -91,6 +92,19 @@ export interface LoginTranslations {
   successMessage: string
   joinWaitlistLink: string
   failed: string
+  // Forgot password page (routes on /forgot-password)
+  forgotPasswordLink: string
+  forgotTitle: string
+  forgotDescription: string
+  forgotHeading: string
+  forgotSubtitle: string
+  forgotEmailPlaceholder: string
+  forgotSubmit: string
+  forgotSending: string
+  forgotSent: string
+  forgotRateLimited: string
+  forgotFailed: string
+  forgotInvalidEmail: string
 }
 
 export interface DashboardTranslations {
@@ -125,6 +139,20 @@ export interface DashboardTranslations {
   setPwSaving: string
   setPwMismatch: string
   setPwTooShort: string
+  // Reset password (self-serve, via /reset-password?token=...)
+  resetPwEyebrow: string
+  resetPwTitle: string
+  resetPwSubtitle: string
+  resetPwSubmit: string
+  resetPwSaving: string
+  resetPwSuccess: string
+  resetPwGoToLogin: string
+  resetPwInvalidToken: string
+  resetPwMissingToken: string
+  resetPwRateLimited: string
+  resetPwFailed: string
+  resetPwPageTitle: string
+  resetPwPageDescription: string
   // Overview
   overviewTitle: string
   overviewSubtitle: string
@@ -253,6 +281,7 @@ export const translations: Record<Language, Translations> = {
       asSeenOnElle: 'Vu dans ELLE',
       memberPortal: 'Espace membre',
       byInvitation: 'Sur invitation',
+      backToLogin: 'Retour à la connexion',
     },
     home: {
       title: 'Pavillon 46',
@@ -327,6 +356,18 @@ export const translations: Record<Language, Translations> = {
       successMessage: 'Portail prive en cours de finalisation. Votre acces sera active tres bientot.',
       joinWaitlistLink: "Pas encore membre ? Rejoindre la liste d'attente",
       failed: 'E-mail ou mot de passe incorrect.',
+      forgotPasswordLink: 'Mot de passe oublié ?',
+      forgotTitle: 'Mot de passe oublié — Pavillon 46',
+      forgotDescription: 'Réinitialisez votre mot de passe Pavillon 46.',
+      forgotHeading: 'Mot de passe oublié',
+      forgotSubtitle: "Saisissez votre adresse e-mail et nous vous enverrons un lien de réinitialisation.",
+      forgotEmailPlaceholder: 'Votre adresse e-mail',
+      forgotSubmit: 'Envoyer le lien',
+      forgotSending: 'Envoi en cours…',
+      forgotSent: "Si un compte existe avec cette adresse, nous vous avons envoyé un lien.",
+      forgotRateLimited: 'Trop de tentatives. Réessayez dans quelques minutes.',
+      forgotFailed: 'Une erreur est survenue. Réessayez.',
+      forgotInvalidEmail: 'Merci d’entrer une adresse e-mail valide.',
     },
     dashboard: {
       navOverview: 'Accueil',
@@ -358,6 +399,19 @@ export const translations: Record<Language, Translations> = {
       setPwSaving: 'Enregistrement…',
       setPwMismatch: 'Les mots de passe ne correspondent pas.',
       setPwTooShort: 'Le mot de passe doit contenir au moins 8 caractères.',
+      resetPwEyebrow: 'Réinitialisation',
+      resetPwTitle: 'Nouveau mot de passe',
+      resetPwSubtitle: 'Choisissez un nouveau mot de passe pour votre compte.',
+      resetPwSubmit: 'Enregistrer le mot de passe',
+      resetPwSaving: 'Enregistrement…',
+      resetPwSuccess: 'Votre mot de passe a été mis à jour. Vous pouvez maintenant vous connecter.',
+      resetPwGoToLogin: 'Aller à la connexion',
+      resetPwInvalidToken: 'Ce lien est invalide ou a expiré. Demandez un nouveau lien.',
+      resetPwMissingToken: 'Ce lien de réinitialisation est incomplet.',
+      resetPwRateLimited: 'Trop de tentatives. Réessayez plus tard.',
+      resetPwFailed: "Impossible d'enregistrer le mot de passe. Réessayez.",
+      resetPwPageTitle: 'Réinitialiser le mot de passe — Pavillon 46',
+      resetPwPageDescription: 'Choisissez un nouveau mot de passe pour votre compte Pavillon 46.',
       overviewTitle: 'Votre espace membre',
       overviewSubtitle: 'Bienvenue dans le cercle privé du Pavillon 46.',
       statReferrals: 'Parrainages',
@@ -493,6 +547,7 @@ export const translations: Record<Language, Translations> = {
       asSeenOnElle: 'As seen on ELLE',
       memberPortal: "Member's Portal",
       byInvitation: 'By invitation',
+      backToLogin: 'Back to login',
     },
     home: {
       title: 'Pavillon 46',
@@ -567,6 +622,18 @@ export const translations: Record<Language, Translations> = {
       successMessage: 'The private portal is being finalized. Your access will be enabled very soon.',
       joinWaitlistLink: 'Not a member yet? Join the waitlist',
       failed: 'Invalid email or password.',
+      forgotPasswordLink: 'Forgot password?',
+      forgotTitle: 'Forgot password — Pavillon 46',
+      forgotDescription: 'Reset your Pavillon 46 password.',
+      forgotHeading: 'Forgot password',
+      forgotSubtitle: "Enter your email and we'll send you a reset link.",
+      forgotEmailPlaceholder: 'Your email address',
+      forgotSubmit: 'Send the link',
+      forgotSending: 'Sending…',
+      forgotSent: "If an account exists with that email, we've sent you a link.",
+      forgotRateLimited: 'Too many attempts. Please try again in a few minutes.',
+      forgotFailed: 'Something went wrong. Please try again.',
+      forgotInvalidEmail: 'Please enter a valid email address.',
     },
     dashboard: {
       navOverview: 'Overview',
@@ -598,6 +665,19 @@ export const translations: Record<Language, Translations> = {
       setPwSaving: 'Saving…',
       setPwMismatch: 'The passwords do not match.',
       setPwTooShort: 'Password must be at least 8 characters.',
+      resetPwEyebrow: 'Password reset',
+      resetPwTitle: 'New password',
+      resetPwSubtitle: 'Choose a new password for your account.',
+      resetPwSubmit: 'Save password',
+      resetPwSaving: 'Saving…',
+      resetPwSuccess: 'Your password has been updated. You can now sign in.',
+      resetPwGoToLogin: 'Go to sign in',
+      resetPwInvalidToken: 'This link is invalid or has expired. Please request a new one.',
+      resetPwMissingToken: 'This reset link is incomplete.',
+      resetPwRateLimited: 'Too many attempts. Please try again later.',
+      resetPwFailed: 'Could not save the password. Please try again.',
+      resetPwPageTitle: 'Reset password — Pavillon 46',
+      resetPwPageDescription: 'Choose a new password for your Pavillon 46 account.',
       overviewTitle: 'Your member area',
       overviewSubtitle: 'Welcome to the private circle of Pavillon 46.',
       statReferrals: 'Referrals',

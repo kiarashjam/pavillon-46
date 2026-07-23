@@ -8,4 +8,5 @@ public interface IEmailService
     Task SendRawEmailAsync(string toEmail, string subject, string plainText, string html, CancellationToken ct = default);
     Task SendMemberCredentialsAsync(Member member, string plainPassword, string lang, CancellationToken ct = default);
     Task SendPasswordChangedAsync(Member member, string lang, CancellationToken ct = default);
+    Task SendPasswordResetEmailAsync(Member member, string resetUrl, DateTime expiresAtUtc, int ttlMinutes, string lang, CancellationToken ct = default);
 }

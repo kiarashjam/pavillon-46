@@ -2,11 +2,15 @@
 import { apiUrl } from './apiBase'
 
 /** Error carrying the HTTP status, so callers can distinguish auth failures
- *  (401/403) from transient network / 5xx errors. */
+ *  (401/403) from transient network / 5xx errors. `errorType` is an optional
+ *  machine-readable discriminator returned by some endpoints (e.g. reset
+ *  password) so callers can localize the message without string-matching. */
 export class ApiError extends Error {
-  constructor(public status: number, message: string) {
+  errorType?: string
+  constructor(public status: number, message: string, errorType?: string) {
     super(message)
     this.name = 'ApiError'
+    this.errorType = errorType
   }
 }
 
@@ -258,15 +262,22 @@ export interface UpdateMemberBody {
   status?: string
 }
 
-/** Reads a JSON error message from a failed response, falling back to status. */
-async function readError(response: Response): Promise<string> {
+/** Reads a JSON error body from a failed response, extracting both the
+ *  human-readable `message` and an optional machine `errorType`. Falls back to
+ *  a synthetic message when the body is not JSON. */
+async function readError(response: Response): Promise<{ message: string; errorType?: string }> {
   try {
     const data = await response.json()
-    if (data && typeof data.message === 'string') return data.message
+    const message =
+      data && typeof data.message === 'string'
+        ? data.message
+        : `Request failed (${response.status})`
+    const errorType =
+      data && typeof data.errorType === 'string' ? data.errorType : undefined
+    return { message, errorType }
   } catch {
-    /* ignore */
+    return { message: `Request failed (${response.status})` }
   }
-  return `Request failed (${response.status})`
 }
 
 async function jsonRequest<T>(path: string, init: RequestInit): Promise<T> {
@@ -276,7 +287,8 @@ async function jsonRequest<T>(path: string, init: RequestInit): Promise<T> {
   })
   if (!response.ok) {
     if (response.status === 401) notifyUnauthorized(path)
-    throw new ApiError(response.status, await readError(response))
+    const { message, errorType } = await readError(response)
+    throw new ApiError(response.status, message, errorType)
   }
   return response.json() as Promise<T>
 }
@@ -287,6 +299,23 @@ export async function login(email: string, password: string): Promise<LoginRespo
   return jsonRequest<LoginResponse>('/api/auth/login', {
     method: 'POST',
     body: JSON.stringify({ email, password }),
+  })
+}
+
+export async function forgotPassword(email: string): Promise<{ ok: boolean }> {
+  return jsonRequest<{ ok: boolean }>('/api/auth/forgot-password', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  })
+}
+
+export async function resetPassword(
+  token: string,
+  newPassword: string,
+): Promise<{ ok: boolean }> {
+  return jsonRequest<{ ok: boolean }>('/api/auth/reset-password', {
+    method: 'POST',
+    body: JSON.stringify({ token, newPassword }),
   })
 }
 

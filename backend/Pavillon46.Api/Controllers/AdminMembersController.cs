@@ -14,6 +14,7 @@ public class AdminMembersController : ControllerBase
     private readonly IMemberStore _members;
     private readonly IApplicantStore _applicants;
     private readonly IEmailService _email;
+    private readonly IPasswordResetTokenStore _resetTokens;
     private readonly AuthOptions _auth;
     private readonly ILogger<AdminMembersController> _logger;
 
@@ -21,12 +22,14 @@ public class AdminMembersController : ControllerBase
         IMemberStore members,
         IApplicantStore applicants,
         IEmailService email,
+        IPasswordResetTokenStore resetTokens,
         IOptions<AuthOptions> auth,
         ILogger<AdminMembersController> logger)
     {
         _members = members;
         _applicants = applicants;
         _email = email;
+        _resetTokens = resetTokens;
         _auth = auth.Value;
         _logger = logger;
     }
@@ -154,8 +157,21 @@ public class AdminMembersController : ControllerBase
         var password = PasswordHasher.GeneratePassword();
         member.PasswordHash = PasswordHasher.Hash(password);
         member.MustChangePassword = true;
+        // Force every existing session for this member to log out.
+        member.PasswordVersion = unchecked(member.PasswordVersion + 1);
         member.UpdatedAt = DateTime.UtcNow.ToString("o");
         await _members.UpsertAsync(member, ct);
+
+        // Admin resets invalidate any outstanding self-serve reset tokens so
+        // the freshly-issued admin credentials are the only path back in.
+        try
+        {
+            await _resetTokens.InvalidateAllForMemberAsync(member.Id, "password_changed", ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to invalidate reset tokens for {MemberId} after admin reset", member.Id);
+        }
 
         var emailSent = false;
         string? emailError = null;
