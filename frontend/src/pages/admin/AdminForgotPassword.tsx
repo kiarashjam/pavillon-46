@@ -26,12 +26,14 @@ export default function AdminForgotPassword() {
       await adminForgotPassword(trimmed.toLowerCase())
       setSubmitted(true)
     } catch (err) {
-      // Never reveal whether the admin email exists. Rate limits are safe to
-      // surface; every other failure flips to the same neutral success state.
       if (err instanceof ApiError && err.status === 429) {
-        setError('Too many attempts. Please try again in a few minutes.')
+        setError(err.message || 'Too many attempts. Please try again in a few minutes.')
+      } else if (err instanceof ApiError && err.errorType === 'not_admin') {
+        setError(err.message || 'This email is not part of the admin desk. Check the address and try again.')
+      } else if (err instanceof ApiError) {
+        setError(err.message || 'We could not send the link. Please try again.')
       } else {
-        setSubmitted(true)
+        setError('We could not send the link. Please try again.')
       }
     } finally {
       setSubmitting(false)
@@ -43,12 +45,14 @@ export default function AdminForgotPassword() {
       title={submitted ? 'Check your inbox' : 'Forgot password'}
       subtitle={
         submitted
-          ? 'If an admin account exists with that email, a reset link is on its way.'
-          : 'Enter your email and we’ll send a reset link if an admin account exists.'
+          ? `We’ve sent a reset link to ${email.trim().toLowerCase()}.`
+          : 'Enter the email of your admin account and we’ll send a reset link.'
       }
       footer={
         <p className="adash-auth-links">
           <Link to="/admin/login">Back to sign in</Link>
+          <span aria-hidden="true"> · </span>
+          <Link to="/login">Member sign-in</Link>
         </p>
       }
     >
@@ -60,7 +64,17 @@ export default function AdminForgotPassword() {
               <path d="m8 12.2 2.6 2.6L16.4 9" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </span>
-          <p>The link expires shortly. If nothing arrives, check spam — or request another from this page later.</p>
+          <p>The link expires shortly. If nothing arrives, check spam — or request another from this page.</p>
+          <button
+            type="button"
+            className="adash-auth-again"
+            onClick={() => {
+              setSubmitted(false)
+              setError(null)
+            }}
+          >
+            Use a different email
+          </button>
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="adash-auth-form-fields">
@@ -72,7 +86,7 @@ export default function AdminForgotPassword() {
               required
               placeholder="you@pavillon46.ch"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => { setEmail(e.target.value); if (error) setError(null) }}
               autoFocus
               disabled={submitting}
             />

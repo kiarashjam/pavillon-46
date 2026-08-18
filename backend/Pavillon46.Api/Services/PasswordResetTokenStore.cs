@@ -8,7 +8,7 @@ public interface IPasswordResetTokenStore
     Task UpsertAsync(PasswordResetToken row, CancellationToken ct = default);
     Task<PasswordResetToken?> GetByHashAsync(string tokenHash, CancellationToken ct = default);
     Task<IReadOnlyList<PasswordResetToken>> ListActiveByMemberIdAsync(string memberId, CancellationToken ct = default);
-    Task InvalidateAllForMemberAsync(string memberId, string reason, CancellationToken ct = default);
+    Task InvalidateAllForMemberAsync(string memberId, string reason, CancellationToken ct = default, string? audience = null);
 }
 
 /// <summary>
@@ -63,11 +63,18 @@ public class PasswordResetTokenStore : IPasswordResetTokenStore
             .ToList();
     }
 
-    public async Task InvalidateAllForMemberAsync(string memberId, string reason, CancellationToken ct = default)
+    public async Task InvalidateAllForMemberAsync(string memberId, string reason, CancellationToken ct = default, string? audience = null)
     {
         if (string.IsNullOrWhiteSpace(memberId)) return;
 
         var active = await ListActiveByMemberIdAsync(memberId, ct);
+        if (!string.IsNullOrWhiteSpace(audience))
+        {
+            active = active
+                .Where(t => string.Equals(t.Audience, audience, StringComparison.OrdinalIgnoreCase)
+                    || (audience == "member" && string.IsNullOrWhiteSpace(t.Audience)))
+                .ToList();
+        }
         if (active.Count == 0) return;
 
         var now = DateTime.UtcNow.ToString("o");

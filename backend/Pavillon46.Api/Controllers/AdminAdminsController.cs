@@ -141,8 +141,7 @@ public class AdminAdminsController : ControllerBase
             if (status is not ("active" or "inactive" or "suspended"))
                 return BadRequest(new { message = "Status must be one of: active, inactive, suspended." });
 
-            var becomingInactive = status != "active"
-                && string.Equals(admin.Status, "active", StringComparison.OrdinalIgnoreCase);
+            var becomingInactive = status != "active" && admin.IsActive();
             if (becomingInactive)
             {
                 if (isSelf)
@@ -169,8 +168,7 @@ public class AdminAdminsController : ControllerBase
         if (string.Equals(me, admin.Id, StringComparison.Ordinal))
             return Conflict(new { message = "You cannot delete your own account." });
 
-        if (string.Equals(admin.Status, "active", StringComparison.OrdinalIgnoreCase)
-            && await ActiveAdminCountAsync(ct) <= 1)
+        if (admin.IsActive() && await ActiveAdminCountAsync(ct) <= 1)
         {
             return Conflict(new { message = "The last active admin cannot be deleted." });
         }
@@ -178,7 +176,7 @@ public class AdminAdminsController : ControllerBase
         await _admins.DeleteAsync(admin.Id, ct);
         try
         {
-            await _resetTokens.InvalidateAllForMemberAsync(admin.Id, "password_changed", ct);
+            await _resetTokens.InvalidateAllForMemberAsync(admin.Id, "password_changed", ct, "admin");
         }
         catch (Exception ex)
         {
@@ -204,7 +202,7 @@ public class AdminAdminsController : ControllerBase
 
         try
         {
-            await _resetTokens.InvalidateAllForMemberAsync(admin.Id, "password_changed", ct);
+            await _resetTokens.InvalidateAllForMemberAsync(admin.Id, "password_changed", ct, "admin");
         }
         catch (Exception ex)
         {
@@ -239,6 +237,6 @@ public class AdminAdminsController : ControllerBase
     private async Task<int> ActiveAdminCountAsync(CancellationToken ct)
     {
         var all = await _admins.ListAsync(ct);
-        return all.Count(a => string.Equals(a.Status, "active", StringComparison.OrdinalIgnoreCase));
+        return all.Count(a => a.IsActive());
     }
 }

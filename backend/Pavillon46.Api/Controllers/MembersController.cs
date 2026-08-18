@@ -114,7 +114,7 @@ public class MembersController : ControllerBase
         // account after the owner has knowingly rotated their password.
         try
         {
-            await _resetTokens.InvalidateAllForMemberAsync(member.Id, "password_changed", ct);
+            await _resetTokens.InvalidateAllForMemberAsync(member.Id, "password_changed", ct, "member");
         }
         catch (Exception ex)
         {

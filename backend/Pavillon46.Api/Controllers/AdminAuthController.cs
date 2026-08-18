@@ -76,7 +76,7 @@ public class AdminAuthController : ControllerBase
             return Unauthorized(new { message = "Invalid email or password." });
         }
 
-        if (!string.Equals(admin.Status, "active", StringComparison.OrdinalIgnoreCase))
+        if (!admin.IsActive())
         {
             return StatusCode(403, new { message = "This admin account is not active." });
         }
@@ -123,7 +123,7 @@ public class AdminAuthController : ControllerBase
 
         try
         {
-            await _resetTokens.InvalidateAllForMemberAsync(admin.Id, "password_changed", ct);
+            await _resetTokens.InvalidateAllForMemberAsync(admin.Id, "password_changed", ct, "admin");
         }
         catch (Exception ex)
         {
@@ -145,8 +145,9 @@ public class AdminAuthController : ControllerBase
     }
 
     // -----------------------------------------------------------------------
-    // Forgot password — ALWAYS returns 200 { ok: true } when the request is
-    // well-formed. Same anti-enumeration contract as the member flow.
+    // Forgot password — unlike the member flow, an unknown / inactive email
+    // is told they are not on the admin desk so they can try again. Rate
+    // limits still apply so the list cannot be sprayed.
     // -----------------------------------------------------------------------
     [HttpPost("forgot-password")]
     public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest? body, CancellationToken ct)
@@ -164,74 +165,75 @@ public class AdminAuthController : ControllerBase
         if (_rateLimiter.IsRateLimited("admin-forgot:email", email, ForgotPerEmailMax, ForgotPerEmailWindowMs)
             || _rateLimiter.IsRateLimited("admin-forgot:ip", ipKey, ForgotPerIpMax, ForgotPerIpWindowMs))
         {
-            _logger.LogWarning("admin-forgot-password.rate_limited email={Email} ip={Ip}", email, HashIp(ipKey));
-            return StatusCode(429, new { message = "Too many requests. Please try again later." });
+            _logger.LogWarning("admin-forgot-password.rate_limited email={Email} ip={Ip}", HashSecret(email), HashIp(ipKey));
+            return StatusCode(429, new { message = "Too many attempts. Please try again later." });
         }
 
-        _logger.LogInformation("admin-forgot-password.request email={Email} ip={Ip}", email, HashIp(ipKey));
+        _logger.LogInformation("admin-forgot-password.request email={Email} ip={Ip}", HashSecret(email), HashIp(ipKey));
 
         var admin = await _admins.GetByEmailAsync(email, ct);
-        var resettable = admin is not null
-            && string.Equals(admin.Status, "active", StringComparison.OrdinalIgnoreCase);
-
-        if (resettable)
+        if (admin is null || !admin.IsActive())
         {
+            _logger.LogInformation("admin-forgot-password.not_admin email={Email}", HashSecret(email));
+            return BadRequest(new
+            {
+                errorType = "not_admin",
+                message = "This email is not part of the admin desk. Check the address and try again.",
+            });
+        }
+
+        try
+        {
+            await _resetTokens.InvalidateAllForMemberAsync(admin.Id, "superseded", ct, "admin");
+
+            var raw = ResetTokenGenerator.GenerateRaw();
+            var hash = ResetTokenGenerator.Hash(raw);
+            var now = DateTime.UtcNow;
+            var ttlMinutes = Math.Max(5, _auth.PasswordResetTtlMinutes);
+            var expiresAt = now.AddMinutes(ttlMinutes);
+
+            var row = new PasswordResetToken
+            {
+                Id = hash,
+                TokenHash = hash,
+                MemberId = admin.Id,
+                Audience = "admin",
+                Email = admin.Email.Trim().ToLowerInvariant(),
+                CreatedAtUtc = now.ToString("o"),
+                ExpiresAtUtc = expiresAt.ToString("o"),
+                UsedAtUtc = null,
+                UsedReason = null,
+                RequestIp = HashIp(ipKey),
+                RequestUserAgent = ClampUa(Request.Headers.UserAgent.ToString()),
+            };
+            await _resetTokens.UpsertAsync(row, ct);
+
+            var resetUrl = _site.Page($"admin/reset-password?token={Uri.EscapeDataString(raw)}");
+
+            _logger.LogInformation(
+                "admin-forgot-password.email_queued adminId={AdminId} tokenPrefix={TokenPrefix} expiresAt={ExpiresAt}",
+                admin.Id, hash[..8], expiresAt.ToString("o"));
+
             try
             {
-                await _resetTokens.InvalidateAllForMemberAsync(admin!.Id, "superseded", ct);
-
-                var raw = ResetTokenGenerator.GenerateRaw();
-                var hash = ResetTokenGenerator.Hash(raw);
-                var now = DateTime.UtcNow;
-                var ttlMinutes = Math.Max(5, _auth.PasswordResetTtlMinutes);
-                var expiresAt = now.AddMinutes(ttlMinutes);
-
-                var row = new PasswordResetToken
-                {
-                    Id = hash,
-                    TokenHash = hash,
-                    MemberId = admin.Id,
-                    Audience = "admin",
-                    Email = admin.Email.Trim().ToLowerInvariant(),
-                    CreatedAtUtc = now.ToString("o"),
-                    ExpiresAtUtc = expiresAt.ToString("o"),
-                    UsedAtUtc = null,
-                    UsedReason = null,
-                    RequestIp = HashIp(ipKey),
-                    RequestUserAgent = ClampUa(Request.Headers.UserAgent.ToString()),
-                };
-                await _resetTokens.UpsertAsync(row, ct);
-
-                var resetUrl = _site.Page($"admin/reset-password?token={Uri.EscapeDataString(raw)}");
-
-                _logger.LogInformation(
-                    "admin-forgot-password.email_queued adminId={AdminId} tokenPrefix={TokenPrefix} expiresAt={ExpiresAt}",
-                    admin.Id, hash[..8], expiresAt.ToString("o"));
-
-                // Await SendGrid so the mail is accepted before we return.
-                // Pad both branches so existence is not obvious from timing.
-                try
-                {
-                    var send = _email.SendAdminPasswordResetEmailAsync(
-                        admin, resetUrl, expiresAt, ttlMinutes, CancellationToken.None);
-                    await Task.WhenAll(send, Task.Delay(350, CancellationToken.None));
-                    _logger.LogInformation("admin-forgot-password.email_sent adminId={AdminId}", admin.Id);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "admin-forgot-password.email_delivery_failed adminId={AdminId}", admin.Id);
-                }
+                await _email.SendAdminPasswordResetEmailAsync(
+                    admin, resetUrl, expiresAt, ttlMinutes, CancellationToken.None);
+                _logger.LogInformation("admin-forgot-password.email_sent adminId={AdminId}", admin.Id);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "admin-forgot-password.persist_failed email={Email}", email);
+                _logger.LogWarning(ex, "admin-forgot-password.email_delivery_failed adminId={AdminId}", admin.Id);
+                return StatusCode(500, new
+                {
+                    errorType = "email_failed",
+                    message = "We could not send the reset email. Please try again in a moment.",
+                });
             }
         }
-        else
+        catch (Exception ex)
         {
-            _ = ResetTokenGenerator.Hash(ResetTokenGenerator.GenerateRaw());
-            var jitter = RandomNumberGenerator.GetInt32(300, 450);
-            await Task.Delay(jitter, ct);
+            _logger.LogError(ex, "admin-forgot-password.persist_failed adminId={AdminId}", admin.Id);
+            return StatusCode(500, new { message = "We could not send the link. Please try again." });
         }
 
         return Ok(new { ok = true });
@@ -304,7 +306,7 @@ public class AdminAuthController : ControllerBase
         }
 
         var admin = await _admins.GetByIdAsync(row.MemberId, ct);
-        if (admin is null || !string.Equals(admin.Status, "active", StringComparison.OrdinalIgnoreCase))
+        if (admin is null || !admin.IsActive())
         {
             _logger.LogWarning("admin-reset-password.invalid_token tokenPrefix={TokenPrefix} reason=admin_missing_or_inactive", computedHash[..8]);
             return BadRequest(new { errorType = "invalid", message = "This reset link is invalid or has expired." });
@@ -319,7 +321,7 @@ public class AdminAuthController : ControllerBase
 
         try
         {
-            await _resetTokens.InvalidateAllForMemberAsync(admin.Id, "superseded", ct);
+            await _resetTokens.InvalidateAllForMemberAsync(admin.Id, "superseded", ct, "admin");
         }
         catch (Exception ex)
         {
@@ -389,10 +391,12 @@ public class AdminAuthController : ControllerBase
     private string GetClientIp() =>
         HttpContext.Connection.RemoteIpAddress?.ToString() ?? "";
 
-    private string HashIp(string ip)
+    private string HashIp(string ip) => HashSecret(ip);
+
+    private string HashSecret(string value)
     {
         var salt = string.IsNullOrEmpty(_activity.IpSalt) ? "pavillon46-activity" : _activity.IpSalt;
-        var bytes = Encoding.UTF8.GetBytes($"{salt}:{ip}");
+        var bytes = Encoding.UTF8.GetBytes($"{salt}:{value}");
         return Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
     }
 }

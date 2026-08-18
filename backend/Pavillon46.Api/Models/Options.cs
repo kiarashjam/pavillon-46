@@ -72,11 +72,13 @@ public class AuthOptions
     // real admin account login (see AdminAuthController) rather than this key.
     public string AdminKey { get; set; } = "";
 
-    // The first admin account is seeded on startup if no admin exists yet.
-    // AdminSeedPassword is optional: when blank a strong temporary password is
-    // generated and written to the logs once. Either way the seeded admin must
-    // change the password on first login.
-    public string AdminSeedEmail { get; set; } = "kia@bonapp.group";
+    // Hardcoded in Program.SeedInitialAdminAsync — do not point this at another
+    // mailbox. ADMIN_SEED_EMAIL is ignored so a deploy cannot drop this account.
+    public const string DefaultAdminSeedEmail = "kia@bonapp.group";
+    public string AdminSeedEmail { get; set; } = DefaultAdminSeedEmail;
+
+    // Optional. When blank, a one-time password is generated for the seed row.
+    // Existing kia@bonapp.group rows are never overwritten on later boots.
     public string AdminSeedPassword { get; set; } = "";
 
     // Bonus points granted to the referrer when one of their referrals is

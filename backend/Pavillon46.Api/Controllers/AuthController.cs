@@ -130,7 +130,7 @@ public class AuthController : ControllerBase
                 // Invalidate any outstanding tokens for this member so that a
                 // click on the newest email always wins and older emails are
                 // dead on arrival.
-                await _resetTokens.InvalidateAllForMemberAsync(member!.Id, "superseded", ct);
+                await _resetTokens.InvalidateAllForMemberAsync(member!.Id, "superseded", ct, "member");
 
                 var raw = ResetTokenGenerator.GenerateRaw();
                 var hash = ResetTokenGenerator.Hash(raw);
@@ -298,7 +298,7 @@ public class AuthController : ControllerBase
         // Guarantees the "at most one live token per member" invariant.
         try
         {
-            await _resetTokens.InvalidateAllForMemberAsync(member.Id, "superseded", ct);
+            await _resetTokens.InvalidateAllForMemberAsync(member.Id, "superseded", ct, "member");
         }
         catch (Exception ex)
         {

@@ -64,15 +64,14 @@ export default function ResetPassword() {
         const isTokenError =
           err.status === 401 ||
           err.errorType === 'invalid' ||
-          err.errorType === 'expired'
+          err.errorType === 'expired' ||
+          err.errorType === 'mismatch'
         if (isTokenError) {
           setInvalidToken(true)
         } else if (err.status === 429) {
           setError(t.resetPwRateLimited)
         } else if (err.errorType === 'weak_password') {
           setError(t.setPwTooShort)
-        } else if (err.errorType === 'mismatch') {
-          setError(t.setPwMismatch)
         } else {
           setError(err.message || t.resetPwFailed)
         }
