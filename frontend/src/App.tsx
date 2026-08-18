@@ -16,6 +16,8 @@ import LegalOrPrivacy from './pages/LegalOrPrivacy'
 import AdminLayout from './components/admin/AdminLayout'
 import AdminLogin from './pages/admin/AdminLogin'
 import AdminSetPassword from './pages/admin/AdminSetPassword'
+import AdminForgotPassword from './pages/admin/AdminForgotPassword'
+import AdminResetPassword from './pages/admin/AdminResetPassword'
 import AdminOverview from './pages/admin/AdminOverview'
 import AdminMembersSection from './pages/admin/AdminMembersSection'
 import AdminReferralsSection from './pages/admin/AdminReferralsSection'
@@ -44,6 +46,8 @@ export default function App() {
 
             <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/admin/set-password" element={<AdminSetPassword />} />
+            <Route path="/admin/forgot-password" element={<AdminForgotPassword />} />
+            <Route path="/admin/reset-password" element={<AdminResetPassword />} />
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<AdminOverview />} />
               <Route path="members" element={<AdminMembersSection />} />

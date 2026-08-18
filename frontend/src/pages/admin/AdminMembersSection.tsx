@@ -14,6 +14,7 @@ import {
 } from '../../lib/api'
 import type { AdminCtx } from '../../components/admin/AdminLayout'
 import AdminModal from '../../components/admin/AdminModal'
+import { AdminEmpty, AdminSkeletonRows } from '../../components/admin/adminUi'
 
 const emptyForm: CreateMemberBody = {
   title: '', firstName: '', lastName: '', email: '', phone: '', city: '', country: '',
@@ -125,6 +126,7 @@ export default function AdminMembersSection() {
     <>
       <div className="adash-head">
         <div>
+          <p className="adash-kicker">The list</p>
           <h2>Members</h2>
           <p>{members.length} contracted member{members.length === 1 ? '' : 's'}.</p>
         </div>
@@ -164,7 +166,7 @@ export default function AdminMembersSection() {
 
       <div className="adash-panel adash-panel-flush">
         {loading ? (
-          <p className="adash-loading" style={{ padding: 18 }}>Loading members…</p>
+          <AdminSkeletonRows rows={6} />
         ) : (
           <div className="adash-table-wrap">
             <table className="adash-table">
@@ -197,13 +199,14 @@ export default function AdminMembersSection() {
                   </tr>
                 ))}
                 {filtered.length === 0 && (
-                  <tr><td colSpan={6} className="adash-empty">
-                    {search ? 'No members match your search.' : (
-                      <span style={{ display: 'inline-flex', flexDirection: 'column', gap: 12, alignItems: 'center' }}>
-                        No members yet.
-                        <button className="adash-btn adash-btn-primary adash-btn-sm" onClick={() => { setError(null); setForm(emptyForm); setModal(true) }}>+ Add the first member</button>
-                      </span>
-                    )}
+                  <tr><td colSpan={6}>
+                    <AdminEmpty
+                      title={search ? 'No members match that search' : 'No members yet'}
+                      hint={search ? 'Try another name, email or referral code.' : 'Create the first contracted account to begin.'}
+                      action={!search ? (
+                        <button className="adash-btn adash-btn-primary adash-btn-sm" onClick={() => { setError(null); setForm(emptyForm); setModal(true) }}>Add the first member</button>
+                      ) : undefined}
+                    />
                   </td></tr>
                 )}
               </tbody>

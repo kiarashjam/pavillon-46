@@ -11,6 +11,7 @@ interface AdminAuthContextValue {
   login: (email: string, password: string) => Promise<AdminDto>
   logout: () => void
   setAdmin: (admin: AdminDto) => void
+  applySession: (token: string, admin: AdminDto) => void
   refresh: () => Promise<void>
 }
 
@@ -47,6 +48,12 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
     setAdminState(next)
     localStorage.setItem(ADMIN_KEY, JSON.stringify(next))
   }, [])
+
+  const applySession = useCallback((nextToken: string, nextAdmin: AdminDto) => {
+    setToken(nextToken)
+    setAdminState(nextAdmin)
+    persist(nextToken, nextAdmin)
+  }, [persist])
 
   const login = useCallback(
     async (email: string, password: string) => {
@@ -100,8 +107,8 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
   }, [logout])
 
   const value = useMemo<AdminAuthContextValue>(
-    () => ({ token, admin, loading, login, logout, setAdmin, refresh }),
-    [token, admin, loading, login, logout, setAdmin, refresh],
+    () => ({ token, admin, loading, login, logout, setAdmin, applySession, refresh }),
+    [token, admin, loading, login, logout, setAdmin, applySession, refresh],
   )
 
   return <AdminAuthContext.Provider value={value}>{children}</AdminAuthContext.Provider>

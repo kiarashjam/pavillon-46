@@ -3,6 +3,7 @@ import { useOutletContext } from 'react-router-dom'
 import { adminListApplicants, adminUpdateApplicant, type ApplicantDto, type AdminApplicantsResponse } from '../../lib/api'
 import type { AdminCtx } from '../../components/admin/AdminLayout'
 import AdminModal from '../../components/admin/AdminModal'
+import { AdminEmpty, AdminSkeletonRows } from '../../components/admin/adminUi'
 
 const STATUSES: ApplicantDto['status'][] = ['pending', 'reviewing', 'accepted', 'declined']
 
@@ -59,6 +60,7 @@ export default function AdminReferralsSection() {
     <>
       <div className="adash-head">
         <div>
+          <p className="adash-kicker">The door</p>
           <h2>Referrals</h2>
           <p>People referred by members. Accepting one credits the referrer a free month.</p>
         </div>
@@ -84,7 +86,7 @@ export default function AdminReferralsSection() {
 
       <div className="adash-panel adash-panel-flush">
         {loading ? (
-          <p className="adash-loading" style={{ padding: 18 }}>Loading referrals…</p>
+          <AdminSkeletonRows rows={6} />
         ) : (
           <div className="adash-table-wrap">
             <table className="adash-table">
@@ -118,7 +120,14 @@ export default function AdminReferralsSection() {
                     </td>
                   </tr>
                 ))}
-                {rows.length === 0 && <tr><td colSpan={6} className="adash-empty">{(data?.total ?? 0) === 0 ? 'No referrals yet.' : 'No referrals match your filters.'}</td></tr>}
+                {rows.length === 0 && (
+                  <tr><td colSpan={6}>
+                    <AdminEmpty
+                      title={(data?.total ?? 0) === 0 ? 'No referrals yet' : 'Nothing matches these filters'}
+                      hint={(data?.total ?? 0) === 0 ? 'When a member shares their code, applicants will appear here.' : 'Clear the search or switch the status filter.'}
+                    />
+                  </td></tr>
+                )}
               </tbody>
             </table>
           </div>

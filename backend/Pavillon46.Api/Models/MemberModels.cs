@@ -48,10 +48,13 @@ public class PasswordResetToken
     public string Id { get; set; } = "";
     // Hex-lowercase SHA-256 of the raw base64url token. Canonical case.
     public string TokenHash { get; set; } = "";
-    // FK into Member.Id. Case-preserved as stored.
+    // Subject id: Member.Id or Admin.Id, depending on Audience. Case-preserved.
     public string MemberId { get; set; } = "";
-    // Snapshot of the member's email at issuance time (lowercased). Useful for
-    // audit context when the member later changes email.
+    // "member" (default, including legacy rows) or "admin". Prevents a token
+    // issued for one identity from being redeemed against the other store.
+    public string Audience { get; set; } = "member";
+    // Snapshot of the subject's email at issuance time (lowercased). Useful for
+    // audit context when the account later changes email.
     public string Email { get; set; } = "";
     // ISO-8601 UTC.
     public string CreatedAtUtc { get; set; } = "";
@@ -64,6 +67,9 @@ public class PasswordResetToken
     public string? RequestIp { get; set; }
     // Truncated to 200 chars.
     public string? RequestUserAgent { get; set; }
+
+    public bool IsAdminAudience() =>
+        string.Equals(Audience, "admin", StringComparison.OrdinalIgnoreCase);
 }
 
 public class Applicant
@@ -329,6 +335,9 @@ public class Admin
     public string Status { get; set; } = "active";
     // Temporary password set at seed/reset time → force a change on first login.
     public bool MustChangePassword { get; set; }
+    // Bumped on every password change. Embedded in admin tokens as `pv` so a
+    // reset logs out every existing admin session (same as Member.PasswordVersion).
+    public int PasswordVersion { get; set; }
     public string CreatedAt { get; set; } = "";
     public string UpdatedAt { get; set; } = "";
     public string LastLoginAt { get; set; } = "";

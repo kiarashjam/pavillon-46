@@ -4,6 +4,8 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { IMAGE_PATHS } from '../../lib/constants'
 import { EASE_SMOOTH_OUT } from '../../lib/motion'
 import { useAdminAuth } from '../../contexts/AdminAuthContext'
+import { AdminSplash } from './adminUi'
+import { adminGreeting, adminInitials } from './adminHelpers'
 
 export type AdminCtx = { token: string }
 
@@ -33,7 +35,7 @@ const icons: Record<string, Icon> = {
 }
 
 const SECTIONS: Record<string, { title: string; sub: string }> = {
-  '/admin': { title: 'Overview', sub: 'Pavillon 46 — admin console' },
+  '/admin': { title: 'Overview', sub: 'A live snapshot of the house' },
   '/admin/members': { title: 'Members', sub: 'Create and manage contracted members' },
   '/admin/referrals': { title: 'Referrals', sub: 'Applicants referred by members' },
   '/admin/activity': { title: 'Activity', sub: 'Site analytics & engagement' },
@@ -73,14 +75,7 @@ export default function AdminLayout() {
   // Close the drawer on navigation.
   useEffect(() => { setNavOpen(false) }, [location.pathname])
 
-  if (loading) {
-    return (
-      <div className="adash">
-        <div className="adash-ambient" aria-hidden="true" />
-        <div className="adash-loading" style={{ margin: 'auto', zIndex: 2 }}>Loading…</div>
-      </div>
-    )
-  }
+  if (loading) return <AdminSplash />
 
   // Not signed in → the dedicated admin login. Force the first-login reset.
   if (!token) return <Navigate to="/admin/login" replace />
@@ -94,6 +89,8 @@ export default function AdminLayout() {
   ]
   const section = SECTIONS[location.pathname] ?? SECTIONS['/admin']
   const adminName = [admin?.firstName, admin?.lastName].filter(Boolean).join(' ') || admin?.email || 'Admin'
+  const initials = adminInitials(admin?.firstName, admin?.lastName, admin?.email)
+  const greeting = adminGreeting()
 
   return (
     <div className="adash">
@@ -122,12 +119,21 @@ export default function AdminLayout() {
             )
           })}
         </nav>
-        <button type="button" className="adash-signout" onClick={logout}>
-          <svg viewBox="0 0 24 24" fill="none" className="adash-nav-ico" aria-hidden="true">
-            <path d="M15 12H4m0 0 3.5-3.5M4 12l3.5 3.5M14 5h4a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          <span>Sign out</span>
-        </button>
+        <div className="adash-side-foot">
+          <div className="adash-side-user">
+            <span className="adash-ava adash-ava-lg" aria-hidden="true">{initials}</span>
+            <span className="adash-person-info">
+              <span className="adash-person-name">{adminName}</span>
+              <span className="adash-person-sub">{admin?.email}</span>
+            </span>
+          </div>
+          <button type="button" className="adash-signout" onClick={logout}>
+            <svg viewBox="0 0 24 24" fill="none" className="adash-nav-ico" aria-hidden="true">
+              <path d="M15 12H4m0 0 3.5-3.5M4 12l3.5 3.5M14 5h4a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <span>Sign out</span>
+          </button>
+        </div>
       </aside>
 
       {navOpen && <div className="adash-scrim" onClick={() => setNavOpen(false)} aria-hidden="true" />}
@@ -138,13 +144,17 @@ export default function AdminLayout() {
             <span /><span /><span />
           </button>
           <div className="adash-topbar-title">
+            <p className="adash-topbar-greet">{greeting}</p>
             <h1>{section.title}</h1>
             <p>{section.sub}</p>
           </div>
           <div className="adash-topbar-actions">
-            <span className="adash-whoami" title={admin?.email}>{adminName}</span>
-            <a className="adash-storage-pill" href="/" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>View site ↗</a>
+            <a className="adash-storage-pill" href="/" target="_blank" rel="noopener noreferrer">View site ↗</a>
             <button type="button" className="adash-btn adash-btn-ghost adash-btn-sm" onClick={() => navigate('/')}>Exit</button>
+            <span className="adash-whoami" title={admin?.email}>
+              <span className="adash-ava" aria-hidden="true">{initials}</span>
+              <span className="adash-whoami-name">{adminName}</span>
+            </span>
           </div>
         </header>
 

@@ -207,6 +207,60 @@ public class EmailService : IEmailService
         await SendRawEmailAsync(member.Email, t.Subject, plain, html, ct);
     }
 
+    public async Task SendAdminPasswordResetEmailAsync(Admin admin, string resetUrl, DateTime expiresAtUtc, int ttlMinutes, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(_sendgrid.ApiKey)) throw new InvalidOperationException("SENDGRID_API_KEY is missing.");
+        if (string.IsNullOrWhiteSpace(_sendgrid.FromEmail)) throw new InvalidOperationException("FROM_EMAIL is missing.");
+        if (string.IsNullOrWhiteSpace(admin.Email)) throw new ArgumentException("Admin email is required");
+        if (string.IsNullOrWhiteSpace(resetUrl)) throw new ArgumentException("Reset URL is required");
+
+        var t = EmailTranslations.AdminPasswordReset();
+        var greetingName = string.IsNullOrWhiteSpace(admin.FirstName) ? admin.Email : admin.FirstName;
+        var expiryLocal = FormatSwissExpiry(expiresAtUtc, "en");
+        var body1 = t.Body1(greetingName, ttlMinutes);
+        var expiry = t.ExpiryLine(expiryLocal);
+
+        var plain =
+            $"{t.Heading}\n\n{body1}\n\n{t.Body2}\n\n{t.Cta}: {resetUrl}\n\n{expiry}";
+        var html = BuildResetPasswordHtml("en", t.Heading, body1, t.Body2, expiry, t.Cta, resetUrl);
+        await SendRawEmailAsync(admin.Email, t.Subject, plain, html, ct);
+    }
+
+    public async Task SendAdminPasswordChangedAsync(Admin admin, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(_sendgrid.ApiKey)) throw new InvalidOperationException("SENDGRID_API_KEY is missing.");
+        if (string.IsNullOrWhiteSpace(_sendgrid.FromEmail)) throw new InvalidOperationException("FROM_EMAIL is missing.");
+        if (string.IsNullOrWhiteSpace(admin.Email)) throw new ArgumentException("Admin email is required");
+
+        var loginUrl = $"{_site.Url.TrimEnd('/')}/admin/login";
+        var greetingName = string.IsNullOrWhiteSpace(admin.FirstName) ? admin.Email : admin.FirstName;
+        const string subject = "Your admin password was changed — Pavillon 46";
+        const string heading = "Admin password changed";
+        var body =
+            $"Hello {greetingName}, the password for your Pavillon 46 admin console has been changed. If you did not make this change, please contact us immediately.";
+        const string cta = "Open admin sign in";
+
+        var plain = $"{heading}\n\n{body}\n\n{cta}: {loginUrl}";
+        var html = BuildSimpleHtml("en", heading, body, cta, loginUrl);
+        await SendRawEmailAsync(admin.Email, subject, plain, html, ct);
+    }
+
+    private static string FormatSwissExpiry(DateTime expiresAtUtc, string lang)
+    {
+        try
+        {
+            var swiss = TimeZoneInfo.FindSystemTimeZoneById(
+                OperatingSystem.IsWindows() ? "W. Europe Standard Time" : "Europe/Zurich");
+            var local = TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(expiresAtUtc, DateTimeKind.Utc), swiss);
+            var culture = lang == "en" ? new System.Globalization.CultureInfo("en-GB") : new System.Globalization.CultureInfo("fr-CH");
+            return local.ToString("HH:mm", culture);
+        }
+        catch (TimeZoneNotFoundException)
+        {
+            return expiresAtUtc.ToString("HH:mm") + " UTC";
+        }
+    }
+
     private string BuildResetPasswordHtml(string lang, string heading, string body1, string body2, string expiryLine, string cta, string ctaUrl)
     {
         var logo = $"{_site.Url}/images/logo.png";
