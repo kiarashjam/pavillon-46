@@ -17,6 +17,7 @@ public class ActivityController : ControllerBase
     private readonly RateLimiter _rateLimiter;
     private readonly ActivityOptions _options;
     private readonly ITokenService _tokens;
+    private readonly IAdminStore _admins;
     private readonly ILogger<ActivityController> _logger;
 
     public ActivityController(
@@ -25,6 +26,7 @@ public class ActivityController : ControllerBase
         RateLimiter rateLimiter,
         IOptions<ActivityOptions> options,
         ITokenService tokens,
+        IAdminStore admins,
         ILogger<ActivityController> logger)
     {
         _store = store;
@@ -32,6 +34,7 @@ public class ActivityController : ControllerBase
         _rateLimiter = rateLimiter;
         _options = options.Value;
         _tokens = tokens;
+        _admins = admins;
         _logger = logger;
     }
 
@@ -50,14 +53,23 @@ public class ActivityController : ControllerBase
         return Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
     }
 
-    private bool IsAuthorized()
+    private async Task<bool> IsAuthorizedAsync(CancellationToken ct)
     {
         // Preferred: a valid admin session token from the admin console.
         var authHeader = Request.Headers.Authorization.ToString();
         if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
         {
             var principal = _tokens.Validate(authHeader["Bearer ".Length..].Trim());
-            if (principal is not null && principal.IsAdmin) return true;
+            if (principal is not null && principal.IsAdmin)
+            {
+                var admin = await _admins.GetByIdAsync(principal.MemberId, ct);
+                if (admin is not null
+                    && string.Equals(admin.Status, "active", StringComparison.OrdinalIgnoreCase)
+                    && admin.PasswordVersion == principal.PasswordVersion)
+                {
+                    return true;
+                }
+            }
         }
 
         // Legacy report key — still accepted for the daily-report cron and any
@@ -135,7 +147,7 @@ public class ActivityController : ControllerBase
         [FromQuery] int limit = 300,
         CancellationToken ct = default)
     {
-        if (!IsAuthorized()) return Unauthorized(new { message = "Unauthorized" });
+        if (!await IsAuthorizedAsync(ct)) return Unauthorized(new { message = "Unauthorized" });
 
         try
         {
@@ -160,7 +172,7 @@ public class ActivityController : ControllerBase
     [HttpGet("daily-report")]
     public async Task<IActionResult> DailyReport([FromQuery] string? day, CancellationToken ct)
     {
-        if (!IsAuthorized()) return Unauthorized(new { message = "Unauthorized" });
+        if (!await IsAuthorizedAsync(ct)) return Unauthorized(new { message = "Unauthorized" });
 
         try
         {

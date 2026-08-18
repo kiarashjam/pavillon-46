@@ -32,8 +32,8 @@ public class TokenService : ITokenService
         public string Email { get; set; } = "";
         public string Role { get; set; } = "member";
         public long Exp { get; set; }
-        // Snapshot of Member.PasswordVersion at issuance. 0 for admins (they use
-        // a separate identity and don't participate in the version check).
+        // Snapshot of Member/Admin.PasswordVersion at issuance. A mismatch
+        // against the current row rejects the token after a password change.
         public int Pv { get; set; }
     }
 
@@ -43,7 +43,7 @@ public class TokenService : ITokenService
     // Admins are a separate identity (see AdminStore); their token always carries
     // role "admin" so [AdminAuthorize] can distinguish them from members.
     public (string Token, DateTimeOffset ExpiresAt) CreateForAdmin(Admin admin) =>
-        Issue(admin.Id, admin.Email, "admin", 0);
+        Issue(admin.Id, admin.Email, "admin", admin.PasswordVersion);
 
     private (string Token, DateTimeOffset ExpiresAt) Issue(string sub, string email, string role, int passwordVersion)
     {

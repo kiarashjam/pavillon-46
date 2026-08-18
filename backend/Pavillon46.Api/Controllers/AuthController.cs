@@ -245,9 +245,10 @@ public class AuthController : ControllerBase
         }
 
         var row = await _resetTokens.GetByHashAsync(computedHash, ct);
-        if (row is null)
+        if (row is null || row.IsAdminAudience())
         {
-            _logger.LogWarning("reset-password.invalid_token tokenPrefix={TokenPrefix} reason=unknown", computedHash[..8]);
+            _logger.LogWarning("reset-password.invalid_token tokenPrefix={TokenPrefix} reason={Reason}",
+                computedHash[..8], row is null ? "unknown" : "wrong_audience");
             return BadRequest(new { errorType = "invalid", message = "This reset link is invalid or has expired." });
         }
 

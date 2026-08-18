@@ -13,6 +13,9 @@ The replacement client for the original Next.js pages. It talks to the .NET API 
 | `/legal` | `Legal` |
 | `/privacy` | `Privacy` |
 | `/admin/activity` | `AdminActivity` (passcode-gated dashboard) |
+| `/admin/login` | `AdminLogin` |
+| `/admin/forgot-password` | `AdminForgotPassword` |
+| `/admin/reset-password` | `AdminResetPassword` |
 
 ## Run locally
 

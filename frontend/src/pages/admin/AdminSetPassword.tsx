@@ -7,7 +7,7 @@ import { useAdminAuth } from '../../contexts/AdminAuthContext'
 import { adminChangePassword } from '../../lib/api'
 
 export default function AdminSetPassword() {
-  const { token, admin, loading, setAdmin } = useAdminAuth()
+  const { token, admin, loading, applySession } = useAdminAuth()
   const navigate = useNavigate()
   const [pw, setPw] = useState('')
   const [confirm, setConfirm] = useState('')
@@ -43,8 +43,8 @@ export default function AdminSetPassword() {
     setSubmitting(true)
     setError(null)
     try {
-      const updated = await adminChangePassword(token, pw)
-      setAdmin(updated)
+      const result = await adminChangePassword(token, pw)
+      applySession(result.token, result.admin)
       navigate('/admin', { replace: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not set your password.')

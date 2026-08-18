@@ -13,6 +13,8 @@ Next.js API routes (`/pages/api/*`) and exposes the same endpoints under `/api/*
 | `POST` | `/api/activity/log` | Client activity tracker (page views, clicks) |
 | `GET`  | `/api/activity/report` | Admin activity report (requires `x-report-key`) |
 | `POST` | `/api/activity/daily-report` | Cron-driven daily email summary |
+| `POST` | `/api/admin/auth/forgot-password` | Admin forgot-password (always 200; emails a reset link) |
+| `POST` | `/api/admin/auth/reset-password` | Consume admin reset token and set a new password |
 | `GET`  | `/healthz` | Health check |
 
 ## Configuration

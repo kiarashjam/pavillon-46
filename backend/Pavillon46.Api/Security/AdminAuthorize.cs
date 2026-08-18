@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Pavillon46.Api.Models;
+using Pavillon46.Api.Services;
 
 namespace Pavillon46.Api.Security;
 
@@ -21,13 +22,15 @@ public class AdminAuthorizeFilter : IAsyncAuthorizationFilter
     public const string ItemsKey = "AdminPrincipal";
 
     private readonly ITokenService _tokens;
+    private readonly IAdminStore _admins;
 
-    public AdminAuthorizeFilter(ITokenService tokens)
+    public AdminAuthorizeFilter(ITokenService tokens, IAdminStore admins)
     {
         _tokens = tokens;
+        _admins = admins;
     }
 
-    public Task OnAuthorizationAsync(AuthorizationFilterContext context)
+    public async Task OnAuthorizationAsync(AuthorizationFilterContext context)
     {
         var header = context.HttpContext.Request.Headers.Authorization.ToString();
         string? token = null;
@@ -40,11 +43,21 @@ public class AdminAuthorizeFilter : IAsyncAuthorizationFilter
         if (principal is null || !principal.IsAdmin)
         {
             context.Result = new UnauthorizedObjectResult(new { message = "Unauthorized" });
-            return Task.CompletedTask;
+            return;
+        }
+
+        // Re-load the admin row: a password reset bumps PasswordVersion (and a
+        // deleted / inactive account must stop working immediately, not at expiry).
+        var admin = await _admins.GetByIdAsync(principal.MemberId, context.HttpContext.RequestAborted);
+        if (admin is null
+            || !string.Equals(admin.Status, "active", StringComparison.OrdinalIgnoreCase)
+            || admin.PasswordVersion != principal.PasswordVersion)
+        {
+            context.Result = new UnauthorizedObjectResult(new { message = "Unauthorized" });
+            return;
         }
 
         context.HttpContext.Items[ItemsKey] = principal;
-        return Task.CompletedTask;
     }
 }
 

@@ -134,6 +134,15 @@ public static class EmailTranslations
         string Cta
     );
 
+    // Admin console is English-only; reset emails match that surface.
+    public static PasswordResetStrings AdminPasswordReset() => new(
+        Subject: "Reset your Pavillon 46 admin password",
+        Heading: "Reset your admin password",
+        Body1: (name, ttlMinutes) => $"Hi {name}, we received a request to reset the password for your Pavillon 46 admin account. Click the button below to choose a new password. This link will expire in {FormatTtl(ttlMinutes, "en")}.",
+        Body2: "If you didn't request this, you can safely ignore this email — your password will not change.",
+        ExpiryLine: when => $"This link expires at {when} (Swiss time).",
+        Cta: "Choose a new password");
+
     public static PasswordResetStrings PasswordReset(string lang) => lang == "en"
         ? new PasswordResetStrings(
             Subject: "Reset your Pavillon 46 password",

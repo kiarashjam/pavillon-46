@@ -69,6 +69,11 @@
 .adash-gate h1 { margin: 0; font-size: 26px; font-weight: 300; letter-spacing: -0.01em; }
 .adash-gate p { margin: 0 0 4px; font-size: 14px; color: var(--ad-muted); }
 .adash-gate form { display: flex; flex-direction: column; gap: 12px; }
+.adash-gate-links { margin: 4px 0 0; }
+.adash-success {
+  margin: 0; padding: 11px 14px; border-radius: 11px; font-size: 13.5px;
+  background: rgba(63, 129, 99, 0.22); border: 1px solid rgba(95, 174, 134, 0.45); color: #c8ecd8;
+}
 
 /* ---------- Sidebar ---------- */
 .adash-sidebar {

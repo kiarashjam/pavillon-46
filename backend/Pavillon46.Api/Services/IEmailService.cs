@@ -9,4 +9,6 @@ public interface IEmailService
     Task SendMemberCredentialsAsync(Member member, string plainPassword, string lang, CancellationToken ct = default);
     Task SendPasswordChangedAsync(Member member, string lang, CancellationToken ct = default);
     Task SendPasswordResetEmailAsync(Member member, string resetUrl, DateTime expiresAtUtc, int ttlMinutes, string lang, CancellationToken ct = default);
+    Task SendAdminPasswordResetEmailAsync(Admin admin, string resetUrl, DateTime expiresAtUtc, int ttlMinutes, CancellationToken ct = default);
+    Task SendAdminPasswordChangedAsync(Admin admin, CancellationToken ct = default);
 }

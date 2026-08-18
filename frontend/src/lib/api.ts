@@ -382,11 +382,28 @@ export async function adminChangePassword(
   token: string,
   newPassword: string,
   currentPassword?: string,
-): Promise<AdminDto> {
-  return jsonRequest<AdminDto>('/api/admin/auth/change-password', {
+): Promise<AdminLoginResponse> {
+  return jsonRequest<AdminLoginResponse>('/api/admin/auth/change-password', {
     method: 'POST',
     headers: bearer(token),
     body: JSON.stringify({ newPassword, currentPassword }),
+  })
+}
+
+export async function adminForgotPassword(email: string): Promise<{ ok: boolean }> {
+  return jsonRequest<{ ok: boolean }>('/api/admin/auth/forgot-password', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  })
+}
+
+export async function adminAuthResetPassword(
+  token: string,
+  newPassword: string,
+): Promise<{ ok: boolean }> {
+  return jsonRequest<{ ok: boolean }>('/api/admin/auth/reset-password', {
+    method: 'POST',
+    body: JSON.stringify({ token, newPassword }),
   })
 }
 

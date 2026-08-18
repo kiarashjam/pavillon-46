@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Navigate, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { IMAGE_PATHS } from '../../lib/constants'
 import { EASE_SMOOTH_OUT } from '../../lib/motion'
@@ -89,6 +89,9 @@ export default function AdminLogin() {
           </button>
         </form>
         {error && <p className="adash-error">{error}</p>}
+        <p className="adash-gate-links">
+          <Link to="/admin/forgot-password" className="adash-link">Forgot password?</Link>
+        </p>
       </motion.div>
     </div>
   )
