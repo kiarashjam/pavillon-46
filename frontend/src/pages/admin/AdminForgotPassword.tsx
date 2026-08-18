@@ -26,12 +26,12 @@ export default function AdminForgotPassword() {
       await adminForgotPassword(trimmed.toLowerCase())
       setSubmitted(true)
     } catch (err) {
-      // Never reveal whether the admin email exists. Rate limits are safe to
-      // surface; every other failure flips to the same neutral success state.
       if (err instanceof ApiError && err.status === 429) {
         setError('Too many attempts. Please try again in a few minutes.')
+      } else if (err instanceof ApiError && (err.errorType === 'not_admin' || err.status === 404)) {
+        setError('You are not part of the admin desk. Check the email and try again — or use member sign-in if you have a membership.')
       } else {
-        setSubmitted(true)
+        setError('We could not send the link. Please try again.')
       }
     } finally {
       setSubmitting(false)
@@ -43,12 +43,14 @@ export default function AdminForgotPassword() {
       title={submitted ? 'Check your inbox' : 'Forgot password'}
       subtitle={
         submitted
-          ? 'If an admin account exists with that email, a reset link is on its way.'
-          : 'Enter your email and we’ll send a reset link if an admin account exists.'
+          ? 'We’ve sent a reset link to that admin email.'
+          : 'Enter the email of your admin account and we’ll send a reset link.'
       }
       footer={
         <p className="adash-auth-links">
           <Link to="/admin/login">Back to sign in</Link>
+          <span aria-hidden="true"> · </span>
+          <Link to="/login">Member sign-in</Link>
         </p>
       }
     >
@@ -72,7 +74,7 @@ export default function AdminForgotPassword() {
               required
               placeholder="you@pavillon46.ch"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => { setEmail(e.target.value); if (error) setError(null) }}
               autoFocus
               disabled={submitting}
             />
