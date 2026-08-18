@@ -21,7 +21,7 @@ const emptyForm: CreateMemberBody = {
   contractRef: '', notes: '', language: 'fr', sendEmail: true,
 }
 
-export default function AdminMembersSection() {
+export default function AdminMembersSection({ embedded = false }: { embedded?: boolean }) {
   const { token } = useOutletContext<AdminCtx>()
   const [members, setMembers] = useState<MemberDto[]>([])
   const [loading, setLoading] = useState(true)
@@ -124,19 +124,21 @@ export default function AdminMembersSection() {
 
   return (
     <>
-      <div className="adash-head">
-        <div>
-          <p className="adash-kicker">The list</p>
-          <h2>Members</h2>
-          <p>{members.length} contracted member{members.length === 1 ? '' : 's'}.</p>
-        </div>
-        <div className="adash-head-actions">
-          <div className="adash-search">
-            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.7" /><path d="m20 20-3.2-3.2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" /></svg>
-            <input className="adash-input" aria-label="Search members" placeholder="Search members…" value={search} onChange={(e) => setSearch(e.target.value)} />
+      {!embedded && (
+        <div className="adash-head">
+          <div>
+            <p className="adash-kicker">The list</p>
+            <h2>Members</h2>
+            <p>{members.length} contracted member{members.length === 1 ? '' : 's'}.</p>
           </div>
-          <button className="adash-btn adash-btn-primary" onClick={() => { setError(null); setForm(emptyForm); setModal(true) }}>+ Add member</button>
         </div>
+      )}
+      <div className="adash-head-actions adash-people-toolbar">
+        <div className="adash-search">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.7" /><path d="m20 20-3.2-3.2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" /></svg>
+          <input className="adash-input" aria-label="Search members" placeholder="Search members…" value={search} onChange={(e) => setSearch(e.target.value)} />
+        </div>
+        <button className="adash-btn adash-btn-primary" onClick={() => { setError(null); setForm(emptyForm); setModal(true) }}>Add member</button>
       </div>
 
       {error && <p className="adash-error">{error}</p>}

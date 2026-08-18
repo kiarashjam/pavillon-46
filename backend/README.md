@@ -15,6 +15,12 @@ Next.js API routes (`/pages/api/*`) and exposes the same endpoints under `/api/*
 | `POST` | `/api/activity/daily-report` | Cron-driven daily email summary |
 | `POST` | `/api/admin/auth/forgot-password` | Admin forgot-password (always 200; emails a reset link) |
 | `POST` | `/api/admin/auth/reset-password` | Consume admin reset token and set a new password |
+| `GET`  | `/api/admin/admins` | List admin accounts |
+| `POST` | `/api/admin/admins` | Invite / create an admin (returns a one-time password) |
+| `PUT`  | `/api/admin/admins/{id}` | Edit an admin (name, email, status) |
+| `DELETE` | `/api/admin/admins/{id}` | Delete an admin (not yourself / not the last active) |
+| `POST` | `/api/admin/applicants` | Add a submitter by hand |
+| `PATCH` | `/api/admin/applicants/{id}` | Edit a submitter's details or status |
 | `GET`  | `/healthz` | Health check |
 
 ## Configuration

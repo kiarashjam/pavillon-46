@@ -16,7 +16,8 @@ The replacement client for the original Next.js pages. It talks to the .NET API 
 | `/admin/forgot-password` | `AdminForgotPassword` |
 | `/admin/reset-password` | `AdminResetPassword` |
 | `/admin/set-password` | `AdminSetPassword` |
-| `/admin` | Admin console (overview, members, referrals, activity) |
+| `/admin` | Admin console (overview, people, activity) |
+| `/admin/people` | Directory of admins, members and submitters |
 
 ## Run locally
 

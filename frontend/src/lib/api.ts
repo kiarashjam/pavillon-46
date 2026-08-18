@@ -154,6 +154,7 @@ export interface AdminDto {
   firstName: string
   lastName: string
   role: string
+  status: string
   mustChangePassword: boolean
   createdAt: string
   lastLoginAt: string
@@ -470,14 +471,122 @@ export async function adminListApplicants(token: string): Promise<AdminApplicant
   return jsonRequest<AdminApplicantsResponse>('/api/admin/applicants', { headers: bearer(token) })
 }
 
+export interface UpdateApplicantBody {
+  status?: ApplicantDto['status']
+  firstName?: string
+  lastName?: string
+  email?: string
+  phone?: string
+  city?: string
+  message?: string
+  referrerMemberId?: string
+  referralCode?: string
+}
+
+export interface CreateApplicantBody {
+  firstName: string
+  lastName: string
+  email?: string
+  phone?: string
+  city?: string
+  message?: string
+  referrerMemberId?: string
+  referralCode?: string
+  status?: ApplicantDto['status']
+  language?: 'fr' | 'en'
+}
+
 export async function adminUpdateApplicant(
   token: string,
   id: string,
-  status: ApplicantDto['status'],
+  statusOrBody: ApplicantDto['status'] | UpdateApplicantBody,
 ): Promise<ApplicantDto> {
+  const body = typeof statusOrBody === 'string' ? { status: statusOrBody } : statusOrBody
   return jsonRequest<ApplicantDto>(`/api/admin/applicants/${encodeURIComponent(id)}`, {
     method: 'PATCH',
     headers: bearer(token),
-    body: JSON.stringify({ status }),
+    body: JSON.stringify(body),
   })
+}
+
+export async function adminCreateApplicant(token: string, body: CreateApplicantBody): Promise<ApplicantDto> {
+  return jsonRequest<ApplicantDto>('/api/admin/applicants', {
+    method: 'POST',
+    headers: bearer(token),
+    body: JSON.stringify(body),
+  })
+}
+
+export async function adminDeleteApplicant(token: string, id: string): Promise<{ ok: boolean; id: string }> {
+  return jsonRequest(`/api/admin/applicants/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    headers: bearer(token),
+  })
+}
+
+export interface CreateAdminBody {
+  title?: string
+  firstName: string
+  lastName: string
+  email: string
+  sendEmail: boolean
+}
+
+export interface UpdateAdminBody {
+  title?: string
+  firstName?: string
+  lastName?: string
+  email?: string
+  status?: string
+}
+
+export interface CreateAdminResponse {
+  admin: AdminDto
+  password: string
+  emailSent: boolean
+  emailError?: string
+}
+
+export interface AdminAdminsResponse {
+  admins: AdminDto[]
+  total: number
+  active: number
+}
+
+export async function adminListAdmins(token: string): Promise<AdminAdminsResponse> {
+  return jsonRequest<AdminAdminsResponse>('/api/admin/admins', { headers: bearer(token) })
+}
+
+export async function adminCreateAdmin(token: string, body: CreateAdminBody): Promise<CreateAdminResponse> {
+  return jsonRequest<CreateAdminResponse>('/api/admin/admins', {
+    method: 'POST',
+    headers: bearer(token),
+    body: JSON.stringify(body),
+  })
+}
+
+export async function adminUpdateAdmin(token: string, id: string, body: UpdateAdminBody): Promise<AdminDto> {
+  return jsonRequest<AdminDto>(`/api/admin/admins/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    headers: bearer(token),
+    body: JSON.stringify(body),
+  })
+}
+
+export async function adminDeleteAdmin(token: string, id: string): Promise<{ ok: boolean; id: string }> {
+  return jsonRequest(`/api/admin/admins/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    headers: bearer(token),
+  })
+}
+
+export async function adminResetAdminPassword(
+  token: string,
+  id: string,
+  sendEmail: boolean,
+): Promise<CreateAdminResponse> {
+  return jsonRequest<CreateAdminResponse>(
+    `/api/admin/admins/${encodeURIComponent(id)}/reset-password?sendEmail=${sendEmail}`,
+    { method: 'POST', headers: bearer(token) },
+  )
 }

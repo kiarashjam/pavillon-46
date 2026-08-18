@@ -36,8 +36,9 @@ const icons: Record<string, Icon> = {
 
 const SECTIONS: Record<string, { title: string; sub: string }> = {
   '/admin': { title: 'Overview', sub: 'A live snapshot of the house' },
-  '/admin/members': { title: 'Members', sub: 'Create and manage contracted members' },
-  '/admin/referrals': { title: 'Referrals', sub: 'Applicants referred by members' },
+  '/admin/people': { title: 'People', sub: 'Admins, members and submitters' },
+  '/admin/members': { title: 'People', sub: 'Admins, members and submitters' },
+  '/admin/referrals': { title: 'People', sub: 'Admins, members and submitters' },
   '/admin/activity': { title: 'Activity', sub: 'Site analytics & engagement' },
 }
 
@@ -81,10 +82,9 @@ export default function AdminLayout() {
   if (!token) return <Navigate to="/admin/login" replace />
   if (admin?.mustChangePassword) return <Navigate to="/admin/set-password" replace />
 
-  const navItems = [
+  const navItems: { to: string; label: string; icon: Icon; end: boolean; also?: string[] }[] = [
     { to: '/admin', label: 'Overview', icon: icons.overview, end: true },
-    { to: '/admin/members', label: 'Members', icon: icons.members, end: false },
-    { to: '/admin/referrals', label: 'Referrals', icon: icons.referrals, end: false },
+    { to: '/admin/people', label: 'People', icon: icons.members, end: false, also: ['/admin/members', '/admin/referrals'] },
     { to: '/admin/activity', label: 'Activity', icon: icons.activity, end: false },
   ]
   const section = SECTIONS[location.pathname] ?? SECTIONS['/admin']
@@ -110,7 +110,10 @@ export default function AdminLayout() {
                 key={item.to}
                 to={item.to}
                 end={item.end}
-                className={({ isActive }) => `adash-nav-link${isActive ? ' is-active' : ''}`}
+                className={({ isActive }) => {
+                  const extra = item.also?.some((p) => location.pathname === p)
+                  return `adash-nav-link${isActive || extra ? ' is-active' : ''}`
+                }}
                 onClick={() => setNavOpen(false)}
               >
                 <Ico className="adash-nav-ico" />

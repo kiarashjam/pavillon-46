@@ -10,6 +10,7 @@ public interface IApplicantStore
     Task<Applicant?> GetByIdAsync(string id, CancellationToken ct = default);
     Task<List<Applicant>> ListAsync(CancellationToken ct = default);
     Task<List<Applicant>> ListByReferrerAsync(string memberId, CancellationToken ct = default);
+    Task DeleteAsync(string id, CancellationToken ct = default);
 }
 
 public class ApplicantStore : IApplicantStore
@@ -47,6 +48,8 @@ public class ApplicantStore : IApplicantStore
         var all = await ListAsync(ct);
         return all.Where(a => string.Equals(a.ReferrerMemberId, memberId, StringComparison.OrdinalIgnoreCase)).ToList();
     }
+
+    public Task DeleteAsync(string id, CancellationToken ct = default) => _inner.DeleteAsync(id, ct);
 
     private sealed class InnerStore : JsonTableStore<Applicant>
     {

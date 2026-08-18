@@ -156,7 +156,46 @@ public record UpdateMemberRequest(
     string? Status
 );
 
-public record UpdateApplicantRequest(string? Status);
+public record UpdateApplicantRequest(
+    string? Status,
+    string? FirstName,
+    string? LastName,
+    string? Email,
+    string? Phone,
+    string? City,
+    string? Message,
+    string? ReferrerMemberId,
+    string? ReferralCode
+);
+
+public record CreateApplicantRequest(
+    string? FirstName,
+    string? LastName,
+    string? Email,
+    string? Phone,
+    string? City,
+    string? Message,
+    string? ReferrerMemberId,
+    string? ReferralCode,
+    string? Status,
+    string? Language
+);
+
+public record CreateAdminRequest(
+    string? Title,
+    string? FirstName,
+    string? LastName,
+    string? Email,
+    bool SendEmail
+);
+
+public record UpdateAdminRequest(
+    string? Title,
+    string? FirstName,
+    string? LastName,
+    string? Email,
+    string? Status
+);
 
 // ---------------------------------------------------------------------------
 // Responses (camelCased by the global JSON options)
@@ -351,6 +390,7 @@ public class AdminDto
     public string FirstName { get; set; } = "";
     public string LastName { get; set; } = "";
     public string Role { get; set; } = "admin";
+    public string Status { get; set; } = "active";
     public bool MustChangePassword { get; set; }
     public string CreatedAt { get; set; } = "";
     public string LastLoginAt { get; set; } = "";
@@ -363,10 +403,19 @@ public class AdminDto
         FirstName = a.FirstName,
         LastName = a.LastName,
         Role = a.Role,
+        Status = string.IsNullOrWhiteSpace(a.Status) ? "active" : a.Status,
         MustChangePassword = a.MustChangePassword,
         CreatedAt = a.CreatedAt,
         LastLoginAt = a.LastLoginAt,
     };
+}
+
+public class CreateAdminResponse
+{
+    public AdminDto Admin { get; set; } = new();
+    public string Password { get; set; } = "";
+    public bool EmailSent { get; set; }
+    public string? EmailError { get; set; }
 }
 
 public class AdminLoginResponse

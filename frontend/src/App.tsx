@@ -19,8 +19,7 @@ import AdminSetPassword from './pages/admin/AdminSetPassword'
 import AdminForgotPassword from './pages/admin/AdminForgotPassword'
 import AdminResetPassword from './pages/admin/AdminResetPassword'
 import AdminOverview from './pages/admin/AdminOverview'
-import AdminMembersSection from './pages/admin/AdminMembersSection'
-import AdminReferralsSection from './pages/admin/AdminReferralsSection'
+import AdminPeople from './pages/admin/AdminPeople'
 import AdminActivitySection from './pages/admin/AdminActivitySection'
 import Overview from './pages/dashboard/Overview'
 import Referral from './pages/dashboard/Referral'
@@ -50,8 +49,9 @@ export default function App() {
             <Route path="/admin/reset-password" element={<AdminResetPassword />} />
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<AdminOverview />} />
-              <Route path="members" element={<AdminMembersSection />} />
-              <Route path="referrals" element={<AdminReferralsSection />} />
+              <Route path="people" element={<AdminPeople />} />
+              <Route path="members" element={<AdminPeople initialTab="members" />} />
+              <Route path="referrals" element={<AdminPeople initialTab="submitters" />} />
               <Route path="activity" element={<AdminActivitySection />} />
             </Route>
 

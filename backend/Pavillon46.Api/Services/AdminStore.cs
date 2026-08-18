@@ -9,6 +9,7 @@ public interface IAdminStore
     Task<Admin?> GetByIdAsync(string id, CancellationToken ct = default);
     Task<Admin?> GetByEmailAsync(string email, CancellationToken ct = default);
     Task<List<Admin>> ListAsync(CancellationToken ct = default);
+    Task DeleteAsync(string id, CancellationToken ct = default);
 }
 
 /// <summary>
@@ -48,6 +49,8 @@ public class AdminStore : IAdminStore
     }
 
     public Task<List<Admin>> ListAsync(CancellationToken ct = default) => _inner.ListAsync(ct);
+
+    public Task DeleteAsync(string id, CancellationToken ct = default) => _inner.DeleteAsync(id, ct);
 
     private sealed class InnerStore : JsonTableStore<Admin>
     {
