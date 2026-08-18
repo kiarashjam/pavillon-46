@@ -20,13 +20,15 @@ public class EmailService : IEmailService
         _logger = logger;
     }
 
+    public bool IsConfigured => _sendgrid.IsConfigured();
+
     public async Task SendWaitlistEmailsAsync(WaitlistSubmitRequest request, string lang, CancellationToken ct = default)
     {
-        if (string.IsNullOrWhiteSpace(_sendgrid.ApiKey))
+        if (string.IsNullOrWhiteSpace(_sendgrid.ResolvedApiKey()))
             throw new InvalidOperationException("SENDGRID_API_KEY is missing.");
-        if (string.IsNullOrWhiteSpace(_sendgrid.FromEmail))
+        if (string.IsNullOrWhiteSpace(_sendgrid.ResolvedFromEmail()))
             throw new InvalidOperationException("FROM_EMAIL is missing.");
-        if (string.IsNullOrWhiteSpace(_sendgrid.AdminEmail))
+        if (string.IsNullOrWhiteSpace((_sendgrid.AdminEmail ?? "").Trim()))
             throw new InvalidOperationException("ADMIN_EMAIL is missing.");
         if (string.IsNullOrWhiteSpace(request.EmailAddress))
             throw new ArgumentException("emailAddress is required");
@@ -39,9 +41,8 @@ public class EmailService : IEmailService
         var hearAboutHtml = EmailTranslations.FormatHearAboutHtml(lang, request.HearAboutKey, request.HearAboutOther);
         var hearAboutPlain = EmailTranslations.FormatHearAboutPlain(lang, request.HearAboutKey, request.HearAboutOther);
 
-        var client = new SendGridClient(_sendgrid.ApiKey);
-        var fromName = string.IsNullOrWhiteSpace(_sendgrid.FromName) ? "Pavillon 46" : _sendgrid.FromName;
-        var from = new EmailAddress(_sendgrid.FromEmail, fromName);
+        var client = new SendGridClient(_sendgrid.ResolvedApiKey());
+        var from = new EmailAddress(_sendgrid.ResolvedFromEmail(), _sendgrid.ResolvedFromName());
 
         var adminMsg = new SendGridMessage
         {
@@ -77,14 +78,13 @@ public class EmailService : IEmailService
 
     public async Task SendRawEmailAsync(string toEmail, string subject, string plainText, string html, CancellationToken ct = default)
     {
-        if (string.IsNullOrWhiteSpace(_sendgrid.ApiKey)) throw new InvalidOperationException("SENDGRID_API_KEY is missing.");
-        if (string.IsNullOrWhiteSpace(_sendgrid.FromEmail)) throw new InvalidOperationException("FROM_EMAIL is missing.");
+        if (string.IsNullOrWhiteSpace(_sendgrid.ResolvedApiKey())) throw new InvalidOperationException("SENDGRID_API_KEY is missing.");
+        if (string.IsNullOrWhiteSpace(_sendgrid.ResolvedFromEmail())) throw new InvalidOperationException("FROM_EMAIL is missing.");
 
-        var client = new SendGridClient(_sendgrid.ApiKey);
-        var fromName = string.IsNullOrWhiteSpace(_sendgrid.FromName) ? "Pavillon 46" : _sendgrid.FromName;
+        var client = new SendGridClient(_sendgrid.ResolvedApiKey());
         var msg = MailHelper.CreateSingleEmail(
-            new EmailAddress(_sendgrid.FromEmail, fromName),
-            new EmailAddress(toEmail),
+            new EmailAddress(_sendgrid.ResolvedFromEmail(), _sendgrid.ResolvedFromName()),
+            new EmailAddress(toEmail.Trim()),
             subject,
             plainText,
             html);
@@ -108,8 +108,8 @@ public class EmailService : IEmailService
 
     public async Task SendMemberCredentialsAsync(Member member, string plainPassword, string lang, CancellationToken ct = default)
     {
-        if (string.IsNullOrWhiteSpace(_sendgrid.ApiKey)) throw new InvalidOperationException("SENDGRID_API_KEY is missing.");
-        if (string.IsNullOrWhiteSpace(_sendgrid.FromEmail)) throw new InvalidOperationException("FROM_EMAIL is missing.");
+        if (string.IsNullOrWhiteSpace(_sendgrid.ResolvedApiKey())) throw new InvalidOperationException("SENDGRID_API_KEY is missing.");
+        if (string.IsNullOrWhiteSpace(_sendgrid.ResolvedFromEmail())) throw new InvalidOperationException("FROM_EMAIL is missing.");
         if (string.IsNullOrWhiteSpace(member.Email)) throw new ArgumentException("Member email is required");
 
         var isFr = !string.Equals(lang, "en", StringComparison.OrdinalIgnoreCase);
@@ -152,8 +152,8 @@ public class EmailService : IEmailService
 
     public async Task SendPasswordChangedAsync(Member member, string lang, CancellationToken ct = default)
     {
-        if (string.IsNullOrWhiteSpace(_sendgrid.ApiKey)) throw new InvalidOperationException("SENDGRID_API_KEY is missing.");
-        if (string.IsNullOrWhiteSpace(_sendgrid.FromEmail)) throw new InvalidOperationException("FROM_EMAIL is missing.");
+        if (string.IsNullOrWhiteSpace(_sendgrid.ResolvedApiKey())) throw new InvalidOperationException("SENDGRID_API_KEY is missing.");
+        if (string.IsNullOrWhiteSpace(_sendgrid.ResolvedFromEmail())) throw new InvalidOperationException("FROM_EMAIL is missing.");
         if (string.IsNullOrWhiteSpace(member.Email)) throw new ArgumentException("Member email is required");
 
         var isFr = !string.Equals(lang, "en", StringComparison.OrdinalIgnoreCase);
@@ -174,8 +174,8 @@ public class EmailService : IEmailService
 
     public async Task SendPasswordResetEmailAsync(Member member, string resetUrl, DateTime expiresAtUtc, int ttlMinutes, string lang, CancellationToken ct = default)
     {
-        if (string.IsNullOrWhiteSpace(_sendgrid.ApiKey)) throw new InvalidOperationException("SENDGRID_API_KEY is missing.");
-        if (string.IsNullOrWhiteSpace(_sendgrid.FromEmail)) throw new InvalidOperationException("FROM_EMAIL is missing.");
+        if (string.IsNullOrWhiteSpace(_sendgrid.ResolvedApiKey())) throw new InvalidOperationException("SENDGRID_API_KEY is missing.");
+        if (string.IsNullOrWhiteSpace(_sendgrid.ResolvedFromEmail())) throw new InvalidOperationException("FROM_EMAIL is missing.");
         if (string.IsNullOrWhiteSpace(member.Email)) throw new ArgumentException("Member email is required");
         if (string.IsNullOrWhiteSpace(resetUrl)) throw new ArgumentException("Reset URL is required");
 
@@ -196,8 +196,8 @@ public class EmailService : IEmailService
 
     public async Task SendAdminPasswordResetEmailAsync(Admin admin, string resetUrl, DateTime expiresAtUtc, int ttlMinutes, CancellationToken ct = default)
     {
-        if (string.IsNullOrWhiteSpace(_sendgrid.ApiKey)) throw new InvalidOperationException("SENDGRID_API_KEY is missing.");
-        if (string.IsNullOrWhiteSpace(_sendgrid.FromEmail)) throw new InvalidOperationException("FROM_EMAIL is missing.");
+        if (string.IsNullOrWhiteSpace(_sendgrid.ResolvedApiKey())) throw new InvalidOperationException("SENDGRID_API_KEY is missing.");
+        if (string.IsNullOrWhiteSpace(_sendgrid.ResolvedFromEmail())) throw new InvalidOperationException("FROM_EMAIL is missing.");
         if (string.IsNullOrWhiteSpace(admin.Email)) throw new ArgumentException("Admin email is required");
         if (string.IsNullOrWhiteSpace(resetUrl)) throw new ArgumentException("Reset URL is required");
 
@@ -215,8 +215,8 @@ public class EmailService : IEmailService
 
     public async Task SendAdminPasswordChangedAsync(Admin admin, CancellationToken ct = default)
     {
-        if (string.IsNullOrWhiteSpace(_sendgrid.ApiKey)) throw new InvalidOperationException("SENDGRID_API_KEY is missing.");
-        if (string.IsNullOrWhiteSpace(_sendgrid.FromEmail)) throw new InvalidOperationException("FROM_EMAIL is missing.");
+        if (string.IsNullOrWhiteSpace(_sendgrid.ResolvedApiKey())) throw new InvalidOperationException("SENDGRID_API_KEY is missing.");
+        if (string.IsNullOrWhiteSpace(_sendgrid.ResolvedFromEmail())) throw new InvalidOperationException("FROM_EMAIL is missing.");
         if (string.IsNullOrWhiteSpace(admin.Email)) throw new ArgumentException("Admin email is required");
 
         var loginUrl = _site.Page("admin/login");
@@ -234,8 +234,8 @@ public class EmailService : IEmailService
 
     public async Task SendAdminCredentialsAsync(Admin admin, string plainPassword, CancellationToken ct = default)
     {
-        if (string.IsNullOrWhiteSpace(_sendgrid.ApiKey)) throw new InvalidOperationException("SENDGRID_API_KEY is missing.");
-        if (string.IsNullOrWhiteSpace(_sendgrid.FromEmail)) throw new InvalidOperationException("FROM_EMAIL is missing.");
+        if (string.IsNullOrWhiteSpace(_sendgrid.ResolvedApiKey())) throw new InvalidOperationException("SENDGRID_API_KEY is missing.");
+        if (string.IsNullOrWhiteSpace(_sendgrid.ResolvedFromEmail())) throw new InvalidOperationException("FROM_EMAIL is missing.");
         if (string.IsNullOrWhiteSpace(admin.Email)) throw new ArgumentException("Admin email is required");
 
         var loginUrl = _site.Page("admin/login");

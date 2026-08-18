@@ -6,6 +6,28 @@ public class SendGridOptions
     public string FromEmail { get; set; } = "";
     public string FromName { get; set; } = "Pavillon 46";
     public string AdminEmail { get; set; } = "";
+
+    public string ResolvedApiKey() => (ApiKey ?? "").Trim();
+
+    /// <summary>
+    /// Prefer FROM_EMAIL; fall back to ADMIN_EMAIL so a single verified sender
+    /// in Azure is enough for reset mail.
+    /// </summary>
+    public string ResolvedFromEmail()
+    {
+        var from = (FromEmail ?? "").Trim();
+        if (!string.IsNullOrEmpty(from)) return from;
+        return (AdminEmail ?? "").Trim();
+    }
+
+    public string ResolvedFromName()
+    {
+        var name = (FromName ?? "").Trim();
+        return string.IsNullOrEmpty(name) ? "Pavillon 46" : name;
+    }
+
+    public bool IsConfigured() =>
+        !string.IsNullOrEmpty(ResolvedApiKey()) && !string.IsNullOrEmpty(ResolvedFromEmail());
 }
 
 public class TwilioOptions

@@ -30,6 +30,8 @@ export default function AdminForgotPassword() {
         setError(err.message || 'Too many attempts. Please try again in a few minutes.')
       } else if (err instanceof ApiError && err.errorType === 'not_admin') {
         setError(err.message || 'This email is not part of the admin desk. Check the address and try again.')
+      } else if (err instanceof ApiError && err.errorType === 'email_not_configured') {
+        setError(err.message || 'The server cannot send email yet. Set SendGrid in Azure, or set ADMIN_SEED_PASSWORD and restart.')
       } else if (err instanceof ApiError) {
         setError(err.message || 'We could not send the link. Please try again.')
       } else {
