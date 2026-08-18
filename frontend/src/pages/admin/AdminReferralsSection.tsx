@@ -1,26 +1,48 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
-import { adminListApplicants, adminUpdateApplicant, type ApplicantDto, type AdminApplicantsResponse } from '../../lib/api'
+import {
+  adminListApplicants,
+  adminListMembers,
+  adminUpdateApplicant,
+  adminCreateApplicant,
+  adminDeleteApplicant,
+  type ApplicantDto,
+  type AdminApplicantsResponse,
+  type CreateApplicantBody,
+  type MemberDto,
+} from '../../lib/api'
 import type { AdminCtx } from '../../components/admin/AdminLayout'
 import AdminModal from '../../components/admin/AdminModal'
 import { AdminEmpty, AdminSkeletonRows } from '../../components/admin/adminUi'
 
 const STATUSES: ApplicantDto['status'][] = ['pending', 'reviewing', 'accepted', 'declined']
 
-export default function AdminReferralsSection() {
+const emptyForm: CreateApplicantBody = {
+  firstName: '', lastName: '', email: '', phone: '', city: '', message: '',
+  referralCode: '', status: 'pending', language: 'fr',
+}
+
+export default function AdminReferralsSection({ embedded = false }: { embedded?: boolean }) {
   const { token } = useOutletContext<AdminCtx>()
   const [data, setData] = useState<AdminApplicantsResponse | null>(null)
+  const [members, setMembers] = useState<MemberDto[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<'all' | ApplicantDto['status']>('all')
   const [savingId, setSavingId] = useState<string | null>(null)
   const [selected, setSelected] = useState<ApplicantDto | null>(null)
+  const [creating, setCreating] = useState(false)
+  const [form, setForm] = useState<CreateApplicantBody>(emptyForm)
+  const [busy, setBusy] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [editBusy, setEditBusy] = useState(false)
+  const [editForm, setEditForm] = useState<CreateApplicantBody>(emptyForm)
 
   const load = () => {
     setLoading(true)
-    return adminListApplicants(token)
-      .then((d) => { setData(d); return d })
+    return Promise.all([adminListApplicants(token), adminListMembers(token).catch(() => ({ members: [] as MemberDto[] }))])
+      .then(([d, m]) => { setData(d); setMembers(m.members); return d })
       .catch((e) => { setError(e instanceof Error ? e.message : 'Failed to load'); return null })
       .finally(() => setLoading(false))
   }
@@ -39,13 +61,66 @@ export default function AdminReferralsSection() {
     try {
       await adminUpdateApplicant(token, a.id, status)
       const d = await load()
-      // Re-sync an open detail modal with the server-confirmed record (e.g. bonusAwarded).
       setSelected((s) => (s && d ? d.applicants.find((x) => x.id === s.id) ?? null : s))
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to update')
     } finally {
       setSavingId(null)
     }
+  }
+
+  const set = (k: keyof CreateApplicantBody) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
+    setForm((f) => ({ ...f, [k]: e.target.value }))
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setBusy(true); setError(null)
+    try {
+      await adminCreateApplicant(token, {
+        ...form,
+        email: form.email?.trim() || undefined,
+        phone: form.phone?.trim() || undefined,
+        referralCode: form.referralCode?.trim() || undefined,
+      })
+      setCreating(false); setForm(emptyForm); await load()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to add submitter')
+    } finally { setBusy(false) }
+  }
+
+  const openEdit = (a: ApplicantDto) => {
+    setSelected(a)
+    setEditForm({
+      firstName: a.firstName, lastName: a.lastName, email: a.email, phone: a.phone,
+      city: a.city, message: a.message, referralCode: a.referralCode, status: a.status,
+    })
+    setEditing(true)
+  }
+
+  const handleEdit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selected) return
+    setEditBusy(true); setError(null)
+    try {
+      const updated = await adminUpdateApplicant(token, selected.id, {
+        firstName: editForm.firstName, lastName: editForm.lastName,
+        email: editForm.email, phone: editForm.phone, city: editForm.city,
+        message: editForm.message, status: editForm.status,
+        referralCode: editForm.referralCode?.trim() || undefined,
+      })
+      setSelected(updated); setEditing(false); await load()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save')
+    } finally { setEditBusy(false) }
+  }
+
+  const handleDelete = async (a: ApplicantDto) => {
+    if (!window.confirm(`Remove ${`${a.firstName} ${a.lastName}`.trim() || 'this submitter'}? This cannot be undone.`)) return
+    setError(null)
+    try {
+      await adminDeleteApplicant(token, a.id)
+      setSelected(null); setEditing(false); await load()
+    } catch (err) { setError(err instanceof Error ? err.message : 'Failed to delete') }
   }
 
   const fmt = (iso: string) => { const d = new Date(iso); return Number.isNaN(d.getTime()) ? '—' : d.toLocaleDateString('en-GB') }
@@ -58,22 +133,26 @@ export default function AdminReferralsSection() {
 
   return (
     <>
-      <div className="adash-head">
-        <div>
-          <p className="adash-kicker">The door</p>
-          <h2>Referrals</h2>
-          <p>People referred by members. Accepting one credits the referrer a free month.</p>
-        </div>
-        <div className="adash-head-actions">
-          <div className="adash-search">
-            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.7" /><path d="m20 20-3.2-3.2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" /></svg>
-            <input className="adash-input" aria-label="Search applicants" placeholder="Search applicants…" value={search} onChange={(e) => setSearch(e.target.value)} />
+      {!embedded && (
+        <div className="adash-head">
+          <div>
+            <p className="adash-kicker">The door</p>
+            <h2>Submitters</h2>
+            <p>People referred by members — or added here by hand.</p>
           </div>
-          <select className="adash-select" value={filter} onChange={(e) => setFilter(e.target.value as typeof filter)}>
-            <option value="all">All statuses</option>
-            {STATUSES.map((s) => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
-          </select>
         </div>
+      )}
+
+      <div className="adash-head-actions adash-people-toolbar">
+        <div className="adash-search">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.7" /><path d="m20 20-3.2-3.2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" /></svg>
+          <input className="adash-input" aria-label="Search submitters" placeholder="Search submitters…" value={search} onChange={(e) => setSearch(e.target.value)} />
+        </div>
+        <select className="adash-select" value={filter} onChange={(e) => setFilter(e.target.value as typeof filter)}>
+          <option value="all">All statuses</option>
+          {STATUSES.map((s) => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
+        </select>
+        <button className="adash-btn adash-btn-primary" onClick={() => { setError(null); setForm(emptyForm); setCreating(true) }}>Add submitter</button>
       </div>
 
       {error && <p className="adash-error">{error}</p>}
@@ -90,7 +169,7 @@ export default function AdminReferralsSection() {
         ) : (
           <div className="adash-table-wrap">
             <table className="adash-table">
-              <thead><tr><th>Applicant</th><th>Contact</th><th>Referred by</th><th>Code</th><th>Date</th><th>Status</th></tr></thead>
+              <thead><tr><th>Submitter</th><th>Contact</th><th>Referred by</th><th>Code</th><th>Date</th><th>Status</th></tr></thead>
               <tbody>
                 {rows.map((a) => (
                   <tr
@@ -99,9 +178,9 @@ export default function AdminReferralsSection() {
                     style={{ opacity: savingId === a.id ? 0.5 : 1 }}
                     role="button"
                     tabIndex={0}
-                    aria-label={`View referral from ${a.firstName} ${a.lastName}`}
-                    onClick={() => setSelected(a)}
-                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelected(a) } }}
+                    aria-label={`Edit ${a.firstName} ${a.lastName}`}
+                    onClick={() => openEdit(a)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openEdit(a) } }}
                   >
                     <td><span className="adash-person-name">{`${a.firstName} ${a.lastName}`.trim()}</span></td>
                     <td className="adash-person-sub">{a.email || a.phone || '—'}</td>
@@ -123,8 +202,11 @@ export default function AdminReferralsSection() {
                 {rows.length === 0 && (
                   <tr><td colSpan={6}>
                     <AdminEmpty
-                      title={(data?.total ?? 0) === 0 ? 'No referrals yet' : 'Nothing matches these filters'}
-                      hint={(data?.total ?? 0) === 0 ? 'When a member shares their code, applicants will appear here.' : 'Clear the search or switch the status filter.'}
+                      title={(data?.total ?? 0) === 0 ? 'No submitters yet' : 'Nothing matches these filters'}
+                      hint={(data?.total ?? 0) === 0 ? 'Add someone by hand, or wait for a member to share their code.' : 'Clear the search or switch the status filter.'}
+                      action={(data?.total ?? 0) === 0 ? (
+                        <button className="adash-btn adash-btn-primary adash-btn-sm" onClick={() => { setError(null); setForm(emptyForm); setCreating(true) }}>Add a submitter</button>
+                      ) : undefined}
                     />
                   </td></tr>
                 )}
@@ -134,45 +216,85 @@ export default function AdminReferralsSection() {
         )}
       </div>
 
-      {selected && (
-        <AdminModal titleId="adm-ref-detail" onClose={() => setSelected(null)}>
-          <div className="adash-modal-head">
-            <div>
-              <h2 id="adm-ref-detail">Referral submission</h2>
-              <p>{`${selected.firstName} ${selected.lastName}`.trim()} · submitted {new Date(selected.createdAt).toLocaleString()}</p>
+      {creating && (
+        <AdminModal titleId="adm-create-applicant" onClose={() => setCreating(false)}>
+          <form onSubmit={handleCreate} style={{ display: 'contents' }}>
+            <div className="adash-modal-head">
+              <div><h2 id="adm-create-applicant">Add a submitter</h2><p>Record someone at the door. Optionally credit a member.</p></div>
+              <button type="button" className="adash-modal-close" onClick={() => setCreating(false)} aria-label="Close">×</button>
             </div>
-            <button type="button" className="adash-modal-close" onClick={() => setSelected(null)} aria-label="Close">×</button>
-          </div>
-          <div className="adash-dl">
-            <div><div className="adash-dt">First name</div><div className="adash-dd">{selected.firstName || '—'}</div></div>
-            <div><div className="adash-dt">Last name</div><div className="adash-dd">{selected.lastName || '—'}</div></div>
-            <div><div className="adash-dt">Email</div><div className="adash-dd">{selected.email || '—'}</div></div>
-            <div><div className="adash-dt">Phone</div><div className="adash-dd">{selected.phone || '—'}</div></div>
-            <div><div className="adash-dt">City</div><div className="adash-dd">{selected.city || '—'}</div></div>
-            <div><div className="adash-dt">Bonus</div><div className="adash-dd">{selected.bonusAwarded ? 'Awarded — referrer credited' : 'Not yet'}</div></div>
-            <div className="full"><div className="adash-dt">Message</div><div className="adash-dd adash-dd-message">{selected.message || '—'}</div></div>
-            <div><div className="adash-dt">Referred by</div><div className="adash-dd">{selected.referrerName || '—'}</div></div>
-            <div><div className="adash-dt">Referrer email</div><div className="adash-dd">{selected.referrerEmail || '—'}</div></div>
-            <div><div className="adash-dt">Member referral code</div><div className="adash-dd adash-mono">{selected.referralCode}</div></div>
-            <div><div className="adash-dt">Application reference</div><div className="adash-dd adash-mono">{selected.applicationCode}</div></div>
-          </div>
-          <div className="adash-detail-foot">
-            <span className="adash-dt" style={{ margin: 0 }}>Status</span>
-            <select
-              className={`adash-status-select is-${selected.status}`}
-              value={selected.status}
-              onChange={(e) => {
-                const ns = e.target.value as ApplicantDto['status']
-                setSelected((s) => (s ? { ...s, status: ns } : s))
-                void handleStatus(selected, ns)
-              }}
-            >
-              {STATUSES.map((s) => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
-            </select>
-            <button type="button" className="adash-btn adash-btn-ghost adash-btn-sm" style={{ marginLeft: 'auto' }} onClick={() => setSelected(null)}>Close</button>
-          </div>
+            <ApplicantFields form={form} set={set} members={members} />
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button type="button" className="adash-btn adash-btn-ghost" onClick={() => setCreating(false)}>Cancel</button>
+              <button type="submit" className="adash-btn adash-btn-primary" disabled={busy}>{busy ? 'Saving…' : 'Add submitter'}</button>
+            </div>
+          </form>
+        </AdminModal>
+      )}
+
+      {selected && editing && (
+        <AdminModal titleId="adm-edit-applicant" onClose={() => { setEditing(false); setSelected(null) }}>
+          <form onSubmit={handleEdit} style={{ display: 'contents' }}>
+            <div className="adash-modal-head">
+              <div>
+                <h2 id="adm-edit-applicant">Edit submitter</h2>
+                <p>{selected.applicationCode} · {selected.bonusAwarded ? 'bonus already awarded' : 'bonus not yet awarded'}</p>
+              </div>
+              <button type="button" className="adash-modal-close" onClick={() => { setEditing(false); setSelected(null) }} aria-label="Close">×</button>
+            </div>
+            <ApplicantFields
+              form={editForm}
+              set={(k) => (e) => setEditForm((f) => ({ ...f, [k]: e.target.value }))}
+              members={members}
+            />
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
+              <button type="button" className="adash-btn adash-btn-danger" onClick={() => handleDelete(selected)}>Remove</button>
+              <div style={{ display: 'flex', gap: 10, marginLeft: 'auto' }}>
+                <button type="button" className="adash-btn adash-btn-ghost" onClick={() => { setEditing(false); setSelected(null) }}>Cancel</button>
+                <button type="submit" className="adash-btn adash-btn-primary" disabled={editBusy}>{editBusy ? 'Saving…' : 'Save changes'}</button>
+              </div>
+            </div>
+          </form>
         </AdminModal>
       )}
     </>
+  )
+}
+
+function ApplicantFields({
+  form,
+  set,
+  members,
+}: {
+  form: CreateApplicantBody
+  set: (k: keyof CreateApplicantBody) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => void
+  members: MemberDto[]
+}) {
+  return (
+    <div className="adash-form-grid">
+      <div className="adash-field"><label>First name *</label><input className="adash-input" value={form.firstName} onChange={set('firstName')} required /></div>
+      <div className="adash-field"><label>Last name *</label><input className="adash-input" value={form.lastName} onChange={set('lastName')} required /></div>
+      <div className="adash-field"><label>Email</label><input className="adash-input" type="email" value={form.email ?? ''} onChange={set('email')} /></div>
+      <div className="adash-field"><label>Phone</label><input className="adash-input" value={form.phone ?? ''} onChange={set('phone')} /></div>
+      <div className="adash-field"><label>City</label><input className="adash-input" value={form.city ?? ''} onChange={set('city')} /></div>
+      <div className="adash-field">
+        <label>Status</label>
+        <select className="adash-select" value={form.status ?? 'pending'} onChange={set('status')}>
+          {STATUSES.map((s) => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
+        </select>
+      </div>
+      <div className="adash-field full">
+        <label>Referred by</label>
+        <select className="adash-select" value={form.referralCode ?? ''} onChange={set('referralCode')}>
+          <option value="">— none / walk-in —</option>
+          {members.map((m) => (
+            <option key={m.id} value={m.referralCode}>
+              {[m.firstName, m.lastName].filter(Boolean).join(' ') || m.email} · {m.referralCode}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="adash-field full"><label>Message</label><textarea className="adash-input adash-textarea" value={form.message ?? ''} onChange={set('message')} /></div>
+    </div>
   )
 }

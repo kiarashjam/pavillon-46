@@ -245,6 +245,41 @@ public class EmailService : IEmailService
         await SendRawEmailAsync(admin.Email, subject, plain, html, ct);
     }
 
+    public async Task SendAdminCredentialsAsync(Admin admin, string plainPassword, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(_sendgrid.ApiKey)) throw new InvalidOperationException("SENDGRID_API_KEY is missing.");
+        if (string.IsNullOrWhiteSpace(_sendgrid.FromEmail)) throw new InvalidOperationException("FROM_EMAIL is missing.");
+        if (string.IsNullOrWhiteSpace(admin.Email)) throw new ArgumentException("Admin email is required");
+
+        var loginUrl = $"{_site.Url.TrimEnd('/')}/admin/login";
+        var greetingName = string.IsNullOrWhiteSpace(admin.FirstName)
+            ? (string.IsNullOrWhiteSpace(admin.Title) ? admin.Email : admin.Title)
+            : $"{admin.Title} {admin.FirstName}".Trim();
+
+        var vm = new CredentialsVm(
+            Lang: "en",
+            Eyebrow: "Admin console",
+            Heading: "Your Pavillon 46 desk",
+            Intro: $"Hello {greetingName}, an admin account has been opened for you. Here are your first sign-in credentials.",
+            EmailLabel: "Login (email)",
+            Email: admin.Email,
+            PasswordLabel: "One-time password",
+            Password: plainPassword,
+            OneTimeBadge: "One-time only",
+            OneTimeNote: "At your first sign-in you'll be asked to create your own password. This one only works once.",
+            Cta: "Open the admin console",
+            LoginUrl: loginUrl,
+            SecurityNote: "Never share these credentials. If you weren't expecting this email, please ignore it.",
+            Steps: new[] { "Sign in", "Set your password", "Open the desk" });
+
+        const string subject = "Your access — Pavillon 46 admin console";
+        var plain =
+            $"{vm.Heading}\n\n{vm.Intro}\n\n{vm.EmailLabel}: {admin.Email}\n{vm.PasswordLabel}: {plainPassword}\n\n{vm.OneTimeNote}\n\n{vm.Cta}: {loginUrl}\n\n{vm.SecurityNote}";
+
+        var html = BuildCredentialsHtml(vm);
+        await SendRawEmailAsync(admin.Email, subject, plain, html, ct);
+    }
+
     private static string FormatSwissExpiry(DateTime expiresAtUtc, string lang)
     {
         try

@@ -5,6 +5,7 @@ import { animationVariants } from '../../lib/constants'
 import {
   adminListMembers,
   adminListApplicants,
+  adminListAdmins,
   fetchActivityReport,
   type MemberDto,
   type ApplicantDto,
@@ -24,6 +25,7 @@ export default function AdminOverview() {
   const { token } = useOutletContext<AdminCtx>()
   const navigate = useNavigate()
   const [members, setMembers] = useState<MemberDto[]>([])
+  const [adminCount, setAdminCount] = useState(0)
   const [apps, setApps] = useState<AdminApplicantsResponse | null>(null)
   const [activity, setActivity] = useState<{ pageViews: number; clicks: number; sessions: number; storage: string } | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -33,11 +35,13 @@ export default function AdminOverview() {
     Promise.allSettled([
       adminListMembers(token),
       adminListApplicants(token),
+      adminListAdmins(token),
       fetchActivityReport({ token, limit: 2000 }),
-    ]).then(([m, a, act]) => {
+    ]).then(([m, a, ad, act]) => {
       if (!active) return
       if (m.status === 'fulfilled') setMembers(m.value.members)
       if (a.status === 'fulfilled') setApps(a.value)
+      if (ad.status === 'fulfilled') setAdminCount(ad.value.total)
       if (act.status === 'fulfilled') {
         const s = act.value.summary
         setActivity({ pageViews: s.pageViews, clicks: s.clicks, sessions: s.uniqueSessions, storage: act.value.storage })
@@ -54,10 +58,10 @@ export default function AdminOverview() {
   const fmt = (iso: string) => { const d = new Date(iso); return Number.isNaN(d.getTime()) ? '—' : d.toLocaleDateString('en-GB') }
 
   const kpis = [
-    { label: 'Members', value: members.length, ico: kpiIcons.members, cls: '', sub: 'contracted accounts' },
-    { label: 'Referrals', value: apps?.total ?? 0, ico: kpiIcons.refer, cls: 'is-lav', sub: 'total applicants' },
-    { label: 'Pending', value: apps?.pending ?? 0, ico: kpiIcons.clock, cls: '', sub: 'awaiting review' },
-    { label: 'Accepted', value: apps?.accepted ?? 0, ico: kpiIcons.check, cls: 'is-green', sub: 'signed / free months' },
+    { label: 'Admins', value: adminCount, ico: kpiIcons.check, cls: '', sub: 'desk keys', to: '/admin/people?tab=admins' },
+    { label: 'Members', value: members.length, ico: kpiIcons.members, cls: '', sub: 'contracted accounts', to: '/admin/people?tab=members' },
+    { label: 'Submitters', value: apps?.total ?? 0, ico: kpiIcons.refer, cls: 'is-lav', sub: 'at the door', to: '/admin/people?tab=submitters' },
+    { label: 'Pending', value: apps?.pending ?? 0, ico: kpiIcons.clock, cls: '', sub: 'awaiting review', to: '/admin/people?tab=submitters' },
   ]
 
   return (
@@ -69,8 +73,8 @@ export default function AdminOverview() {
           <p>Members, referrals and engagement — as they stand this morning.</p>
         </div>
         <div className="adash-head-actions">
-          <button className="adash-btn adash-btn-ghost" onClick={() => navigate('/admin/referrals')}>Referrals</button>
-          <button className="adash-btn adash-btn-primary" onClick={() => navigate('/admin/members')}>Add member</button>
+          <button className="adash-btn adash-btn-ghost" onClick={() => navigate('/admin/people?tab=submitters')}>Submitters</button>
+          <button className="adash-btn adash-btn-primary" onClick={() => navigate('/admin/people?tab=members')}>Add member</button>
         </div>
       </div>
 
@@ -78,7 +82,7 @@ export default function AdminOverview() {
 
       <motion.div className="adash-kpi-grid" variants={animationVariants.container} initial="hidden" animate="visible">
         {kpis.map((k) => (
-          <motion.div key={k.label} className="adash-kpi" variants={animationVariants.item}>
+          <motion.div key={k.label} className="adash-kpi adash-kpi-link" variants={animationVariants.item} role="button" tabIndex={0} onClick={() => navigate(k.to)} onKeyDown={(e) => { if (e.key === 'Enter') navigate(k.to) }}>
             <div className="adash-kpi-top">
               <span className="adash-kpi-label">{k.label}</span>
               <span className={`adash-kpi-ico ${k.cls}`}>{k.ico}</span>
@@ -93,7 +97,7 @@ export default function AdminOverview() {
         <div className="adash-panel">
           <div className="adash-panel-head">
             <h3>Recent referrals</h3>
-            <button className="adash-link" onClick={() => navigate('/admin/referrals')}>View all →</button>
+            <button className="adash-link" onClick={() => navigate('/admin/people?tab=submitters')}>View all →</button>
           </div>
           {recentApps.length === 0 ? (
             <AdminEmpty title="No referrals yet" hint="When a member shares their code, applicants will land here." />
@@ -118,7 +122,7 @@ export default function AdminOverview() {
         <div className="adash-panel">
           <div className="adash-panel-head">
             <h3>Recent members</h3>
-            <button className="adash-link" onClick={() => navigate('/admin/members')}>View all →</button>
+            <button className="adash-link" onClick={() => navigate('/admin/people?tab=members')}>View all →</button>
           </div>
           {recentMembers.length === 0 ? (
             <AdminEmpty title="No members yet" hint="Create the first contracted account to open the house." />

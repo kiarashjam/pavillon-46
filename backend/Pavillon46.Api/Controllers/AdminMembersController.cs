@@ -266,39 +266,138 @@ public class AdminMembersController : ControllerBase
         });
     }
 
-    [HttpPatch("applicants/{id}")]
-    public async Task<IActionResult> UpdateApplicant(string id, [FromBody] UpdateApplicantRequest body, CancellationToken ct)
+    [HttpPost("applicants")]
+    public async Task<IActionResult> CreateApplicant([FromBody] CreateApplicantRequest? body, CancellationToken ct)
     {
-        var allowed = new[] { "pending", "reviewing", "accepted", "declined" };
-        var status = (body.Status ?? "").Trim().ToLowerInvariant();
-        if (!allowed.Contains(status))
-        {
+        var firstName = body?.FirstName?.Trim() ?? "";
+        var lastName = body?.LastName?.Trim() ?? "";
+        var email = body?.Email?.Trim() ?? "";
+        var phone = body?.Phone?.Trim() ?? "";
+
+        if (string.IsNullOrEmpty(firstName) || string.IsNullOrEmpty(lastName))
+            return BadRequest(new { message = "First and last name are required." });
+        if (string.IsNullOrEmpty(email) && string.IsNullOrEmpty(phone))
+            return BadRequest(new { message = "Provide at least an email or a phone number." });
+
+        var status = (body?.Status ?? "pending").Trim().ToLowerInvariant();
+        if (status is not ("pending" or "reviewing" or "accepted" or "declined"))
             return BadRequest(new { message = "Status must be one of: pending, reviewing, accepted, declined." });
+
+        var referrer = await ResolveReferrerAsync(body?.ReferrerMemberId, body?.ReferralCode, ct);
+        if (!string.IsNullOrWhiteSpace(body?.ReferrerMemberId) || !string.IsNullOrWhiteSpace(body?.ReferralCode))
+        {
+            if (referrer is null)
+                return BadRequest(new { message = "That referrer could not be found." });
         }
 
+        var now = DateTime.UtcNow;
+        var applicant = new Applicant
+        {
+            Id = Guid.NewGuid().ToString("N"),
+            FirstName = firstName,
+            LastName = lastName,
+            Email = email,
+            Phone = phone,
+            City = body?.City?.Trim() ?? "",
+            Message = body?.Message?.Trim() ?? "",
+            ReferralCode = referrer?.ReferralCode ?? "",
+            ApplicationCode = PasswordHasher.GenerateApplicationCode(),
+            ReferrerMemberId = referrer?.Id ?? "",
+            ReferrerName = referrer is null ? "" : $"{referrer.FirstName} {referrer.LastName}".Trim(),
+            ReferrerEmail = referrer?.Email ?? "",
+            Status = status,
+            PreferredLanguage = NormalizeLang(body?.Language),
+            CreatedAt = now.ToString("o"),
+            UpdatedAt = now.ToString("o"),
+        };
+
+        if (referrer is not null)
+        {
+            referrer.ReferralCount += 1;
+            referrer.UpdatedAt = now.ToString("o");
+            await AwardIfAcceptedAsync(applicant, referrer, becomingAccepted: status == "accepted", ct);
+            await _members.UpsertAsync(referrer, ct);
+        }
+
+        await _applicants.AddAsync(applicant, ct);
+        return Ok(ApplicantDto.From(applicant));
+    }
+
+    [HttpPatch("applicants/{id}")]
+    public async Task<IActionResult> UpdateApplicant(string id, [FromBody] UpdateApplicantRequest? body, CancellationToken ct)
+    {
         var applicant = await _applicants.GetByIdAsync(id, ct);
         if (applicant is null) return NotFound(new { message = "Applicant not found." });
 
-        var becameAccepted = status == "accepted" && applicant.Status != "accepted";
-        applicant.Status = status;
-        applicant.UpdatedAt = DateTime.UtcNow.ToString("o");
+        if (body?.FirstName is not null) applicant.FirstName = body.FirstName.Trim();
+        if (body?.LastName is not null) applicant.LastName = body.LastName.Trim();
+        if (body?.Email is not null) applicant.Email = body.Email.Trim();
+        if (body?.Phone is not null) applicant.Phone = body.Phone.Trim();
+        if (body?.City is not null) applicant.City = body.City.Trim();
+        if (body?.Message is not null) applicant.Message = body.Message.Trim();
 
-        // Award the referrer bonus once, the first time the referral is accepted.
-        if (becameAccepted && !applicant.BonusAwarded && !string.IsNullOrEmpty(applicant.ReferrerMemberId))
+        if (body?.ReferrerMemberId is not null || body?.ReferralCode is not null)
         {
-            var referrer = await _members.GetByIdAsync(applicant.ReferrerMemberId, ct);
-            if (referrer is not null)
+            var referrer = await ResolveReferrerAsync(body.ReferrerMemberId, body.ReferralCode, ct);
+            if (referrer is null && (!string.IsNullOrWhiteSpace(body.ReferrerMemberId) || !string.IsNullOrWhiteSpace(body.ReferralCode)))
+                return BadRequest(new { message = "That referrer could not be found." });
+            applicant.ReferrerMemberId = referrer?.Id ?? "";
+            applicant.ReferrerName = referrer is null ? "" : $"{referrer.FirstName} {referrer.LastName}".Trim();
+            applicant.ReferrerEmail = referrer?.Email ?? "";
+            applicant.ReferralCode = referrer?.ReferralCode ?? "";
+        }
+
+        if (body?.Status is not null)
+        {
+            var status = body.Status.Trim().ToLowerInvariant();
+            if (status is not ("pending" or "reviewing" or "accepted" or "declined"))
+                return BadRequest(new { message = "Status must be one of: pending, reviewing, accepted, declined." });
+
+            var becameAccepted = status == "accepted" && applicant.Status != "accepted";
+            applicant.Status = status;
+            if (becameAccepted && !applicant.BonusAwarded && !string.IsNullOrEmpty(applicant.ReferrerMemberId))
             {
-                referrer.SuccessfulReferrals += 1;
-                referrer.BonusPoints += _auth.ReferralBonusPoints;
-                referrer.UpdatedAt = DateTime.UtcNow.ToString("o");
-                await _members.UpsertAsync(referrer, ct);
-                applicant.BonusAwarded = true;
+                var referrer = await _members.GetByIdAsync(applicant.ReferrerMemberId, ct);
+                if (referrer is not null)
+                {
+                    await AwardIfAcceptedAsync(applicant, referrer, becomingAccepted: true, ct);
+                    await _members.UpsertAsync(referrer, ct);
+                }
             }
         }
 
+        applicant.UpdatedAt = DateTime.UtcNow.ToString("o");
         await _applicants.UpsertAsync(applicant, ct);
         return Ok(ApplicantDto.From(applicant));
+    }
+
+    [HttpDelete("applicants/{id}")]
+    public async Task<IActionResult> DeleteApplicant(string id, CancellationToken ct)
+    {
+        var applicant = await _applicants.GetByIdAsync(id, ct);
+        if (applicant is null) return NotFound(new { message = "Applicant not found." });
+
+        await _applicants.DeleteAsync(applicant.Id, ct);
+        _logger.LogInformation("Admin deleted applicant {Id}", applicant.Id);
+        return Ok(new { ok = true, id = applicant.Id });
+    }
+
+    private async Task<Member?> ResolveReferrerAsync(string? memberId, string? referralCode, CancellationToken ct)
+    {
+        if (!string.IsNullOrWhiteSpace(memberId))
+            return await _members.GetByIdAsync(memberId.Trim(), ct);
+        if (!string.IsNullOrWhiteSpace(referralCode))
+            return await _members.GetByReferralCodeAsync(referralCode.Trim(), ct);
+        return null;
+    }
+
+    private Task AwardIfAcceptedAsync(Applicant applicant, Member referrer, bool becomingAccepted, CancellationToken ct)
+    {
+        if (!becomingAccepted || applicant.BonusAwarded) return Task.CompletedTask;
+        referrer.SuccessfulReferrals += 1;
+        referrer.BonusPoints += _auth.ReferralBonusPoints;
+        applicant.BonusAwarded = true;
+        return Task.CompletedTask;
     }
 
     private async Task<string> GenerateUniqueReferralCodeAsync(CancellationToken ct)
