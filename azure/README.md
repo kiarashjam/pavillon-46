@@ -42,7 +42,8 @@ az deployment sub create \
 
 In **Azure Portal → App Service → pavillon46-api → Configuration → Application settings**, add:
 
-- `SENDGRID_API_KEY`, `FROM_EMAIL`, `ADMIN_EMAIL`
+- `SENDGRID_API_KEY`, `FROM_EMAIL` (must be a **verified SendGrid sender**), `ADMIN_EMAIL`
+- Optional recovery: `ADMIN_SEED_PASSWORD` — applied on restart only to `kia@bonapp.group` while that account still must change password. Does not overwrite a password that was already changed.
 - `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_VERIFY_SERVICE_SID`
 - `LEADS_WEBHOOK_URL`, `LEADS_WEBHOOK_API_KEY` (optional)
 - `ACTIVITY_REPORT_KEY`, `ACTIVITY_IP_SALT`, `ACTIVITY_DAILY_REPORT_TO`
