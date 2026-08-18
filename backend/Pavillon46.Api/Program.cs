@@ -100,6 +100,13 @@ app.UseRouting();
 app.MapControllers();
 app.MapGet("/healthz", () => Results.Ok(new { ok = true }));
 
+var sendgridOpts = app.Services.GetRequiredService<IOptions<SendGridOptions>>().Value;
+if (string.IsNullOrWhiteSpace(sendgridOpts.ApiKey) || string.IsNullOrWhiteSpace(sendgridOpts.FromEmail))
+{
+    app.Logger.LogWarning(
+        "SendGrid is not fully configured (SENDGRID_API_KEY / FROM_EMAIL). Waitlist, credentials and password-reset emails will not be delivered.");
+}
+
 await SeedInitialAdminAsync(app);
 
 app.Run();
