@@ -12,10 +12,11 @@ The replacement client for the original Next.js pages. It talks to the .NET API 
 | `/login` | `Login` (placeholder for the future member portal) |
 | `/legal` | `Legal` |
 | `/privacy` | `Privacy` |
-| `/admin/activity` | `AdminActivity` (passcode-gated dashboard) |
-| `/admin/login` | `AdminLogin` |
+| `/admin/login` | `AdminLogin` (cinematic admin gate) |
 | `/admin/forgot-password` | `AdminForgotPassword` |
 | `/admin/reset-password` | `AdminResetPassword` |
+| `/admin/set-password` | `AdminSetPassword` |
+| `/admin` | Admin console (overview, members, referrals, activity) |
 
 ## Run locally
 

@@ -1,9 +1,8 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { motion } from 'framer-motion'
-import { IMAGE_PATHS } from '../../lib/constants'
-import { EASE_SMOOTH_OUT } from '../../lib/motion'
 import { adminAuthResetPassword, ApiError } from '../../lib/api'
+import AdminGate from '../../components/admin/AdminGate'
+import { AdminField, AdminPasswordInput, AdminPasswordMeter } from '../../components/admin/adminUi'
 
 export default function AdminResetPassword() {
   const [params] = useSearchParams()
@@ -20,6 +19,7 @@ export default function AdminResetPassword() {
   useEffect(() => { document.title = 'Reset password · Admin · Pavillon 46' }, [])
 
   const missingToken = !token
+  const mismatch = confirm.length > 0 && pw !== confirm
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -66,89 +66,90 @@ export default function AdminResetPassword() {
     }
   }
 
-  const shell = (children: ReactNode) => (
-    <div className="adash">
-      <div className="adash-ambient" aria-hidden="true" />
-      <div className="adash-grain" aria-hidden="true" />
-      <motion.div
-        className="adash-gate"
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: EASE_SMOOTH_OUT }}
-      >
-        <img className="adash-gate-brand" src={IMAGE_PATHS.logo} alt="Pavillon 46" />
-        <span className="adash-gate-eyebrow">Admin console</span>
-        {children}
-      </motion.div>
-    </div>
-  )
-
   if (missingToken || invalidToken) {
-    return shell(
-      <>
-        <h1>New password</h1>
-        <p className="adash-error">
-          {missingToken
-            ? 'This reset link is incomplete.'
-            : 'This link is invalid or has expired. Please request a new one.'}
-        </p>
-        <p className="adash-gate-links">
-          <Link to="/admin/forgot-password" className="adash-link">Forgot password?</Link>
-        </p>
-      </>,
+    return (
+      <AdminGate
+        title="This link has expired"
+        subtitle={
+          missingToken
+            ? 'This reset link is incomplete. Request a new one from the forgot-password page.'
+            : 'This link is invalid or has expired. Request a new one — it only works once.'
+        }
+        footer={
+          <p className="adash-auth-links">
+            <Link to="/admin/forgot-password">Request a new link</Link>
+            <span aria-hidden="true"> · </span>
+            <Link to="/admin/login">Sign in</Link>
+          </p>
+        }
+      />
     )
   }
 
-  return shell(
-    <>
-      <h1>New password</h1>
-      <p>Choose a new password for your admin account.</p>
-      {success ? (
-        <>
-          <p className="adash-success">Your password has been updated. You can now sign in.</p>
-          <p className="adash-gate-links">
-            <Link to="/admin/login" className="adash-link">Go to sign in</Link>
+  if (success) {
+    return (
+      <AdminGate
+        title="Password updated"
+        subtitle="Your admin password has been saved. You can sign in with it now."
+        footer={
+          <p className="adash-auth-links">
+            <Link to="/admin/login">Go to sign in</Link>
           </p>
-        </>
-      ) : (
-        <>
-          <form onSubmit={handleSubmit}>
-            <div className="adash-pw">
-              <input
-                className="adash-input"
-                type={show ? 'text' : 'password'}
-                autoComplete="new-password"
-                placeholder="New password"
-                value={pw}
-                onChange={(e) => setPw(e.target.value)}
-                aria-label="New password"
-                disabled={submitting}
-                autoFocus
-              />
-              <button type="button" className="adash-pw-toggle" aria-pressed={show} onClick={() => setShow((s) => !s)}>
-                {show ? 'Hide' : 'Show'}
-              </button>
-            </div>
-            <input
-              className="adash-input"
-              type={show ? 'text' : 'password'}
-              autoComplete="new-password"
-              placeholder="Confirm password"
-              value={confirm}
-              onChange={(e) => setConfirm(e.target.value)}
-              aria-label="Confirm password"
-              disabled={submitting}
-            />
-            {error && <p className="adash-error">{error}</p>}
-            <button type="submit" className="adash-btn adash-btn-primary" disabled={submitting} style={{ justifyContent: 'center' }}>
-              {submitting ? 'Saving…' : 'Save password'}
-            </button>
-          </form>
-          <p className="adash-gate-links">
-            <Link to="/admin/login" className="adash-link">Back to sign in</Link>
-          </p>
-        </>
-      )}
-    </>,
+        }
+      >
+        <div className="adash-auth-sent">
+          <span className="adash-auth-sent-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.6" />
+              <path d="m8 12.2 2.6 2.6L16.4 9" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </span>
+        </div>
+      </AdminGate>
+    )
+  }
+
+  return (
+    <AdminGate
+      title="Choose a new password"
+      subtitle="At least 8 characters. This signs out every other admin session on this account."
+      footer={
+        <p className="adash-auth-links">
+          <Link to="/admin/login">Back to sign in</Link>
+        </p>
+      }
+    >
+      <form onSubmit={handleSubmit} className="adash-auth-form-fields">
+        <AdminField label="New password">
+          <AdminPasswordInput
+            show={show}
+            onToggle={() => setShow((s) => !s)}
+            autoComplete="new-password"
+            placeholder="At least 8 characters"
+            value={pw}
+            onChange={(e) => setPw(e.target.value)}
+            disabled={submitting}
+            autoFocus
+          />
+        </AdminField>
+        <AdminPasswordMeter password={pw} />
+        <AdminField label="Confirm password">
+          <AdminPasswordInput
+            show={show}
+            onToggle={() => setShow((s) => !s)}
+            autoComplete="new-password"
+            placeholder="Type it again"
+            value={confirm}
+            onChange={(e) => setConfirm(e.target.value)}
+            disabled={submitting}
+          />
+        </AdminField>
+        {mismatch && <p className="adash-auth-hint-warn">The two passwords do not match yet.</p>}
+        {error && <p className="adash-auth-error" role="alert">{error}</p>}
+        <button type="submit" className="adash-auth-submit" disabled={submitting}>
+          {submitting ? 'Saving…' : 'Save password'}
+        </button>
+      </form>
+    </AdminGate>
   )
 }

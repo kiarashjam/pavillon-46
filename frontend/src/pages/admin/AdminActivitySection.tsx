@@ -198,6 +198,7 @@ export default function AdminActivitySection() {
     <>
       <div className="adash-head">
         <div>
+          <p className="adash-kicker">The pulse</p>
           <h2>Activity &amp; engagement</h2>
           <p>How visitors move through pavillon46.ch — privacy-safe, first-party analytics{report ? ` · source: ${report.storage}` : ''}.</p>
         </div>

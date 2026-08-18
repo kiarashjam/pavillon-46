@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { motion } from 'framer-motion'
-import { IMAGE_PATHS } from '../../lib/constants'
-import { EASE_SMOOTH_OUT } from '../../lib/motion'
 import { adminForgotPassword, ApiError } from '../../lib/api'
+import AdminGate from '../../components/admin/AdminGate'
+import { AdminField, AdminTextInput } from '../../components/admin/adminUi'
 
 export default function AdminForgotPassword() {
   const [email, setEmail] = useState('')
@@ -40,45 +39,50 @@ export default function AdminForgotPassword() {
   }
 
   return (
-    <div className="adash">
-      <div className="adash-ambient" aria-hidden="true" />
-      <div className="adash-grain" aria-hidden="true" />
-      <motion.div
-        className="adash-gate"
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: EASE_SMOOTH_OUT }}
-      >
-        <img className="adash-gate-brand" src={IMAGE_PATHS.logo} alt="Pavillon 46" />
-        <span className="adash-gate-eyebrow">Admin console</span>
-        <h1>Forgot password</h1>
-        <p>Enter your email and we’ll send a reset link if an admin account exists.</p>
-        <form onSubmit={handleSubmit}>
-          <input
-            className="adash-input"
-            type="email"
-            inputMode="email"
-            autoComplete="email"
-            required
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            aria-label="Email"
-            autoFocus
-            disabled={submitting || submitted}
-          />
-          {error && <p className="adash-error">{error}</p>}
-          {submitted && (
-            <p className="adash-success">If an admin account exists with that email, we’ve sent you a link.</p>
-          )}
-          <button type="submit" className="adash-btn adash-btn-primary" disabled={submitting || submitted} style={{ justifyContent: 'center' }}>
+    <AdminGate
+      title={submitted ? 'Check your inbox' : 'Forgot password'}
+      subtitle={
+        submitted
+          ? 'If an admin account exists with that email, a reset link is on its way.'
+          : 'Enter your email and we’ll send a reset link if an admin account exists.'
+      }
+      footer={
+        <p className="adash-auth-links">
+          <Link to="/admin/login">Back to sign in</Link>
+        </p>
+      }
+    >
+      {submitted ? (
+        <div className="adash-auth-sent">
+          <span className="adash-auth-sent-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.6" />
+              <path d="m8 12.2 2.6 2.6L16.4 9" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </span>
+          <p>The link expires shortly. If nothing arrives, check spam — or request another from this page later.</p>
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="adash-auth-form-fields">
+          <AdminField label="Email">
+            <AdminTextInput
+              type="email"
+              inputMode="email"
+              autoComplete="email"
+              required
+              placeholder="you@pavillon46.ch"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoFocus
+              disabled={submitting}
+            />
+          </AdminField>
+          {error && <p className="adash-auth-error" role="alert">{error}</p>}
+          <button type="submit" className="adash-auth-submit" disabled={submitting}>
             {submitting ? 'Sending…' : 'Send the link'}
           </button>
         </form>
-        <p className="adash-gate-links">
-          <Link to="/admin/login" className="adash-link">Back to sign in</Link>
-        </p>
-      </motion.div>
-    </div>
+      )}
+    </AdminGate>
   )
 }

@@ -11,6 +11,7 @@ import {
   type AdminApplicantsResponse,
 } from '../../lib/api'
 import type { AdminCtx } from '../../components/admin/AdminLayout'
+import { AdminEmpty } from '../../components/admin/adminUi'
 
 const kpiIcons = {
   members: <svg viewBox="0 0 24 24" fill="none"><circle cx="9" cy="8" r="3.2" stroke="currentColor" strokeWidth="1.6" /><path d="M3.5 19c0-3 2.5-5 5.5-5s5.5 2 5.5 5M16 7.5a3 3 0 0 1 0 5.6M16.5 14c2.5.4 4 2.3 4 5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /></svg>,
@@ -63,8 +64,9 @@ export default function AdminOverview() {
     <>
       <div className="adash-head">
         <div>
+          <p className="adash-kicker">The house at a glance</p>
           <h2>Overview</h2>
-          <p>A live snapshot of members, referrals and engagement.</p>
+          <p>Members, referrals and engagement — as they stand this morning.</p>
         </div>
         <div className="adash-head-actions">
           <button className="adash-btn adash-btn-ghost" onClick={() => navigate('/admin/referrals')}>Referrals</button>
@@ -94,7 +96,7 @@ export default function AdminOverview() {
             <button className="adash-link" onClick={() => navigate('/admin/referrals')}>View all →</button>
           </div>
           {recentApps.length === 0 ? (
-            <p className="adash-empty">No referrals yet.</p>
+            <AdminEmpty title="No referrals yet" hint="When a member shares their code, applicants will land here." />
           ) : (
             <div className="adash-table-wrap">
               <table className="adash-table">
@@ -119,7 +121,7 @@ export default function AdminOverview() {
             <button className="adash-link" onClick={() => navigate('/admin/members')}>View all →</button>
           </div>
           {recentMembers.length === 0 ? (
-            <p className="adash-empty">No members yet.</p>
+            <AdminEmpty title="No members yet" hint="Create the first contracted account to open the house." />
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               {recentMembers.map((m) => (
