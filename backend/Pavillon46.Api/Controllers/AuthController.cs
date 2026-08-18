@@ -143,6 +143,7 @@ public class AuthController : ControllerBase
                     Id = hash,
                     TokenHash = hash,
                     MemberId = member.Id,
+                    Audience = "member",
                     Email = member.Email.Trim().ToLowerInvariant(),
                     CreatedAtUtc = now.ToString("o"),
                     ExpiresAtUtc = expiresAt.ToString("o"),
@@ -153,32 +154,26 @@ public class AuthController : ControllerBase
                 };
                 await _resetTokens.UpsertAsync(row, ct);
 
-                var resetUrl = $"{_site.Url.TrimEnd('/')}/reset-password?token={Uri.EscapeDataString(raw)}";
+                var resetUrl = _site.Page($"reset-password?token={Uri.EscapeDataString(raw)}");
 
                 _logger.LogInformation(
                     "forgot-password.email_queued memberId={MemberId} tokenPrefix={TokenPrefix} expiresAt={ExpiresAt}",
                     member.Id, hash[..8], expiresAt.ToString("o"));
 
-                // Fire-and-forget the SendGrid send. Awaiting it here would let
-                // an attacker distinguish "member exists" (~SendGrid RTT) from
-                // "member does not exist" (~50-200 ms dummy work) by measuring
-                // response time. Delivery failures are logged; the caller sees
-                // the same 200 { ok: true } either way.
-                var memberSnapshot = member;
-                var lang = member.PreferredLanguage;
-                var expiresAtCopy = expiresAt;
-                var ttlMinutesCopy = ttlMinutes;
-                _ = Task.Run(async () =>
+                // Await SendGrid so Azure cannot recycle the request before the
+                // mail is accepted. Pad both branches so "account exists" is
+                // not obvious from response time. Failures stay 200 { ok: true }.
+                try
                 {
-                    try
-                    {
-                        await _email.SendPasswordResetEmailAsync(memberSnapshot, resetUrl, expiresAtCopy, ttlMinutesCopy, lang, CancellationToken.None);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "forgot-password.email_delivery_failed memberId={MemberId}", memberSnapshot.Id);
-                    }
-                });
+                    var send = _email.SendPasswordResetEmailAsync(
+                        member, resetUrl, expiresAt, ttlMinutes, member.PreferredLanguage, CancellationToken.None);
+                    await Task.WhenAll(send, Task.Delay(350, CancellationToken.None));
+                    _logger.LogInformation("forgot-password.email_sent memberId={MemberId}", member.Id);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "forgot-password.email_delivery_failed memberId={MemberId}", member.Id);
+                }
             }
             catch (Exception ex)
             {
@@ -190,7 +185,7 @@ public class AuthController : ControllerBase
             // Dummy work so the "no member" branch takes broadly similar time
             // to the happy path. Prevents timing-based enumeration.
             _ = ResetTokenGenerator.Hash(ResetTokenGenerator.GenerateRaw());
-            var jitter = RandomNumberGenerator.GetInt32(50, 200);
+            var jitter = RandomNumberGenerator.GetInt32(300, 450);
             await Task.Delay(jitter, ct);
         }
 

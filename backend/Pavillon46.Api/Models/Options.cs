@@ -48,6 +48,16 @@ public class AzureStorageOptions
 public class SiteOptions
 {
     public string Url { get; set; } = "https://pavillon46.ch";
+
+    /// <summary>Public origin with no trailing slash. Falls back to the live site.</summary>
+    public string Origin()
+    {
+        var url = (Url ?? "").Trim();
+        if (string.IsNullOrEmpty(url)) url = "https://pavillon46.ch";
+        return url.TrimEnd('/');
+    }
+
+    public string Page(string path) => $"{Origin()}/{path.TrimStart('/')}";
 }
 
 public class AuthOptions

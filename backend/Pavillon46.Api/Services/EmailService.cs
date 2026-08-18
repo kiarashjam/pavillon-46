@@ -96,6 +96,8 @@ public class EmailService : IEmailService
             _logger.LogError("SendGrid rejected raw email to {To}: {Status} {Body}", toEmail, response.StatusCode, body);
             throw new InvalidOperationException("SendGrid did not accept the message.");
         }
+
+        _logger.LogInformation("SendGrid accepted email to {To} subject={Subject} status={Status}", toEmail, subject, (int)response.StatusCode);
     }
 
     private sealed record CredentialsVm(
@@ -111,7 +113,7 @@ public class EmailService : IEmailService
         if (string.IsNullOrWhiteSpace(member.Email)) throw new ArgumentException("Member email is required");
 
         var isFr = !string.Equals(lang, "en", StringComparison.OrdinalIgnoreCase);
-        var loginUrl = $"{_site.Url.TrimEnd('/')}/login";
+        var loginUrl = _site.Page("login");
         var greetingName = string.IsNullOrWhiteSpace(member.FirstName)
             ? (string.IsNullOrWhiteSpace(member.Title) ? member.Email : member.Title)
             : $"{member.Title} {member.FirstName}".Trim();
@@ -155,7 +157,7 @@ public class EmailService : IEmailService
         if (string.IsNullOrWhiteSpace(member.Email)) throw new ArgumentException("Member email is required");
 
         var isFr = !string.Equals(lang, "en", StringComparison.OrdinalIgnoreCase);
-        var loginUrl = $"{_site.Url.TrimEnd('/')}/login";
+        var loginUrl = _site.Page("login");
         var greetingName = string.IsNullOrWhiteSpace(member.FirstName) ? member.Email : member.FirstName;
 
         var subject = isFr ? "Votre mot de passe a été modifié — Pavillon 46" : "Your password was changed — Pavillon 46";
@@ -180,22 +182,7 @@ public class EmailService : IEmailService
         var normalized = EmailTranslations.NormalizeLang(lang);
         var t = EmailTranslations.PasswordReset(normalized);
         var greetingName = string.IsNullOrWhiteSpace(member.FirstName) ? member.Email : member.FirstName;
-
-        // Swiss local time for the human-readable expiration line. Falls back
-        // to UTC on Windows/Linux where the tzdata id might be missing (rare).
-        string expiryLocal;
-        try
-        {
-            var swiss = TimeZoneInfo.FindSystemTimeZoneById(
-                OperatingSystem.IsWindows() ? "W. Europe Standard Time" : "Europe/Zurich");
-            var local = TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(expiresAtUtc, DateTimeKind.Utc), swiss);
-            var culture = normalized == "en" ? new System.Globalization.CultureInfo("en-GB") : new System.Globalization.CultureInfo("fr-CH");
-            expiryLocal = local.ToString("HH:mm", culture);
-        }
-        catch (TimeZoneNotFoundException)
-        {
-            expiryLocal = expiresAtUtc.ToString("HH:mm") + " UTC";
-        }
+        var expiryLocal = FormatSwissExpiry(expiresAtUtc, normalized);
 
         var body1 = t.Body1(greetingName, ttlMinutes);
         var expiry = t.ExpiryLine(expiryLocal);
@@ -232,7 +219,7 @@ public class EmailService : IEmailService
         if (string.IsNullOrWhiteSpace(_sendgrid.FromEmail)) throw new InvalidOperationException("FROM_EMAIL is missing.");
         if (string.IsNullOrWhiteSpace(admin.Email)) throw new ArgumentException("Admin email is required");
 
-        var loginUrl = $"{_site.Url.TrimEnd('/')}/admin/login";
+        var loginUrl = _site.Page("admin/login");
         var greetingName = string.IsNullOrWhiteSpace(admin.FirstName) ? admin.Email : admin.FirstName;
         const string subject = "Your admin password was changed — Pavillon 46";
         const string heading = "Admin password changed";
@@ -251,7 +238,7 @@ public class EmailService : IEmailService
         if (string.IsNullOrWhiteSpace(_sendgrid.FromEmail)) throw new InvalidOperationException("FROM_EMAIL is missing.");
         if (string.IsNullOrWhiteSpace(admin.Email)) throw new ArgumentException("Admin email is required");
 
-        var loginUrl = $"{_site.Url.TrimEnd('/')}/admin/login";
+        var loginUrl = _site.Page("admin/login");
         var greetingName = string.IsNullOrWhiteSpace(admin.FirstName)
             ? (string.IsNullOrWhiteSpace(admin.Title) ? admin.Email : admin.Title)
             : $"{admin.Title} {admin.FirstName}".Trim();
@@ -288,18 +275,22 @@ public class EmailService : IEmailService
                 OperatingSystem.IsWindows() ? "W. Europe Standard Time" : "Europe/Zurich");
             var local = TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(expiresAtUtc, DateTimeKind.Utc), swiss);
             var culture = lang == "en" ? new System.Globalization.CultureInfo("en-GB") : new System.Globalization.CultureInfo("fr-CH");
-            return local.ToString("HH:mm", culture);
+            return local.ToString("d MMM, HH:mm", culture);
         }
         catch (TimeZoneNotFoundException)
         {
-            return expiresAtUtc.ToString("HH:mm") + " UTC";
+            return expiresAtUtc.ToString("d MMM, HH:mm") + " UTC";
         }
     }
 
     private string BuildResetPasswordHtml(string lang, string heading, string body1, string body2, string expiryLine, string cta, string ctaUrl)
     {
-        var logo = $"{_site.Url}/images/logo.png";
+        var logo = _site.Page("images/logo.png");
         var year = DateTime.UtcNow.Year;
+        var safeUrl = WebUtility.HtmlEncode(ctaUrl);
+        var fallback = lang == "fr"
+            ? "Si le bouton ne fonctionne pas, collez ce lien dans votre navigateur :"
+            : "If the button does not work, paste this link into your browser:";
         return $@"<!DOCTYPE html>
 <html lang=""{lang}"">
 <head><meta charset=""UTF-8""><meta name=""viewport"" content=""width=device-width,initial-scale=1.0""><title>{WebUtility.HtmlEncode(heading)}</title></head>
@@ -314,8 +305,9 @@ public class EmailService : IEmailService
         <p style=""margin:0 0 18px 0;font-size:16px;color:#3a4a42;line-height:1.7;"">{WebUtility.HtmlEncode(body1)}</p>
         <p style=""margin:0 0 26px 0;font-size:15px;color:#6f8079;line-height:1.7;"">{WebUtility.HtmlEncode(body2)}</p>
         <div style=""text-align:center;margin:8px 0;"">
-          <a href=""{ctaUrl}"" style=""display:inline-block;background:#ff6e50;color:#fff;text-decoration:none;font-size:16px;font-weight:500;padding:14px 34px;border-radius:8px;"">{WebUtility.HtmlEncode(cta)}</a>
+          <a href=""{safeUrl}"" style=""display:inline-block;background:#ff6e50;color:#fff;text-decoration:none;font-size:16px;font-weight:500;padding:14px 34px;border-radius:8px;"">{WebUtility.HtmlEncode(cta)}</a>
         </div>
+        <p style=""margin:18px 0 0 0;font-size:12.5px;color:#8a9a92;text-align:center;line-height:1.6;word-break:break-all;"">{WebUtility.HtmlEncode(fallback)}<br/><a href=""{safeUrl}"" style=""color:#265640;"">{safeUrl}</a></p>
         <p style=""margin:22px 0 0 0;font-size:13px;color:#8a9a92;text-align:center;line-height:1.6;"">{WebUtility.HtmlEncode(expiryLine)}</p>
       </td></tr>
       <tr><td style=""padding:24px 32px;background:#f0ece9;border-top:1px solid rgba(38,86,64,0.1);font-size:12px;color:#8a9a92;text-align:center;line-height:1.7;"">
@@ -328,7 +320,7 @@ public class EmailService : IEmailService
 
     private string BuildSimpleHtml(string lang, string heading, string body, string cta, string loginUrl)
     {
-        var logo = $"{_site.Url}/images/logo.png";
+        var logo = _site.Page("images/logo.png");
         var year = DateTime.UtcNow.Year;
         return $@"<!DOCTYPE html>
 <html lang=""{lang}"">
@@ -356,7 +348,7 @@ public class EmailService : IEmailService
 
     private string BuildCredentialsHtml(CredentialsVm vm)
     {
-        var logo = $"{_site.Url}/images/logo.png";
+        var logo = _site.Page("images/logo.png");
         var year = DateTime.UtcNow.Year;
 
         var stepsBuilder = new System.Text.StringBuilder();
@@ -420,7 +412,7 @@ public class EmailService : IEmailService
 
     private string BuildAdminHtml(EmailTranslations.AdminStrings t, string fullName, string emailAddress, string fullPhone, string postalCode, string hearAboutHtml)
     {
-        var logo = $"{_site.Url}/images/logo.png";
+        var logo = _site.Page("images/logo.png");
         return $@"
 <div style=""font-family:Jost,sans-serif;color:#333;background:#fafafa;padding:0;"">
   <div style=""max-width:600px;margin:0 auto;background:rgba(255,255,255,0.95);border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.05);"">
@@ -452,7 +444,7 @@ public class EmailService : IEmailService
 
     private string BuildUserHtml(EmailTranslations.UserStrings t, string fullName, string lang)
     {
-        var logo = $"{_site.Url}/images/logo.png";
+        var logo = _site.Page("images/logo.png");
         var year = DateTime.UtcNow.Year;
         return $@"<!DOCTYPE html>
 <html lang=""{lang}"">

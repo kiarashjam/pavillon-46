@@ -14,7 +14,7 @@ export default function ResetPassword() {
   const tCommon = useTranslations(language, 'common')
 
   const [params] = useSearchParams()
-  const token = params.get('token') ?? ''
+  const token = (params.get('token') ?? '').trim()
 
   const [pw, setPw] = useState('')
   const [confirm, setConfirm] = useState('')

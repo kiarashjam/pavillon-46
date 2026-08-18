@@ -202,27 +202,25 @@ public class AdminAuthController : ControllerBase
                 };
                 await _resetTokens.UpsertAsync(row, ct);
 
-                var resetUrl = $"{_site.Url.TrimEnd('/')}/admin/reset-password?token={Uri.EscapeDataString(raw)}";
+                var resetUrl = _site.Page($"admin/reset-password?token={Uri.EscapeDataString(raw)}");
 
                 _logger.LogInformation(
                     "admin-forgot-password.email_queued adminId={AdminId} tokenPrefix={TokenPrefix} expiresAt={ExpiresAt}",
                     admin.Id, hash[..8], expiresAt.ToString("o"));
 
-                var adminSnapshot = admin;
-                var expiresAtCopy = expiresAt;
-                var ttlMinutesCopy = ttlMinutes;
-                _ = Task.Run(async () =>
+                // Await SendGrid so the mail is accepted before we return.
+                // Pad both branches so existence is not obvious from timing.
+                try
                 {
-                    try
-                    {
-                        await _email.SendAdminPasswordResetEmailAsync(
-                            adminSnapshot, resetUrl, expiresAtCopy, ttlMinutesCopy, CancellationToken.None);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "admin-forgot-password.email_delivery_failed adminId={AdminId}", adminSnapshot.Id);
-                    }
-                });
+                    var send = _email.SendAdminPasswordResetEmailAsync(
+                        admin, resetUrl, expiresAt, ttlMinutes, CancellationToken.None);
+                    await Task.WhenAll(send, Task.Delay(350, CancellationToken.None));
+                    _logger.LogInformation("admin-forgot-password.email_sent adminId={AdminId}", admin.Id);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "admin-forgot-password.email_delivery_failed adminId={AdminId}", admin.Id);
+                }
             }
             catch (Exception ex)
             {
@@ -232,7 +230,7 @@ public class AdminAuthController : ControllerBase
         else
         {
             _ = ResetTokenGenerator.Hash(ResetTokenGenerator.GenerateRaw());
-            var jitter = RandomNumberGenerator.GetInt32(50, 200);
+            var jitter = RandomNumberGenerator.GetInt32(300, 450);
             await Task.Delay(jitter, ct);
         }
 
