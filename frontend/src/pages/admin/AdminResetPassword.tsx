@@ -46,15 +46,14 @@ export default function AdminResetPassword() {
         const isTokenError =
           err.status === 401 ||
           err.errorType === 'invalid' ||
-          err.errorType === 'expired'
+          err.errorType === 'expired' ||
+          err.errorType === 'mismatch'
         if (isTokenError) {
           setInvalidToken(true)
         } else if (err.status === 429) {
           setError('Too many attempts. Please try again later.')
         } else if (err.errorType === 'weak_password') {
           setError('Your new password must be at least 8 characters.')
-        } else if (err.errorType === 'mismatch') {
-          setError('The two passwords do not match.')
         } else {
           setError(err.message || 'Could not save the password. Please try again.')
         }

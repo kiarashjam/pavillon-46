@@ -50,7 +50,7 @@ public class AdminAuthorizeFilter : IAsyncAuthorizationFilter
         // deleted / inactive account must stop working immediately, not at expiry).
         var admin = await _admins.GetByIdAsync(principal.MemberId, context.HttpContext.RequestAborted);
         if (admin is null
-            || !string.Equals(admin.Status, "active", StringComparison.OrdinalIgnoreCase)
+            || !admin.IsActive()
             || admin.PasswordVersion != principal.PasswordVersion)
         {
             context.Result = new UnauthorizedObjectResult(new { message = "Unauthorized" });

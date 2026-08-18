@@ -380,6 +380,14 @@ public class Admin
     public string CreatedAt { get; set; } = "";
     public string UpdatedAt { get; set; } = "";
     public string LastLoginAt { get; set; } = "";
+
+    /// <summary>
+    /// Blank / missing status is treated as active so legacy rows match
+    /// <see cref="AdminDto.From"/> and can still sign in or reset a password.
+    /// </summary>
+    public bool IsActive() =>
+        string.IsNullOrWhiteSpace(Status)
+        || string.Equals(Status, "active", StringComparison.OrdinalIgnoreCase);
 }
 
 public class AdminDto

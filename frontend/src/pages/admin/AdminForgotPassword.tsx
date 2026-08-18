@@ -27,9 +27,11 @@ export default function AdminForgotPassword() {
       setSubmitted(true)
     } catch (err) {
       if (err instanceof ApiError && err.status === 429) {
-        setError('Too many attempts. Please try again in a few minutes.')
-      } else if (err instanceof ApiError && (err.errorType === 'not_admin' || err.status === 404)) {
-        setError('You are not part of the admin desk. Check the email and try again — or use member sign-in if you have a membership.')
+        setError(err.message || 'Too many attempts. Please try again in a few minutes.')
+      } else if (err instanceof ApiError && err.errorType === 'not_admin') {
+        setError(err.message || 'This email is not part of the admin desk. Check the address and try again.')
+      } else if (err instanceof ApiError) {
+        setError(err.message || 'We could not send the link. Please try again.')
       } else {
         setError('We could not send the link. Please try again.')
       }
@@ -43,7 +45,7 @@ export default function AdminForgotPassword() {
       title={submitted ? 'Check your inbox' : 'Forgot password'}
       subtitle={
         submitted
-          ? 'We’ve sent a reset link to that admin email.'
+          ? `We’ve sent a reset link to ${email.trim().toLowerCase()}.`
           : 'Enter the email of your admin account and we’ll send a reset link.'
       }
       footer={
@@ -62,7 +64,17 @@ export default function AdminForgotPassword() {
               <path d="m8 12.2 2.6 2.6L16.4 9" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </span>
-          <p>The link expires shortly. If nothing arrives, check spam — or request another from this page later.</p>
+          <p>The link expires shortly. If nothing arrives, check spam — or request another from this page.</p>
+          <button
+            type="button"
+            className="adash-auth-again"
+            onClick={() => {
+              setSubmitted(false)
+              setError(null)
+            }}
+          >
+            Use a different email
+          </button>
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="adash-auth-form-fields">
