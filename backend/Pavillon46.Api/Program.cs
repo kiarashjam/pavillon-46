@@ -111,10 +111,10 @@ await SeedInitialAdminAsync(app);
 
 app.Run();
 
-// Seed the first admin account on startup if none exists yet. The seeded admin
-// must change its password on first login. The password comes from
-// Auth:AdminSeedPassword (ADMIN_SEED_PASSWORD) when set; otherwise a strong
-// temporary one is generated and logged once for bootstrapping.
+// Inject kia@bonapp.group as an admin on startup if that mailbox is missing.
+// Insert-only: never updates, deletes, or re-hashes an existing admin, and
+// never writes members, applicants, activity, or reset tokens. A later deploy
+// therefore cannot wipe production data or lock out a working desk.
 static async Task SeedInitialAdminAsync(WebApplication app)
 {
     using var scope = app.Services.CreateScope();
@@ -123,34 +123,32 @@ static async Task SeedInitialAdminAsync(WebApplication app)
     var auth = sp.GetRequiredService<IOptions<AuthOptions>>().Value;
     var logger = sp.GetRequiredService<ILoggerFactory>().CreateLogger("AdminSeed");
 
-    var seedEmail = (auth.AdminSeedEmail ?? "").Trim().ToLowerInvariant();
-    if (string.IsNullOrEmpty(seedEmail)) return;
+    const string seedEmail = AuthOptions.DefaultAdminSeedEmail;
 
     try
     {
-        if (await admins.GetByEmailAsync(seedEmail) is not null) return;
-
-        var generated = string.IsNullOrEmpty(auth.AdminSeedPassword);
-
-        // In production, never auto-generate a log-only password: it would either
-        // leak a credential into telemetry or leave an admin nobody can sign in
-        // as. Require an explicit ADMIN_SEED_PASSWORD instead — fail loud.
-        if (generated && !app.Environment.IsDevelopment())
+        var existing = await admins.ListAsync();
+        if (existing.Any(a => string.Equals((a.Email ?? "").Trim(), seedEmail, StringComparison.OrdinalIgnoreCase)))
         {
-            logger.LogWarning(
-                "No initial admin created for {Email}: set ADMIN_SEED_PASSWORD to seed the admin account, then restart.",
-                seedEmail);
+            logger.LogInformation("Admin seed: {Email} already present — no admin rows changed.", seedEmail);
             return;
         }
-
-        var password = generated ? PasswordHasher.GeneratePassword() : auth.AdminSeedPassword;
-        var now = DateTime.UtcNow.ToString("o");
 
         // Deterministic id from the normalized email so that if several instances
         // cold-boot at once they converge on a single row, rather than creating
         // duplicate admins with different password hashes (which breaks login).
         var id = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes("admin:" + seedEmail)))
             .ToLowerInvariant()[..32];
+
+        if (existing.Any(a => string.Equals(a.Id, id, StringComparison.OrdinalIgnoreCase)))
+        {
+            logger.LogWarning("Admin seed: id for {Email} is already used — not overwriting that row.", seedEmail);
+            return;
+        }
+
+        var generated = string.IsNullOrEmpty(auth.AdminSeedPassword);
+        var password = generated ? PasswordHasher.GeneratePassword() : auth.AdminSeedPassword;
+        var now = DateTime.UtcNow.ToString("o");
 
         await admins.UpsertAsync(new Admin
         {
@@ -166,10 +164,14 @@ static async Task SeedInitialAdminAsync(WebApplication app)
         });
 
         // Only ever write the cleartext temporary password to logs in Development.
-        if (generated)
+        if (generated && app.Environment.IsDevelopment())
             logger.LogWarning(
                 "Seeded initial admin {Email} with a generated temporary password (Development only): {Password} — change it on first login.",
                 seedEmail, password);
+        else if (generated)
+            logger.LogInformation(
+                "Seeded initial admin {Email}. Set a password with /admin/forgot-password — the generated secret was not logged.",
+                seedEmail);
         else
             logger.LogInformation(
                 "Seeded initial admin {Email} from configured seed password — change it on first login.",
@@ -229,7 +231,6 @@ static void MapLegacyEnvVars(IConfigurationManager config)
     Map("AUTH_TOKEN_SECRET", "Auth:TokenSecret");
     Map("AUTH_ADMIN_KEY", "Auth:AdminKey");
     Map("AUTH_FILE_PATH", "Auth:FilePath");
-    Map("ADMIN_SEED_EMAIL", "Auth:AdminSeedEmail");
     Map("ADMIN_SEED_PASSWORD", "Auth:AdminSeedPassword");
     var ttl = Environment.GetEnvironmentVariable("AUTH_TOKEN_TTL_HOURS");
     if (int.TryParse(ttl, out var ttlHours)) config["Auth:TokenTtlHours"] = ttlHours.ToString();
