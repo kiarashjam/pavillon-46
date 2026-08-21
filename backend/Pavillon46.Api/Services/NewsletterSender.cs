@@ -72,9 +72,15 @@ public class NewsletterSender : INewsletterSender
         IReadOnlyList<string>? testEmails,
         CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(_sendgrid.ApiKey))
+        // Use the shared resolvers rather than the raw options: they trim (an
+        // API key pasted into Azure with trailing whitespace is a real failure
+        // mode) and fall back FROM_EMAIL → ADMIN_EMAIL, so a single verified
+        // sender is enough. Reading the raw properties here would make
+        // newsletters the only mail in the app that refuses to send on a deploy
+        // where every other email works.
+        if (string.IsNullOrWhiteSpace(_sendgrid.ResolvedApiKey()))
             throw new InvalidOperationException("SENDGRID_API_KEY is missing.");
-        if (string.IsNullOrWhiteSpace(_sendgrid.FromEmail))
+        if (string.IsNullOrWhiteSpace(_sendgrid.ResolvedFromEmail()))
             throw new InvalidOperationException("FROM_EMAIL is missing.");
 
         var newsletter = await _newsletters.GetByIdAsync(newsletterId, ct)
@@ -136,9 +142,8 @@ public class NewsletterSender : INewsletterSender
         }
 
         var batchCap = Math.Clamp(_newsletterOpts.MaxRecipientsPerBatch, 1, HardBatchCap);
-        var client = new SendGridClient(_sendgrid.ApiKey);
-        var fromName = string.IsNullOrWhiteSpace(_sendgrid.FromName) ? "Pavillon 46" : _sendgrid.FromName;
-        var from = new EmailAddress(_sendgrid.FromEmail, fromName);
+        var client = new SendGridClient(_sendgrid.ResolvedApiKey());
+        var from = new EmailAddress(_sendgrid.ResolvedFromEmail(), _sendgrid.ResolvedFromName());
 
         foreach (var (lang, list) in buckets)
         {
