@@ -594,8 +594,12 @@
 .adash-pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 11px; border-radius: 999px; font-size: 11.5px; font-weight: 600; letter-spacing: 0.02em; }
 .adash-pill.is-pending { background: rgba(224,191,252,0.18); color: #d9bdfa; }
 .adash-pill.is-reviewing { background: rgba(255,200,80,0.18); color: #ffd887; }
-.adash-pill.is-accepted, .adash-pill.is-active { background: rgba(127,214,168,0.18); color: #8fe3b4; }
+.adash-pill.is-accepted, .adash-pill.is-active, .adash-pill.is-published { background: rgba(127,214,168,0.18); color: #8fe3b4; }
 .adash-pill.is-declined, .adash-pill.is-suspended { background: rgba(255,110,80,0.2); color: #ffb1a0; }
+/* Newsletter lifecycle: draft (neutral ivory) → published (reuses the active
+   green above) → sent (calm blue, so a delivered issue reads as terminal). */
+.adash-pill.is-draft { background: rgba(243,239,233,0.1); color: rgba(243,239,233,0.66); }
+.adash-pill.is-sent { background: rgba(140,190,255,0.18); color: #a9ccff; }
 
 .adash-status-select {
   height: 32px; border-radius: 8px; border: 1px solid var(--ad-border);

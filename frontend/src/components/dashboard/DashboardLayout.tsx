@@ -37,6 +37,13 @@ const icons = {
       <path d="M3.5 9.5h17M8 3v4M16 3v4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
     </svg>
   ),
+  newsletter: (p: IconProps) => (
+    <svg viewBox="0 0 24 24" fill="none" className={p.className} aria-hidden="true">
+      <path d="M4 6h13a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4V6Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+      <path d="M19 8h1.5v10a2 2 0 0 1-2 2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M7 10h7M7 13h7M7 16h5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  ),
 }
 
 export default function DashboardLayout() {
@@ -84,6 +91,7 @@ export default function DashboardLayout() {
 
   const navItems = [
     { to: '/dashboard', label: t.navOverview, icon: icons.overview, end: true },
+    { to: '/dashboard/newsletters', label: t.navNewsletters, icon: icons.newsletter, end: false },
     { to: '/dashboard/referral', label: t.navReferral, icon: icons.referral, end: false },
     { to: '/dashboard/referrals', label: t.navReferrals, icon: icons.referrals, end: false },
     { to: '/dashboard/profile', label: t.navProfile, icon: icons.profile, end: false },

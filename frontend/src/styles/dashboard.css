@@ -857,6 +857,190 @@
 .dash-pill.is-declined { background: rgba(180, 60, 40, 0.12); color: #b23a23; }
 .dash-empty, .dash-muted-line { color: var(--dash-muted); font-size: 15px; padding: 18px 6px; margin: 0; }
 
+/* ---- Newsletters (member-portal /dashboard/newsletters) ----
+   The list is a stack of full-width cards; each card carries a cover image
+   (max 240px tall), a tag pill, a date, a title, a short excerpt, and a
+   subtle "Read" affordance. Clicking a card swaps into the detail state
+   which renders the full markdown body. */
+.dash-newsletter-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.dash-newsletter-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: var(--dash-card);
+  border: 1px solid var(--dash-line);
+  border-radius: var(--dash-radius);
+  box-shadow: var(--dash-shadow-sm);
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.3s var(--dash-ease), box-shadow 0.3s var(--dash-ease);
+  text-align: left;
+}
+.dash-newsletter-card:hover,
+.dash-newsletter-card:focus-visible {
+  transform: translateY(-2px);
+  box-shadow: var(--dash-shadow);
+  outline: none;
+}
+.dash-newsletter-card:focus-visible { box-shadow: 0 0 0 3px rgba(38, 86, 64, 0.28), var(--dash-shadow); }
+.dash-newsletter-cover {
+  display: block;
+  width: 100%;
+  max-height: 240px;
+  height: 240px;
+  object-fit: cover;
+  background: rgba(38, 86, 64, 0.06);
+}
+.dash-newsletter-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 22px 24px 24px;
+}
+.dash-newsletter-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.dash-newsletter-tag {
+  background: rgba(38, 86, 64, 0.12);
+  color: var(--dash-green);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 11px;
+}
+.dash-newsletter-date { font-size: 13px; color: var(--dash-muted); }
+.dash-newsletter-title {
+  margin: 4px 0 0;
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--dash-ink);
+  line-height: 1.3;
+}
+.dash-newsletter-excerpt {
+  margin: 0;
+  color: var(--dash-muted);
+  font-size: 14.5px;
+  line-height: 1.65;
+}
+.dash-newsletter-read {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--dash-green);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  margin-top: 4px;
+}
+.dash-newsletter-read svg { width: 16px; height: 16px; }
+
+/* Detail state — same visual language, tighter reading column for the body. */
+.dash-newsletter-detail {
+  background: var(--dash-card);
+  border: 1px solid var(--dash-line);
+  border-radius: var(--dash-radius);
+  box-shadow: var(--dash-shadow-sm);
+  overflow: hidden;
+  padding-bottom: 32px;
+}
+.dash-newsletter-detail-cover {
+  display: block;
+  width: 100%;
+  max-height: 320px;
+  object-fit: cover;
+  background: rgba(38, 86, 64, 0.06);
+}
+.dash-newsletter-detail-head {
+  padding: 24px 28px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.dash-newsletter-detail-head h2 {
+  margin: 6px 0 0;
+  font-size: 28px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--dash-ink);
+  line-height: 1.25;
+}
+.dash-newsletter-body {
+  padding: 18px 28px 0;
+  max-width: 68ch;
+  color: var(--dash-ink);
+  font-size: 15.5px;
+  line-height: 1.75;
+}
+.dash-newsletter-body p { margin: 0 0 1em; }
+.dash-newsletter-body p:last-child { margin-bottom: 0; }
+.dash-newsletter-body h1,
+.dash-newsletter-body h2,
+.dash-newsletter-body h3 {
+  margin: 1.4em 0 0.4em;
+  font-weight: 500;
+  color: var(--dash-ink);
+  letter-spacing: -0.01em;
+}
+.dash-newsletter-body h1 { font-size: 22px; }
+.dash-newsletter-body h2 { font-size: 19px; }
+.dash-newsletter-body h3 { font-size: 17px; }
+.dash-newsletter-body a { color: var(--dash-green); text-decoration: underline; }
+.dash-newsletter-body ul,
+.dash-newsletter-body ol { padding-left: 1.4em; margin: 0 0 1em; }
+.dash-newsletter-body blockquote {
+  margin: 1em 0;
+  padding: 4px 16px;
+  border-left: 3px solid var(--dash-coral);
+  color: var(--dash-muted);
+  font-style: italic;
+}
+.dash-newsletter-body code {
+  background: rgba(38, 86, 64, 0.08);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 0.92em;
+}
+.dash-newsletter-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 20px 28px 6px;
+  padding: 6px 10px 6px 4px;
+  background: transparent;
+  border: none;
+  color: var(--dash-green);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background-color 0.2s var(--dash-ease);
+}
+.dash-newsletter-back:hover { background: rgba(38, 86, 64, 0.06); }
+.dash-newsletter-back svg { width: 16px; height: 16px; }
+.dash-newsletter-banner {
+  border-left: 3px solid var(--dash-coral);
+  padding: 14px 20px;
+}
+.dash-newsletter-banner p { margin: 0; color: var(--dash-ink); font-size: 14px; }
+.dash-hero--slim { padding-block: 32px; }
+
+@media (max-width: 600px) {
+  .dash-newsletter-cover { height: 180px; max-height: 180px; }
+  .dash-newsletter-card-body { padding: 18px 18px 20px; }
+  .dash-newsletter-detail-head { padding: 20px 20px 4px; }
+  .dash-newsletter-body { padding: 16px 20px 0; font-size: 15px; }
+  .dash-newsletter-back { margin: 16px 20px 4px; }
+  .dash-newsletter-title { font-size: 20px; }
+  .dash-newsletter-detail-head h2 { font-size: 24px; }
+}
+
 /* ---- Events ---- */
 .dash-events { display: flex; flex-direction: column; gap: 14px; }
 .dash-event-card {

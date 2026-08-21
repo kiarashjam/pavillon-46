@@ -32,6 +32,13 @@ const icons: Record<string, Icon> = {
       <path d="M3 13h3l2.5-7 4 14L18 8l1.5 5H22" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   ),
+  newsletter: (p) => (
+    <svg viewBox="0 0 24 24" fill="none" className={p.className} aria-hidden="true">
+      <path d="M4 6h16v12H4z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+      <path d="m4 6 8 6 8-6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M20 6v3l-3-3" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+    </svg>
+  ),
 }
 
 const SECTIONS: Record<string, { title: string; sub: string }> = {
@@ -40,6 +47,7 @@ const SECTIONS: Record<string, { title: string; sub: string }> = {
   '/admin/members': { title: 'People', sub: 'Admins, members and submitters' },
   '/admin/referrals': { title: 'People', sub: 'Admins, members and submitters' },
   '/admin/activity': { title: 'Activity', sub: 'Site analytics & engagement' },
+  '/admin/newsletters': { title: 'Newsletters', sub: 'Write, publish, send.' },
 }
 
 export default function AdminLayout() {
@@ -85,9 +93,11 @@ export default function AdminLayout() {
   const navItems: { to: string; label: string; icon: Icon; end: boolean; also?: string[] }[] = [
     { to: '/admin', label: 'Overview', icon: icons.overview, end: true },
     { to: '/admin/people', label: 'People', icon: icons.members, end: false, also: ['/admin/members', '/admin/referrals'] },
+    { to: '/admin/newsletters', label: 'Newsletters', icon: icons.newsletter, end: false },
     { to: '/admin/activity', label: 'Activity', icon: icons.activity, end: false },
   ]
-  const section = SECTIONS[location.pathname] ?? SECTIONS['/admin']
+  const sectionKey = location.pathname.startsWith('/admin/newsletters') ? '/admin/newsletters' : location.pathname
+  const section = SECTIONS[sectionKey] ?? SECTIONS['/admin']
   const adminName = [admin?.firstName, admin?.lastName].filter(Boolean).join(' ') || admin?.email || 'Admin'
   const initials = adminInitials(admin?.firstName, admin?.lastName, admin?.email)
   const greeting = adminGreeting()

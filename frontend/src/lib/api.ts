@@ -137,6 +137,10 @@ export interface MemberDto {
   successfulReferrals: number
   bonusPoints: number
   mustChangePassword: boolean
+  /** Mirrors `MemberDto.NewsletterOptOut` (non-nullable `bool` server-side, so
+   *  always present in the payload). True once the member used the unsubscribe
+   *  link; the dashboard resubscribe button flips it back to false. */
+  newsletterOptOut: boolean
   createdAt: string
   lastLoginAt: string
 }
@@ -294,6 +298,21 @@ async function jsonRequest<T>(path: string, init: RequestInit): Promise<T> {
   return response.json() as Promise<T>
 }
 
+/** Like jsonRequest but for endpoints that answer 204 No Content, where
+ *  response.json() would throw on the empty body. Shares the same error and
+ *  401-broadcast path so an expired token still ends the session. */
+async function emptyRequest(path: string, init: RequestInit): Promise<void> {
+  const response = await fetch(apiUrl(path), {
+    ...init,
+    headers: { 'Content-Type': 'application/json', ...(init.headers ?? {}) },
+  })
+  if (!response.ok) {
+    if (response.status === 401) notifyUnauthorized(path)
+    const { message, errorType } = await readError(response)
+    throw new ApiError(response.status, message, errorType)
+  }
+}
+
 const bearer = (token: string) => ({ Authorization: `Bearer ${token}` })
 
 export async function login(email: string, password: string): Promise<LoginResponse> {
@@ -358,6 +377,43 @@ export async function submitReferral(token: string, body: ReferralBody): Promise
 
 export async function getEvents(token: string, lang: 'fr' | 'en'): Promise<{ announcements: AnnouncementDto[] }> {
   return jsonRequest<{ announcements: AnnouncementDto[] }>(`/api/members/events?lang=${lang}`, {
+    headers: bearer(token),
+  })
+}
+
+/** Member-facing newsletter row — already localized by the API, so `title` and
+ *  `body` reflect the language passed in the query. */
+export interface MemberNewsletterDto {
+  id: string
+  date: string
+  tag: string
+  title: string
+  body: string
+  coverImageUrl: string
+}
+
+export async function getMemberNewsletters(
+  token: string,
+  lang: 'fr' | 'en',
+): Promise<{ newsletters: MemberNewsletterDto[] }> {
+  return jsonRequest<{ newsletters: MemberNewsletterDto[] }>(
+    `/api/members/newsletters?lang=${lang}`,
+    { headers: bearer(token) },
+  )
+}
+
+/** Re-subscribe the signed-in member (clears Member.NewsletterOptOut). */
+export async function memberOptInNewsletters(token: string): Promise<void> {
+  return emptyRequest('/api/members/newsletters/opt-in', {
+    method: 'POST',
+    headers: bearer(token),
+  })
+}
+
+/** Unsubscribe from inside the portal, without needing an emailed link. */
+export async function memberOptOutNewsletters(token: string): Promise<void> {
+  return emptyRequest('/api/members/newsletters/opt-out', {
+    method: 'POST',
     headers: bearer(token),
   })
 }
@@ -589,4 +645,170 @@ export async function adminResetAdminPassword(
     `/api/admin/admins/${encodeURIComponent(id)}/reset-password?sendEmail=${sendEmail}`,
     { method: 'POST', headers: bearer(token) },
   )
+}
+
+// ---------------------------------------------------------------------------
+// Admin newsletters — the editorial module. Every endpoint is gated by the
+// admin bearer token, mirroring the admin/members surface.
+// ---------------------------------------------------------------------------
+
+export interface NewsletterSendAuditDto {
+  sentAt: string
+  adminId: string
+  totalRecipients: number
+  sent: number
+  failed: number
+  batches: number
+  testMode: boolean
+  failedRecipients: string[]
+  errors: string[]
+}
+
+export interface NewsletterDto {
+  id: string
+  titleFr: string
+  titleEn: string
+  bodyFr: string
+  bodyEn: string
+  tag: string
+  coverImageUrl: string
+  coverImageKeyword: string
+  status: 'draft' | 'published' | 'sent'
+  createdByAdminId: string
+  createdAt: string
+  updatedAt: string
+  publishedAt?: string | null
+  lastSentAt?: string | null
+  aiDrafted: boolean
+  sourceBrief: string
+  lastSend?: NewsletterSendAuditDto | null
+  /** Number of active, non-opt-out members with an email — the audience a send
+   *  would actually reach. Computed server-side in AdminNewslettersController
+   *  and serialized as a non-nullable `int`, so clients should use this rather
+   *  than recounting `/api/admin/members` themselves. */
+  audienceCount: number
+}
+
+export interface AdminNewslettersResponse {
+  newsletters: NewsletterDto[]
+  total: number
+  drafts: number
+  published: number
+  sent: number
+}
+
+export interface CreateNewsletterBody {
+  titleFr: string
+  titleEn: string
+  bodyFr: string
+  bodyEn: string
+  tag: string
+  coverImageUrl?: string
+  coverImageKeyword?: string
+  sourceBrief?: string
+  aiDrafted?: boolean
+}
+
+export type UpdateNewsletterBody = Partial<CreateNewsletterBody>
+
+export interface AiDraftBody {
+  brief: string
+  tone?: string
+}
+
+export interface AiDraftResponse {
+  titleFr: string
+  titleEn: string
+  bodyFr: string
+  bodyEn: string
+  tag: string
+  coverImageKeyword: string
+  coverImageUrl: string
+}
+
+export interface SendNewsletterBody {
+  testEmails?: string[]
+}
+
+export async function adminListNewsletters(token: string): Promise<AdminNewslettersResponse> {
+  return jsonRequest<AdminNewslettersResponse>('/api/admin/newsletters', { headers: bearer(token) })
+}
+
+export async function adminGetNewsletter(token: string, id: string): Promise<NewsletterDto> {
+  return jsonRequest<NewsletterDto>(`/api/admin/newsletters/${encodeURIComponent(id)}`, {
+    headers: bearer(token),
+  })
+}
+
+export async function adminCreateNewsletter(
+  token: string,
+  body: CreateNewsletterBody,
+): Promise<NewsletterDto> {
+  return jsonRequest<NewsletterDto>('/api/admin/newsletters', {
+    method: 'POST',
+    headers: bearer(token),
+    body: JSON.stringify(body),
+  })
+}
+
+export async function adminUpdateNewsletter(
+  token: string,
+  id: string,
+  body: UpdateNewsletterBody,
+): Promise<NewsletterDto> {
+  return jsonRequest<NewsletterDto>(`/api/admin/newsletters/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    headers: bearer(token),
+    body: JSON.stringify(body),
+  })
+}
+
+export async function adminDeleteNewsletter(
+  token: string,
+  id: string,
+): Promise<{ ok: boolean; id: string }> {
+  return jsonRequest(`/api/admin/newsletters/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    headers: bearer(token),
+  })
+}
+
+export async function adminPublishNewsletter(token: string, id: string): Promise<NewsletterDto> {
+  return jsonRequest<NewsletterDto>(
+    `/api/admin/newsletters/${encodeURIComponent(id)}/publish`,
+    { method: 'POST', headers: bearer(token) },
+  )
+}
+
+export async function adminUnpublishNewsletter(token: string, id: string): Promise<NewsletterDto> {
+  return jsonRequest<NewsletterDto>(
+    `/api/admin/newsletters/${encodeURIComponent(id)}/unpublish`,
+    { method: 'POST', headers: bearer(token) },
+  )
+}
+
+export async function adminSendNewsletter(
+  token: string,
+  id: string,
+  body: SendNewsletterBody = {},
+): Promise<NewsletterSendAuditDto> {
+  return jsonRequest<NewsletterSendAuditDto>(
+    `/api/admin/newsletters/${encodeURIComponent(id)}/send`,
+    {
+      method: 'POST',
+      headers: bearer(token),
+      body: JSON.stringify(body),
+    },
+  )
+}
+
+export async function adminDraftNewsletterWithAi(
+  token: string,
+  body: AiDraftBody,
+): Promise<AiDraftResponse> {
+  return jsonRequest<AiDraftResponse>('/api/admin/newsletters/draft-ai', {
+    method: 'POST',
+    headers: bearer(token),
+    body: JSON.stringify(body),
+  })
 }

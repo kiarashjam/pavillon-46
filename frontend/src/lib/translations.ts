@@ -221,6 +221,31 @@ export interface DashboardTranslations {
   eventsTitle: string
   eventsSubtitle: string
   eventsEmpty: string
+  // Newsletters (member-side)
+  navNewsletters: string
+  newslettersEyebrow: string
+  newslettersTitle: string
+  newslettersSubtitle: string
+  newslettersEmptyTitle: string
+  newslettersEmptyHint: string
+  newslettersReadMore: string
+  newslettersUnsubscribed: string
+  newslettersResubscribe: string
+  newslettersDatePrefix: string
+  newslettersOptOutSuccess: string
+  newslettersOptInSuccess: string
+  newslettersOptInError: string
+  newslettersBack: string
+  // Newsletters (admin console: AI drafting, delete, send confirm)
+  newsletterAiRateLimited: string
+  newsletterAiUnusable: string
+  newsletterAiFailed: string
+  newsletterAiOverwriteConfirm: string
+  newsletterDeleteConfirm: string
+  newsletterDeleteFailed: string
+  newsletterTestEmailsInvalid: string
+  newsletterSendAllFailed: string
+  newsletterAudienceUnknown: string
 }
 
 export interface ThankYouTranslations {
@@ -475,6 +500,30 @@ export const translations: Record<Language, Translations> = {
       eventsTitle: 'Actualités & événements',
       eventsSubtitle: 'Les nouvelles réservées aux membres du Pavillon 46.',
       eventsEmpty: 'Aucune actualité pour le moment.',
+      navNewsletters: 'Infolettres',
+      newslettersEyebrow: 'Récits',
+      newslettersTitle: 'Nos infolettres',
+      newslettersSubtitle: 'Textes courts partagés avec les membres.',
+      newslettersEmptyTitle: "Rien à lire pour l'instant",
+      newslettersEmptyHint: 'La prochaine infolettre arrivera bientôt.',
+      newslettersReadMore: 'Lire',
+      newslettersUnsubscribed: 'Vous vous êtes désabonné des infolettres.',
+      newslettersResubscribe: 'Se réabonner',
+      newslettersDatePrefix: 'Publiée le',
+      newslettersOptOutSuccess: 'Désabonnement confirmé.',
+      newslettersOptInSuccess: 'Réabonnement confirmé.',
+      newslettersOptInError: 'Le réabonnement a échoué. Veuillez réessayer.',
+      newslettersBack: 'Retour',
+      newsletterAiRateLimited: 'Trop de brouillons générés. Réessayez dans quelques minutes.',
+      newsletterAiUnusable:
+        "L'IA n'a pas produit de brouillon exploitable. Reformulez votre brief.",
+      newsletterAiFailed: 'Génération impossible. Veuillez réessayer.',
+      newsletterAiOverwriteConfirm: 'Remplacer le contenu déjà saisi ?',
+      newsletterDeleteConfirm: 'Confirmer la suppression ?',
+      newsletterDeleteFailed: 'Suppression impossible.',
+      newsletterTestEmailsInvalid: 'Aucune adresse valide détectée.',
+      newsletterSendAllFailed: "Tous les envois ont échoué. Consultez le journal d'envoi.",
+      newsletterAudienceUnknown: 'Nombre de destinataires indisponible.',
     },
     thankYou: {
       title: 'Merci - Pavillon 46',
@@ -741,6 +790,29 @@ export const translations: Record<Language, Translations> = {
       eventsTitle: 'News & events',
       eventsSubtitle: 'Members-only updates from Pavillon 46.',
       eventsEmpty: 'No news at the moment.',
+      navNewsletters: 'Newsletters',
+      newslettersEyebrow: 'Stories',
+      newslettersTitle: 'Our newsletters',
+      newslettersSubtitle: 'Short pieces shared with members.',
+      newslettersEmptyTitle: 'Nothing to read yet',
+      newslettersEmptyHint: 'The next one will arrive soon.',
+      newslettersReadMore: 'Read',
+      newslettersUnsubscribed: "You've unsubscribed from newsletters.",
+      newslettersResubscribe: 'Resubscribe',
+      newslettersDatePrefix: 'Published on',
+      newslettersOptOutSuccess: 'Unsubscribed successfully.',
+      newslettersOptInSuccess: 'Resubscribed successfully.',
+      newslettersOptInError: 'Resubscribing failed. Please try again.',
+      newslettersBack: 'Back',
+      newsletterAiRateLimited: 'Too many drafts generated. Please try again in a few minutes.',
+      newsletterAiUnusable: 'The AI could not produce a usable draft. Try rephrasing your brief.',
+      newsletterAiFailed: 'Generation failed. Please try again.',
+      newsletterAiOverwriteConfirm: "Replace the content you've already written?",
+      newsletterDeleteConfirm: 'Confirm delete?',
+      newsletterDeleteFailed: 'Could not delete.',
+      newsletterTestEmailsInvalid: 'No valid address detected.',
+      newsletterSendAllFailed: 'All sends failed. Check the send log.',
+      newsletterAudienceUnknown: 'Recipient count unavailable.',
     },
     thankYou: {
       title: 'Thank You - Pavillon 46',
