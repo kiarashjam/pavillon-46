@@ -43,6 +43,41 @@ public class AzureStorageOptions
     public string ApplicantsTableName { get; set; } = "Applicants";
     public string AdminsTableName { get; set; } = "Admins";
     public string PasswordResetTokensTableName { get; set; } = "PasswordResetTokens";
+    public string NewslettersTableName { get; set; } = "Newsletters";
+}
+
+/// <summary>
+/// Configuration for the newsletter module — the HMAC used to sign unsubscribe
+/// links, the Anthropic credentials used by the AI draft endpoint, and the
+/// bulk-send batch cap. Populated from the legacy env vars
+/// <c>NEWSLETTER_UNSUBSCRIBE_SECRET</c>, <c>ANTHROPIC_API_KEY</c>,
+/// <c>ANTHROPIC_MODEL</c> and <c>NEWSLETTER_BATCH_SIZE</c> in
+/// <c>Program.MapLegacyEnvVars</c>.
+/// </summary>
+public class NewsletterOptions
+{
+    // HMAC secret used to sign unsubscribe tokens (see UnsubscribeTokenService).
+    // The dev default is fine locally; production MUST override via
+    // NEWSLETTER_UNSUBSCRIBE_SECRET so the token domain is isolated from the
+    // app-wide session secret. Empty falls back to a dev value.
+    public string UnsubscribeSecret { get; set; } = "pavillon46-dev-newsletter-unsubscribe-secret-change-me";
+
+    // Anthropic credentials for the AI drafting endpoint. Empty ApiKey => the
+    // /draft-ai endpoint returns a 502 ai_upstream (no calls made).
+    public string AnthropicApiKey { get; set; } = "";
+    public string AnthropicModel { get; set; } = "claude-sonnet-5";
+    public string AnthropicApiUrl { get; set; } = "https://api.anthropic.com/v1/messages";
+    public int AnthropicTimeoutMs { get; set; } = 45000;
+
+    // SendGrid caps a single message at 1000 personalizations. Chunking is
+    // enforced at min(MaxRecipientsPerBatch, 1000) so config can only shrink it.
+    public int MaxRecipientsPerBatch { get; set; } = 1000;
+
+    // Between the first attempt and the retry inside NewsletterSender.
+    public int RetryDelayMs { get; set; } = 500;
+
+    // Language picked for test-mode recipients when no member row is available.
+    public string DefaultTestLanguage { get; set; } = "fr";
 }
 
 public class SiteOptions

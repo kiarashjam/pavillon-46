@@ -24,6 +24,7 @@ builder.Services.Configure<ActivityOptions>(builder.Configuration.GetSection("Ac
 builder.Services.Configure<AzureStorageOptions>(builder.Configuration.GetSection("AzureStorage"));
 builder.Services.Configure<SiteOptions>(builder.Configuration.GetSection("Site"));
 builder.Services.Configure<AuthOptions>(builder.Configuration.GetSection("Auth"));
+builder.Services.Configure<NewsletterOptions>(builder.Configuration.GetSection("Newsletter"));
 
 builder.Services.AddSingleton<IActivityStore, ActivityStore>();
 builder.Services.AddSingleton<IEmailService, EmailService>();
@@ -33,11 +34,15 @@ builder.Services.AddSingleton<IMemberStore, MemberStore>();
 builder.Services.AddSingleton<IApplicantStore, ApplicantStore>();
 builder.Services.AddSingleton<IAdminStore, AdminStore>();
 builder.Services.AddSingleton<IPasswordResetTokenStore, PasswordResetTokenStore>();
+builder.Services.AddSingleton<INewsletterStore, NewsletterStore>();
+builder.Services.AddSingleton<IUnsubscribeTokenService, UnsubscribeTokenService>();
+builder.Services.AddSingleton<INewsletterSender, NewsletterSender>();
 builder.Services.AddSingleton<ITokenService, TokenService>();
 builder.Services.AddSingleton<IAnnouncementService, AnnouncementService>();
 builder.Services.AddSingleton<RateLimiter>(_ => new RateLimiter { MaxEvents = 30, WindowMs = 15_000 });
 builder.Services.AddSingleton<KeyedRateLimiter>();
 builder.Services.AddHttpClient<ILeadsWebhookService, LeadsWebhookService>();
+builder.Services.AddHttpClient<INewsletterAiService, NewsletterAiService>();
 
 builder.Services.AddControllers()
     .AddJsonOptions(opts =>
@@ -108,6 +113,12 @@ if (string.IsNullOrWhiteSpace(sendgridOpts.ApiKey) || string.IsNullOrWhiteSpace(
 }
 
 await SeedInitialAdminAsync(app);
+
+// Eagerly construct the unsubscribe token service so its configuration check
+// (and the CRITICAL log when the secret is still a repo default) surfaces in the
+// deploy logs at boot, rather than lying dormant until the first member clicks
+// an unsubscribe link.
+app.Services.GetRequiredService<IUnsubscribeTokenService>();
 
 app.Run();
 
@@ -223,6 +234,16 @@ static void MapLegacyEnvVars(IConfigurationManager config)
     Map("AZURE_STORAGE_APPLICANTS_TABLE", "AzureStorage:ApplicantsTableName");
     Map("AZURE_STORAGE_ADMINS_TABLE", "AzureStorage:AdminsTableName");
     Map("AZURE_STORAGE_RESET_TOKENS_TABLE", "AzureStorage:PasswordResetTokensTableName");
+    Map("AZURE_STORAGE_NEWSLETTERS_TABLE", "AzureStorage:NewslettersTableName");
+
+    // Newsletter module — HMAC secret for stateless unsubscribe tokens, the
+    // Anthropic credentials for the AI drafter, and the SendGrid batch cap.
+    Map("NEWSLETTER_UNSUBSCRIBE_SECRET", "Newsletter:UnsubscribeSecret");
+    Map("ANTHROPIC_API_KEY", "Newsletter:AnthropicApiKey");
+    Map("ANTHROPIC_MODEL", "Newsletter:AnthropicModel");
+    var newsletterBatch = Environment.GetEnvironmentVariable("NEWSLETTER_BATCH_SIZE");
+    if (int.TryParse(newsletterBatch, out var batchSize) && batchSize > 0)
+        config["Newsletter:MaxRecipientsPerBatch"] = batchSize.ToString();
 
     Map("SITE_URL", "Site:Url");
     Map("NEXT_PUBLIC_SITE_URL", "Site:Url");
