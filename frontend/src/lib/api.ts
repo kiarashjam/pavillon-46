@@ -351,12 +351,15 @@ export async function updateProfile(token: string, body: ProfileUpdateBody): Pro
   })
 }
 
+/** Returns a FRESH session (new token + member): changing the password bumps
+ *  PasswordVersion server-side, which invalidates the token used to make this
+ *  call. Callers must store the returned token or the next request will 401. */
 export async function changePassword(
   token: string,
   newPassword: string,
   currentPassword?: string,
-): Promise<MemberDto> {
-  return jsonRequest<MemberDto>('/api/members/me/change-password', {
+): Promise<LoginResponse> {
+  return jsonRequest<LoginResponse>('/api/members/me/change-password', {
     method: 'POST',
     headers: bearer(token),
     body: JSON.stringify({ newPassword, currentPassword }),

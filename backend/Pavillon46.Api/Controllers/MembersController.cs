@@ -18,6 +18,7 @@ public class MembersController : ControllerBase
     private readonly ILeadsWebhookService _webhook;
     private readonly IEmailService _email;
     private readonly IPasswordResetTokenStore _resetTokens;
+    private readonly ITokenService _tokens;
     private readonly SiteOptions _site;
     private readonly ILogger<MembersController> _logger;
 
@@ -29,6 +30,7 @@ public class MembersController : ControllerBase
         ILeadsWebhookService webhook,
         IEmailService email,
         IPasswordResetTokenStore resetTokens,
+        ITokenService tokens,
         IOptions<SiteOptions> site,
         ILogger<MembersController> logger)
     {
@@ -39,6 +41,7 @@ public class MembersController : ControllerBase
         _webhook = webhook;
         _email = email;
         _resetTokens = resetTokens;
+        _tokens = tokens;
         _site = site.Value;
         _logger = logger;
     }
@@ -134,7 +137,18 @@ public class MembersController : ControllerBase
             _logger.LogWarning(ex, "Password-changed confirmation email failed for {Email}", member.Email);
         }
 
-        return Ok(MemberDto.From(member));
+        // Re-issue the session token so it carries the bumped PasswordVersion.
+        // Without this the caller's existing token has a stale `pv` and is
+        // rejected by MemberAuthorizeFilter on the very next request — which
+        // logged every invited member straight back out to /login the moment
+        // they set their first password. Mirrors AdminAuthController.
+        var (newToken, expiresAt) = _tokens.Create(member);
+        return Ok(new LoginResponse
+        {
+            Token = newToken,
+            ExpiresAt = expiresAt.UtcDateTime.ToString("o"),
+            Member = MemberDto.From(member),
+        });
     }
 
     [HttpGet("me/referrals")]

@@ -183,6 +183,11 @@ export default function Newsletters() {
       className="dash-stack"
     >
       <motion.section variants={animationVariants.item} className="dash-hero dash-hero--slim">
+        {/* .dash-hero sets color:#fff, so it needs these two layers to supply the
+            dark backdrop. Without them the title renders white-on-cream and is
+            effectively invisible — see Overview.tsx for the same pairing. */}
+        <div className="dash-hero-media" aria-hidden="true" />
+        <div className="dash-hero-veil" aria-hidden="true" />
         <div className="dash-hero-content">
           <span className="dash-hero-eyebrow">{t.newslettersEyebrow}</span>
           <h1 className="dash-hero-title">{t.newslettersTitle}</h1>
