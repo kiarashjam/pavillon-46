@@ -1,12 +1,15 @@
+using System.Text.Json.Serialization;
+
 namespace Pavillon46.Api.Models;
 
 // ---------------------------------------------------------------------------
 // Newsletter domain — persisted through NewsletterStore (Azure Table Storage
 // with the same JSONL/in-memory fallback ladder as MemberStore).
 // Every newsletter carries bilingual FR/EN copy, a cover image, an audit trail
-// of its last send (see NewsletterSendAudit), and a status lifecycle
-// draft → published → sent. Once "sent" the row becomes read-only (updates
-// blocked in the controller).
+// of its sends (see NewsletterSendAudit: LastSend, LastTestSend, SendHistory),
+// and a status lifecycle draft → published → sent. Once "sent" the row becomes
+// read-only AND undeletable (both 409 in the controller) — it is the delivery
+// record for an issue that is already in members' inboxes.
 // ---------------------------------------------------------------------------
 
 public class Newsletter
@@ -36,10 +39,41 @@ public class Newsletter
     // The one-line brief the admin passed to the AI drafter, kept for
     // provenance. Empty for hand-authored newsletters.
     public string SourceBrief { get; set; } = "";
-    // Latest send audit — overwritten on each successful send. History is not
-    // retained by design (see docs); the dashboard only surfaces the most
-    // recent attempt.
+
+    // Audit of the most recent REAL send (a full-audience send or a
+    // resend-failed). Test sends never touch this — they land in LastTestSend —
+    // so a post-send test mail can no longer erase the record of who actually
+    // received the issue, and resend-failed always has a truthful list of
+    // member ids to retry.
     public NewsletterSendAudit? LastSend { get; set; }
+
+    // Audit of the most recent TEST send. Overwritten freely; carries no
+    // delivery record worth preserving.
+    public NewsletterSendAudit? LastTestSend { get; set; }
+
+    // Real sends only, most recent first, capped by NewsletterSender so a
+    // re-send does not erase the previous send's record. Entries are compact
+    // (counters plus a couple of error lines, no recipient lists) — the whole
+    // row is serialized into a single Azure Table "data" property with a 64KB
+    // ceiling, so only LastSend carries the capped failed-recipient list.
+    public List<NewsletterSendAudit> SendHistory { get; set; } = new();
+
+    // --- send claim: the persisted half of the idempotency guard ------------
+    // Written through a conditional (ETag / RowVersion) update immediately
+    // before dispatch and cleared when the send finishes, success or failure. A
+    // claim younger than NewsletterOptions.SendClaimStaleMinutes makes /send and
+    // /resend-failed answer 409 send_already_in_progress, so a double-click — or
+    // a second admin, or a second instance — cannot mail the membership twice.
+    // A crashed send leaves a claim behind; the staleness window is what frees
+    // the newsletter again without manual intervention.
+    public string? SendClaimedAtUtc { get; set; }
+    public string? SendClaimedByAdminId { get; set; }
+
+    // Optimistic-concurrency stamp used by the JsonTableStore FILE and MEMORY
+    // fallbacks (the Azure path compares the row's real ETag instead and leaves
+    // this empty). Bumped by the store on every successful conditional write —
+    // never assign it by hand.
+    public string? RowVersion { get; set; }
 }
 
 public class NewsletterSendAudit
@@ -51,7 +85,31 @@ public class NewsletterSendAudit
     public int Failed { get; set; }
     public int Batches { get; set; }
     public bool TestMode { get; set; }
+    // "send" (full audience) | "test" | "resend" (retry of a previous send's
+    // failures). TestMode is kept alongside it for existing clients.
+    public string Kind { get; set; } = "send";
+
+    // Member ids of the recipients whose delivery failed, capped by
+    // NewsletterSender (see MaxFailedRecipientsRecorded). Ids rather than email
+    // addresses: less PII sitting in an audit row, and it is exactly what
+    // /resend-failed needs. Truncation is visible through FailedTotal.
     public List<string> FailedRecipients { get; set; } = new();
+
+    // True number of failures, which FailedRecipients may under-report once the
+    // cap is hit. Equal to Failed; kept explicit so a reader of a truncated
+    // list can tell how much is missing. A broad upstream outage used to
+    // serialize every failed address into the row's single "data" property and
+    // blow Table Storage's 64KB property limit — which threw, lost the audit
+    // AND left the status un-flipped, inviting a duplicate send.
+    public int FailedTotal { get; set; }
+
+    // Email addresses of every failure, uncapped — request-scoped only. Never
+    // persisted (JsonIgnore) and never serialized into a newsletter response;
+    // SendAuditDto lifts it so the admin who triggered THIS send sees real
+    // addresses instead of opaque ids.
+    [JsonIgnore]
+    public List<string> FailedRecipientEmails { get; set; } = new();
+
     // Human-readable error lines, capped at 20 by NewsletterSender so an
     // outage can't blow up storage or the response payload.
     public List<string> Errors { get; set; } = new();
@@ -111,12 +169,20 @@ public class NewsletterDto
     public bool AiDrafted { get; set; }
     public string SourceBrief { get; set; } = "";
     public NewsletterSendAudit? LastSend { get; set; }
+    public NewsletterSendAudit? LastTestSend { get; set; }
+    // Compact history of real sends, most recent first. Only populated on the
+    // single-newsletter read (includeHistory) — the list endpoint would carry
+    // it for every row for no benefit.
+    public List<NewsletterSendAudit>? SendHistory { get; set; }
+    // Non-null while a send holds the claim on this newsletter: the UI can grey
+    // out its Send button instead of discovering the 409 the hard way.
+    public string? SendClaimedAtUtc { get; set; }
     // Number of active, non-opt-out members with an email — the "N members"
     // the admin will hit if they trigger a send right now. Computed at read
     // time in AdminNewslettersController against the current member store.
     public int AudienceCount { get; set; }
 
-    public static NewsletterDto From(Newsletter n, int audienceCount) => new()
+    public static NewsletterDto From(Newsletter n, int audienceCount, bool includeHistory = false) => new()
     {
         Id = n.Id,
         TitleFr = n.TitleFr,
@@ -135,6 +201,9 @@ public class NewsletterDto
         AiDrafted = n.AiDrafted,
         SourceBrief = n.SourceBrief,
         LastSend = n.LastSend,
+        LastTestSend = n.LastTestSend,
+        SendHistory = includeHistory ? (n.SendHistory ?? new List<NewsletterSendAudit>()) : null,
+        SendClaimedAtUtc = n.SendClaimedAtUtc,
         AudienceCount = audienceCount,
     };
 }
@@ -173,6 +242,37 @@ public class AiDraftResult
     public int? HttpStatus { get; set; }
 }
 
+/// <summary>
+/// Response body of POST /send and POST /resend-failed.
+/// <para>
+/// Shape contract: a dispatch that ran is always HTTP <b>200</b>, even when
+/// every single message failed, and the caller reads the outcome off the body:
+/// </para>
+/// <code>
+/// {
+///   "newsletterId": "…", "sentAt": "…", "adminId": "…", "kind": "send",
+///   "ok": false,                 // false as soon as one recipient failed
+///   "outcome": "all_failed",     // "sent" | "partial" | "all_failed"
+///   "totalRecipients": 412, "sent": 0, "failed": 412, "failedTotal": 412,
+///   "batches": 1, "testMode": false,
+///   "failedRecipients": ["a@b.ch", …],   // addresses for this request
+///   "failedRecipientIds": ["7f3c…", …],  // capped, as persisted
+///   "errors": ["batch 1 — 412 recipients failed: SendGrid 401 - …"]
+/// }
+/// </code>
+/// <para>
+/// Non-2xx is reserved for request-level errors (unknown id, wrong state, bad
+/// input, sender misconfigured), whose body is the usual
+/// <c>{ message, errorType }</c>. The frontend's jsonRequest helper throws on
+/// any non-2xx and keeps only message/errorType, so an upstream failure
+/// returned as 502 discarded the whole audit and surfaced as
+/// "Request failed (502)" — hence 200 + ok/outcome here.
+/// </para>
+/// <para>
+/// A send with no eligible recipients reports ok=true, outcome="sent" and
+/// totalRecipients=0; there is nothing to fail.
+/// </para>
+/// </summary>
 public class SendAuditDto
 {
     public string NewsletterId { get; set; } = "";
@@ -181,9 +281,17 @@ public class SendAuditDto
     public int TotalRecipients { get; set; }
     public int Sent { get; set; }
     public int Failed { get; set; }
+    public int FailedTotal { get; set; }
     public int Batches { get; set; }
     public bool TestMode { get; set; }
+    public string Kind { get; set; } = "send";
+    public bool Ok { get; set; }
+    public string Outcome { get; set; } = "sent";
+    // Email addresses when this DTO describes the send the caller just
+    // triggered, member ids when it is rebuilt from a stored audit.
     public List<string> FailedRecipients { get; set; } = new();
+    // The persisted (capped) member ids — what /resend-failed will act on.
+    public List<string> FailedRecipientIds { get; set; } = new();
     public List<string> Errors { get; set; } = new();
 
     public static SendAuditDto From(string newsletterId, NewsletterSendAudit a) => new()
@@ -194,9 +302,14 @@ public class SendAuditDto
         TotalRecipients = a.TotalRecipients,
         Sent = a.Sent,
         Failed = a.Failed,
+        FailedTotal = a.FailedTotal > 0 ? a.FailedTotal : a.Failed,
         Batches = a.Batches,
         TestMode = a.TestMode,
-        FailedRecipients = a.FailedRecipients,
+        Kind = a.Kind,
+        Ok = a.Failed == 0,
+        Outcome = a.Failed == 0 ? "sent" : (a.Sent > 0 ? "partial" : "all_failed"),
+        FailedRecipients = a.FailedRecipientEmails.Count > 0 ? a.FailedRecipientEmails : a.FailedRecipients,
+        FailedRecipientIds = a.FailedRecipients,
         Errors = a.Errors,
     };
 }

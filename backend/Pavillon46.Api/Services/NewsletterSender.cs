@@ -10,14 +10,35 @@ namespace Pavillon46.Api.Services;
 public interface INewsletterSender
 {
     /// <summary>Bulk-send a newsletter. If <paramref name="testEmails"/> is
-    /// non-empty, only those addresses receive a copy and the newsletter's
-    /// stored status is unchanged. Otherwise the full active, non-opt-out
-    /// member base receives the newsletter and the row is flipped to
-    /// "sent" on first successful send.</summary>
+    /// non-empty, only those addresses receive a copy, the audit lands in
+    /// <c>LastTestSend</c> and the newsletter's stored status is unchanged.
+    /// Otherwise the full active, non-opt-out member base receives the
+    /// newsletter and the row is flipped to "sent" on first successful send.
+    /// <para>
+    /// The caller's <paramref name="ct"/> only guards the reads that happen
+    /// before any mail exists. Once dispatch starts it is deliberately ignored:
+    /// a client disconnect must never leave recipients mailed with no audit.
+    /// Addresses are expected pre-validated by the controller — this method does
+    /// not decide test-vs-real on the caller's behalf beyond "is the list
+    /// non-empty".
+    /// </para></summary>
     Task<NewsletterSendAudit> SendAsync(
         string newsletterId,
         string adminId,
         IReadOnlyList<string>? testEmails,
+        CancellationToken ct);
+
+    /// <summary>Re-send a newsletter to the recipients recorded as failed by a
+    /// previous real send. <paramref name="failedRecipientTokens"/> holds member
+    /// ids (older audits stored email addresses, which are still matched) and is
+    /// re-filtered through the same eligibility gate as a full send, so a member
+    /// who has since unsubscribed or been deactivated is skipped. Members who
+    /// already received the issue are never touched: they are not in the
+    /// list.</summary>
+    Task<NewsletterSendAudit> ResendAsync(
+        string newsletterId,
+        string adminId,
+        IReadOnlyList<string> failedRecipientTokens,
         CancellationToken ct);
 }
 
@@ -30,6 +51,13 @@ public interface INewsletterSender
 /// -greeting-, -unsubscribeUrl-, -subject-, retry once on failure with a small
 /// delay, and record every partial failure in a NewsletterSendAudit that also
 /// gets persisted back onto the newsletter row.
+/// <para>
+/// Two invariants hold once dispatch has started: the send is not abortable by
+/// the caller (the loop runs on CancellationToken.None), and the audit is
+/// written in a finally — including the release of the send claim the controller
+/// took before calling in. Anything less leaves recipients mailed with no record
+/// and a status that invites a second send.
+/// </para>
 /// </summary>
 public class NewsletterSender : INewsletterSender
 {
@@ -47,6 +75,26 @@ public class NewsletterSender : INewsletterSender
     private const int HardBatchCap = 1000;
     // Errors[] is capped so a runaway upstream cannot bloat storage.
     private const int MaxErrorsRecorded = 20;
+    // FailedRecipients[] is capped for the same reason, and harder: the whole
+    // newsletter row is serialized into ONE Azure Table "data" property, whose
+    // ceiling is 64KB. A broad SendGrid outage used to push every failed address
+    // in there, the upsert threw, and the audit was lost along with the status
+    // flip — which then invited a duplicate send. FailedTotal keeps the true
+    // count; ids (not addresses) keep the row small and less PII-heavy.
+    private const int MaxFailedRecipientsRecorded = 200;
+    // SendHistory keeps this many real sends, most recent first.
+    private const int MaxSendHistory = 10;
+
+    /// <summary>What a dispatch is, for auditing and for how it lands on the row.</summary>
+    private enum SendKind
+    {
+        /// <summary>Full member audience; flips the row to "sent".</summary>
+        Full,
+        /// <summary>Explicit test addresses; never touches LastSend or Status.</summary>
+        Test,
+        /// <summary>Retry of a previous real send's failures.</summary>
+        Resend,
+    }
 
     public NewsletterSender(
         IMemberStore members,
@@ -66,10 +114,32 @@ public class NewsletterSender : INewsletterSender
         _logger = logger;
     }
 
-    public async Task<NewsletterSendAudit> SendAsync(
+    public Task<NewsletterSendAudit> SendAsync(
         string newsletterId,
         string adminId,
         IReadOnlyList<string>? testEmails,
+        CancellationToken ct) =>
+        DispatchAsync(
+            newsletterId,
+            adminId,
+            testEmails is { Count: > 0 } ? SendKind.Test : SendKind.Full,
+            testEmails,
+            null,
+            ct);
+
+    public Task<NewsletterSendAudit> ResendAsync(
+        string newsletterId,
+        string adminId,
+        IReadOnlyList<string> failedRecipientTokens,
+        CancellationToken ct) =>
+        DispatchAsync(newsletterId, adminId, SendKind.Resend, null, failedRecipientTokens, ct);
+
+    private async Task<NewsletterSendAudit> DispatchAsync(
+        string newsletterId,
+        string adminId,
+        SendKind kind,
+        IReadOnlyList<string>? testEmails,
+        IReadOnlyList<string>? resendTokens,
         CancellationToken ct)
     {
         // Use the shared resolvers rather than the raw options: they trim (an
@@ -86,13 +156,14 @@ public class NewsletterSender : INewsletterSender
         var newsletter = await _newsletters.GetByIdAsync(newsletterId, ct)
             ?? throw new InvalidOperationException($"Newsletter {newsletterId} not found.");
 
-        var testMode = testEmails is { Count: > 0 };
+        var testMode = kind == SendKind.Test;
 
         var audit = new NewsletterSendAudit
         {
             SentAt = DateTime.UtcNow.ToString("o"),
             AdminId = adminId,
             TestMode = testMode,
+            Kind = KindName(kind),
         };
 
         // Language buckets: language code → recipient list. Test mode uses one
@@ -100,11 +171,13 @@ public class NewsletterSender : INewsletterSender
         // uniform (no branching on the loop below).
         var buckets = new Dictionary<string, List<Recipient>>(StringComparer.OrdinalIgnoreCase);
 
-        if (testMode)
+        if (kind == SendKind.Test)
         {
             var lang = NormalizeLang(_newsletterOpts.DefaultTestLanguage);
             var list = new List<Recipient>();
-            foreach (var raw in testEmails!)
+            // The controller already trims, validates and dedupes; this is a
+            // defence in depth for any other caller, not the primary gate.
+            foreach (var raw in testEmails ?? Array.Empty<string>())
             {
                 var email = (raw ?? "").Trim();
                 if (string.IsNullOrWhiteSpace(email) || !email.Contains('@')) continue;
@@ -115,12 +188,23 @@ public class NewsletterSender : INewsletterSender
         }
         else
         {
+            // Resend targets are matched by member id, and by email as well so
+            // audits written before FailedRecipients held ids still resolve.
+            HashSet<string>? wanted = null;
+            if (kind == SendKind.Resend)
+            {
+                wanted = new HashSet<string>(
+                    (resendTokens ?? Array.Empty<string>())
+                        .Where(t => !string.IsNullOrWhiteSpace(t))
+                        .Select(t => t.Trim()),
+                    StringComparer.OrdinalIgnoreCase);
+            }
+
             var members = await _members.ListAsync(ct);
             foreach (var m in members)
             {
-                if (!string.Equals(m.Status, "active", StringComparison.OrdinalIgnoreCase)) continue;
-                if (m.NewsletterOptOut) continue;
-                if (string.IsNullOrWhiteSpace(m.Email) || !m.Email.Contains('@')) continue;
+                if (!IsEligibleRecipient(m)) continue;
+                if (wanted is not null && !wanted.Contains(m.Id) && !wanted.Contains(m.Email ?? "")) continue;
                 var lang = NormalizeLang(m.PreferredLanguage);
                 if (!buckets.TryGetValue(lang, out var list))
                 {
@@ -132,104 +216,137 @@ public class NewsletterSender : INewsletterSender
         }
 
         audit.TotalRecipients = buckets.Values.Sum(v => v.Count);
-        if (audit.TotalRecipients == 0)
+
+        // From here on the audit MUST be written, whatever happens: the finally
+        // below is the only thing standing between "recipients were mailed" and
+        // "the row still says published, so the admin sends again". It also
+        // clears the send claim the controller took before calling us.
+        try
         {
-            _logger.LogInformation(
-                "Newsletter {NewsletterId} had no recipients (adminId={AdminId} testMode={TestMode})",
-                newsletter.Id, adminId, testMode);
-            await PersistAuditAsync(newsletter, audit, testMode, ct);
+            if (audit.TotalRecipients == 0)
+            {
+                _logger.LogInformation(
+                    "Newsletter {NewsletterId} had no recipients (adminId={AdminId} kind={Kind})",
+                    newsletter.Id, adminId, audit.Kind);
+                return audit;
+            }
+
+            // Deliberately NOT the request's token. Once the first batch is
+            // handed to SendGrid the send is no longer the HTTP request's to
+            // abort: closing the browser tab used to cancel the loop, throw
+            // OperationCanceledException past the audit write, and leave
+            // recipients mailed with no record and a status still "published".
+            var dispatchCt = CancellationToken.None;
+
+            var batchCap = Math.Clamp(_newsletterOpts.MaxRecipientsPerBatch, 1, HardBatchCap);
+            var client = new SendGridClient(_sendgrid.ResolvedApiKey());
+            var from = new EmailAddress(_sendgrid.ResolvedFromEmail(), _sendgrid.ResolvedFromName());
+
+            foreach (var (lang, list) in buckets)
+            {
+                var htmlTemplate = BuildHtml(newsletter, lang);
+                var plainTemplate = BuildPlain(newsletter, lang);
+                var subjectRaw = string.Equals(lang, "en", StringComparison.OrdinalIgnoreCase)
+                    ? newsletter.TitleEn
+                    : newsletter.TitleFr;
+
+                var offset = 0;
+                while (offset < list.Count)
+                {
+                    var take = Math.Min(batchCap, list.Count - offset);
+                    var slice = list.GetRange(offset, take);
+                    offset += take;
+                    audit.Batches += 1;
+
+                    var template = new BatchTemplate(from, plainTemplate, htmlTemplate);
+
+                    // Recipient ⇄ personalization pairs, kept together so a failing
+                    // batch can be bisected without losing the mapping.
+                    var accepted = new List<(Recipient Recipient, Personalization Personalization)>();
+                    foreach (var r in slice)
+                    {
+                        // A malformed member row must never fail the whole batch:
+                        // the personalization is skipped, the recipient is recorded
+                        // as failed, and the loop moves on.
+                        try
+                        {
+                            var personalization = new Personalization
+                            {
+                                Tos = new List<EmailAddress>
+                                {
+                                    new(r.Email, $"{r.FirstName} {r.LastName}".Trim()),
+                                },
+                                // Two token families on purpose. The "-…Html-" values
+                                // are HTML-encoded because SendGrid substitution is a
+                                // literal string replace into the HTML body — an
+                                // unencoded title or member name would otherwise inject
+                                // markup into every recipient's inbox. The plain values
+                                // feed the Subject header and the text/plain part, where
+                                // entities would show up literally, so they are only
+                                // header-sanitized (CR/LF stripped) instead.
+                                Substitutions = new Dictionary<string, string>
+                                {
+                                    ["-firstName-"] = SanitizeHeader(r.FirstName),
+                                    ["-greeting-"] = SanitizeHeader(BuildGreeting(lang, r.FirstName)),
+                                    ["-greetingHtml-"] = WebUtility.HtmlEncode(BuildGreeting(lang, r.FirstName)),
+                                    ["-unsubscribeUrl-"] = $"{_site.Origin()}/api/newsletters/unsubscribe?t={_tokens.Create(r.Id)}&lang={lang}",
+                                    ["-subject-"] = SanitizeHeader(subjectRaw),
+                                    ["-titleHtml-"] = WebUtility.HtmlEncode(subjectRaw),
+                                },
+                                CustomArgs = new Dictionary<string, string>
+                                {
+                                    ["newsletterId"] = newsletter.Id,
+                                    ["memberId"] = r.Id,
+                                    ["lang"] = lang,
+                                    ["testMode"] = testMode ? "true" : "false",
+                                    ["sendKind"] = audit.Kind,
+                                },
+                            };
+                            accepted.Add((r, personalization));
+                        }
+                        catch (Exception ex)
+                        {
+                            RecordFailedRecipient(audit, r);
+                            RecordError(audit, $"personalization skipped for {r.Id}: {ex.Message}");
+                        }
+                    }
+
+                    if (accepted.Count == 0) continue;
+
+                    // Accounting (Sent/Failed) happens inside — the slice may be
+                    // bisected, so only the leaves know who actually got through.
+                    await SendSliceAsync(client, template, accepted, audit, dispatchCt);
+                }
+            }
+
             return audit;
         }
-
-        var batchCap = Math.Clamp(_newsletterOpts.MaxRecipientsPerBatch, 1, HardBatchCap);
-        var client = new SendGridClient(_sendgrid.ResolvedApiKey());
-        var from = new EmailAddress(_sendgrid.ResolvedFromEmail(), _sendgrid.ResolvedFromName());
-
-        foreach (var (lang, list) in buckets)
+        finally
         {
-            var htmlTemplate = BuildHtml(newsletter, lang);
-            var plainTemplate = BuildPlain(newsletter, lang);
-            var subjectRaw = string.Equals(lang, "en", StringComparison.OrdinalIgnoreCase)
-                ? newsletter.TitleEn
-                : newsletter.TitleFr;
+            // CancellationToken.None on purpose: the audit and the claim release
+            // must survive a cancelled request.
+            await PersistAuditAsync(newsletter, audit, kind, CancellationToken.None);
 
-            var offset = 0;
-            while (offset < list.Count)
-            {
-                var take = Math.Min(batchCap, list.Count - offset);
-                var slice = list.GetRange(offset, take);
-                offset += take;
-                audit.Batches += 1;
-
-                var template = new BatchTemplate(from, plainTemplate, htmlTemplate);
-
-                // Recipient ⇄ personalization pairs, kept together so a failing
-                // batch can be bisected without losing the mapping.
-                var accepted = new List<(Recipient Recipient, Personalization Personalization)>();
-                foreach (var r in slice)
-                {
-                    // A malformed member row must never fail the whole batch:
-                    // the personalization is skipped, the recipient is recorded
-                    // as failed, and the loop moves on.
-                    try
-                    {
-                        var personalization = new Personalization
-                        {
-                            Tos = new List<EmailAddress>
-                            {
-                                new(r.Email, $"{r.FirstName} {r.LastName}".Trim()),
-                            },
-                            // Two token families on purpose. The "-…Html-" values
-                            // are HTML-encoded because SendGrid substitution is a
-                            // literal string replace into the HTML body — an
-                            // unencoded title or member name would otherwise inject
-                            // markup into every recipient's inbox. The plain values
-                            // feed the Subject header and the text/plain part, where
-                            // entities would show up literally, so they are only
-                            // header-sanitized (CR/LF stripped) instead.
-                            Substitutions = new Dictionary<string, string>
-                            {
-                                ["-firstName-"] = SanitizeHeader(r.FirstName),
-                                ["-greeting-"] = SanitizeHeader(BuildGreeting(lang, r.FirstName)),
-                                ["-greetingHtml-"] = WebUtility.HtmlEncode(BuildGreeting(lang, r.FirstName)),
-                                ["-unsubscribeUrl-"] = $"{_site.Origin()}/api/newsletters/unsubscribe?t={_tokens.Create(r.Id)}&lang={lang}",
-                                ["-subject-"] = SanitizeHeader(subjectRaw),
-                                ["-titleHtml-"] = WebUtility.HtmlEncode(subjectRaw),
-                            },
-                            CustomArgs = new Dictionary<string, string>
-                            {
-                                ["newsletterId"] = newsletter.Id,
-                                ["memberId"] = r.Id,
-                                ["lang"] = lang,
-                                ["testMode"] = testMode ? "true" : "false",
-                            },
-                        };
-                        accepted.Add((r, personalization));
-                    }
-                    catch (Exception ex)
-                    {
-                        audit.Failed += 1;
-                        audit.FailedRecipients.Add(r.Email);
-                        RecordError(audit, $"personalization skipped for {r.Email}: {ex.Message}");
-                    }
-                }
-
-                if (accepted.Count == 0) continue;
-
-                // Accounting (Sent/Failed) happens inside — the slice may be
-                // bisected, so only the leaves know who actually got through.
-                await SendSliceAsync(client, template, accepted, audit, ct);
-            }
+            _logger.LogInformation(
+                "Newsletter {NewsletterId} send done adminId={AdminId} sent={Sent} failed={Failed} batches={Batches} kind={Kind}",
+                newsletter.Id, adminId, audit.Sent, audit.Failed, audit.Batches, audit.Kind);
         }
-
-        await PersistAuditAsync(newsletter, audit, testMode, ct);
-
-        _logger.LogInformation(
-            "Newsletter {NewsletterId} send done adminId={AdminId} sent={Sent} failed={Failed} batches={Batches} testMode={TestMode}",
-            newsletter.Id, adminId, audit.Sent, audit.Failed, audit.Batches, testMode);
-
-        return audit;
     }
+
+    /// <summary>Same eligibility gate for a full send and for a resend: active,
+    /// not opted out, plausible address.</summary>
+    private static bool IsEligibleRecipient(Member m) =>
+        string.Equals(m.Status, "active", StringComparison.OrdinalIgnoreCase)
+        && !m.NewsletterOptOut
+        && !string.IsNullOrWhiteSpace(m.Email)
+        && m.Email.Contains('@');
+
+    private static string KindName(SendKind kind) => kind switch
+    {
+        SendKind.Test => "test",
+        SendKind.Resend => "resend",
+        _ => "send",
+    };
 
     /// <summary>
     /// The parts of a batch message that are identical for every recipient.
@@ -315,7 +432,11 @@ public class NewsletterSender : INewsletterSender
                     "SendGrid rejected a newsletter batch (attempt {Attempt}): {Status} {Body}",
                     attempt, response.StatusCode, body);
             }
-            catch (Exception ex) when (!ct.IsCancellationRequested)
+            // No cancellation filter: the dispatch loop runs on
+            // CancellationToken.None precisely so a client disconnect cannot
+            // abort a send in flight, and an OperationCanceledException escaping
+            // here would skip the audit write for everyone already mailed.
+            catch (Exception ex)
             {
                 if (attempt == 2) return (false, null, ex.Message);
                 _logger.LogWarning(ex, "SendGrid newsletter batch threw (attempt {Attempt}).", attempt);
@@ -335,35 +456,146 @@ public class NewsletterSender : INewsletterSender
     {
         foreach (var (r, _) in slice)
         {
-            audit.Failed += 1;
-            audit.FailedRecipients.Add(r.Email);
+            RecordFailedRecipient(audit, r);
         }
 
-        var who = slice.Count == 1 ? slice[0].Recipient.Email : $"{slice.Count} recipients";
+        // Identify the recipient by id in the stored error line — the same
+        // reasoning as FailedRecipients: an audit row is not the place for a
+        // list of member addresses.
+        var who = slice.Count == 1 ? slice[0].Recipient.Id : $"{slice.Count} recipients";
         var reason = status.HasValue
             ? $"batch {audit.Batches} — {who} failed: SendGrid {status.Value} - {Truncate(message, 200)}"
             : $"batch {audit.Batches} — {who} failed: {Truncate(message, 200)}";
         RecordError(audit, reason);
     }
 
+    /// <summary>
+    /// Counts one failure. The persisted list keeps member ids and stops at
+    /// MaxFailedRecipientsRecorded (FailedTotal still tells the truth); the
+    /// uncapped address list is request-scoped and never written to storage.
+    /// </summary>
+    private static void RecordFailedRecipient(NewsletterSendAudit audit, Recipient r)
+    {
+        audit.Failed += 1;
+        audit.FailedTotal = audit.Failed;
+        if (audit.FailedRecipients.Count < MaxFailedRecipientsRecorded)
+            audit.FailedRecipients.Add(r.Id);
+        audit.FailedRecipientEmails.Add(r.Email);
+    }
+
     private static void RecordError(NewsletterSendAudit audit, string line)
     {
         if (audit.Errors.Count >= MaxErrorsRecorded) return;
-        audit.Errors.Add(line);
+        audit.Errors.Add(Truncate(line, 300));
     }
 
-    private async Task PersistAuditAsync(Newsletter newsletter, NewsletterSendAudit audit, bool testMode, CancellationToken ct)
+    /// <summary>
+    /// Writes the audit onto the newsletter row and releases the send claim.
+    /// Runs in a finally, on CancellationToken.None, and swallows storage
+    /// failures after one trimmed retry: losing the audit is bad, but losing the
+    /// status flip is worse — that is what turns a failed write into a duplicate
+    /// send.
+    /// </summary>
+    private async Task PersistAuditAsync(Newsletter newsletter, NewsletterSendAudit audit, SendKind kind, CancellationToken ct)
     {
-        newsletter.LastSend = audit;
+        ApplyAudit(newsletter, audit, kind);
+        try
+        {
+            await _newsletters.UpsertAsync(newsletter, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex, "Newsletter {NewsletterId} audit write failed; retrying with a trimmed audit", newsletter.Id);
+            try
+            {
+                ApplyAudit(newsletter, TrimForStorage(audit), kind);
+                await _newsletters.UpsertAsync(newsletter, ct);
+            }
+            catch (Exception retryEx)
+            {
+                _logger.LogError(
+                    retryEx,
+                    "Newsletter {NewsletterId} audit write failed permanently — sent={Sent} failed={Failed} kind={Kind}",
+                    newsletter.Id, audit.Sent, audit.Failed, audit.Kind);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Places the audit on the row. A TEST send only ever touches LastTestSend:
+    /// it must not overwrite the record of who really received the issue, nor
+    /// the status. A real send (or a resend) updates LastSend, prepends a
+    /// compact history entry, and flips the status on first success.
+    /// </summary>
+    private static void ApplyAudit(Newsletter newsletter, NewsletterSendAudit audit, SendKind kind)
+    {
         newsletter.UpdatedAt = DateTime.UtcNow.ToString("o");
-        // Real (non-test) send with at least one accepted message flips the
-        // newsletter's status to "sent" — the row becomes read-only from then on.
-        if (!testMode && audit.Sent > 0)
+
+        // The dispatch is over either way — drop the claim so the next legitimate
+        // send is not blocked until the staleness window expires.
+        newsletter.SendClaimedAtUtc = null;
+        newsletter.SendClaimedByAdminId = null;
+
+        if (kind == SendKind.Test)
+        {
+            newsletter.LastTestSend = audit;
+            return;
+        }
+
+        // A dispatch that found nobody to mail carries no delivery information.
+        // Keeping the previous LastSend matters: it is what /resend-failed reads,
+        // and a resend whose targets have all since unsubscribed must not erase
+        // the list of who originally failed.
+        if (audit.TotalRecipients == 0) return;
+
+        newsletter.LastSend = audit;
+
+        newsletter.SendHistory ??= new List<NewsletterSendAudit>();
+        // Idempotent: PersistAuditAsync may re-apply the same dispatch with a
+        // trimmed audit after a storage failure, and that must replace the entry
+        // rather than add a second one for the same send.
+        newsletter.SendHistory.RemoveAll(a =>
+            string.Equals(a.SentAt, audit.SentAt, StringComparison.Ordinal)
+            && string.Equals(a.Kind, audit.Kind, StringComparison.Ordinal));
+        newsletter.SendHistory.Insert(0, CompactForHistory(audit));
+        if (newsletter.SendHistory.Count > MaxSendHistory)
+            newsletter.SendHistory.RemoveRange(MaxSendHistory, newsletter.SendHistory.Count - MaxSendHistory);
+
+        if (audit.Sent > 0)
         {
             newsletter.Status = "sent";
             newsletter.LastSentAt = audit.SentAt;
         }
-        await _newsletters.UpsertAsync(newsletter, ct);
+    }
+
+    /// <summary>Counters-only copy for SendHistory. Ten entries each carrying a
+    /// 200-id list would by themselves approach Table Storage's 64KB
+    /// per-property ceiling, so only LastSend keeps the recipient list.</summary>
+    private static NewsletterSendAudit CompactForHistory(NewsletterSendAudit a) => new()
+    {
+        SentAt = a.SentAt,
+        AdminId = a.AdminId,
+        TotalRecipients = a.TotalRecipients,
+        Sent = a.Sent,
+        Failed = a.Failed,
+        FailedTotal = a.FailedTotal > 0 ? a.FailedTotal : a.Failed,
+        Batches = a.Batches,
+        TestMode = a.TestMode,
+        Kind = a.Kind,
+        Errors = a.Errors.Take(3).ToList(),
+    };
+
+    /// <summary>Last-resort shrink used when the full audit could not be
+    /// persisted, so at least the counters and the status flip survive.</summary>
+    private static NewsletterSendAudit TrimForStorage(NewsletterSendAudit a)
+    {
+        var trimmed = CompactForHistory(a);
+        trimmed.Errors = new List<string>
+        {
+            $"audit trimmed: the full record ({a.FailedTotal} failed recipients, {a.Errors.Count} errors) exceeded the storage limit.",
+        };
+        return trimmed;
     }
 
     // ------------------- helpers -------------------
