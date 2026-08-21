@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import ReactMarkdown from 'react-markdown'
+import ReactMarkdown, { type Components } from 'react-markdown'
 import { useAuth } from '../../contexts/AuthContext'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { useTranslations } from '../../lib/translations'
@@ -15,6 +15,22 @@ import {
 /** Rough preview length used for the card body excerpt. */
 const PREVIEW_CHARS = 200
 
+/** How long the re-subscribe confirmation stays on screen. */
+const OPT_IN_FLASH_MS = 6000
+
+/* The three inline style objects that used to live here — the card link's
+ * `color: inherit`, the stretched hit overlay, and the detail cover's explicit
+ * 5:2 ratio — are now carried by `.dash-newsletter-card-link`,
+ * `.dash-newsletter-card-hit` and `.dash-newsletter-detail-cover` in
+ * dashboard.css with identical values, so the rendered result is unchanged.
+ *
+ * The one that is load-bearing and easy to undo from the stylesheet side: the
+ * detail cover needs `aspect-ratio: 5 / 2` AND `height: auto` together. The
+ * width/height attributes below are a presentational hint that beats the ratio
+ * on its own, and without the ratio the rendered height comes from the loaded
+ * file, which is the article jump the attributes were meant to prevent.
+ */
+
 /** Localized date formatting, matches the rest of the dashboard. */
 function formatDate(iso: string, language: 'fr' | 'en'): string {
   if (!iso) return '—'
@@ -26,6 +42,21 @@ function formatDate(iso: string, language: 'fr' | 'en'): string {
     month: 'long',
     day: 'numeric',
   })
+}
+
+/** True when the visitor asked the OS to reduce motion. Read at call time, not
+ *  cached, so a mid-session change to the setting is honoured. */
+function prefersReducedMotion(): boolean {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches
+}
+
+/** Scroll the page back to the top when moving into a newsletter — animated,
+ *  unless the visitor asked for reduced motion, in which case a programmatic
+ *  smooth scroll is precisely the movement that setting is about. */
+function scrollToPageTop(): void {
+  if (typeof window === 'undefined') return
+  window.scrollTo({ top: 0, behavior: prefersReducedMotion() ? 'auto' : 'smooth' })
 }
 
 /** Strip the common Markdown syntax out of a body so a post starting with
@@ -77,6 +108,42 @@ function excerpt(body: string, max = PREVIEW_CHARS): string {
   return `${clipped.slice(0, lastSpace > max * 0.6 ? lastSpace : max).trimEnd()}…`
 }
 
+/** Smallest ATX heading level used in a markdown body (1–6), or 0 when the body
+ *  has no heading at all. Deliberately approximate, like stripMarkdown above: a
+ *  `# comment` line inside a fenced code block can fool it, which only ever
+ *  shifts the real headings one level deeper — never into an invalid outline.
+ *  Pure function. */
+function topHeadingLevel(body: string): number {
+  const pattern = /^[ \t]{0,3}(#{1,6})[ \t]+\S/gm
+  let top = 0
+  let match = pattern.exec(body)
+  while (match) {
+    const level = match[1].length
+    if (top === 0 || level < top) top = level
+    match = pattern.exec(body)
+  }
+  return top
+}
+
+/** ReactMarkdown overrides that keep the body's headings *below* the detail
+ *  title. Bare ReactMarkdown emits whatever level the admin typed, so a body
+ *  opening with `#` rendered an `<h1>` nested inside the `<h2>` article — an
+ *  invalid document outline and a nonsensical heading list for screen readers.
+ *
+ *  The body's own top level becomes `<h3>` (one step under the `<h2>` title)
+ *  and deeper headings keep their relative depth, clamped at `<h6>`: a body
+ *  written `##` / `###` therefore reads h3 / h4 with no skipped level, and one
+ *  written `#` / `##` reads the same. */
+function shiftedHeadings(body: string): Components {
+  const top = topHeadingLevel(body) || 1
+  // A tag name is a valid override and ReactMarkdown renders it directly — no
+  // wrapper component, so nothing remounts and no mdast `node` prop ever leaks
+  // onto the DOM element.
+  const tag = (level: number) =>
+    `h${Math.min(6, Math.max(3, 3 + level - top))}` as 'h3' | 'h4' | 'h5' | 'h6'
+  return { h1: tag(1), h2: tag(2), h3: tag(3), h4: tag(4), h5: tag(5), h6: tag(6) }
+}
+
 export default function Newsletters() {
   const { token, member, refresh } = useAuth()
   const { language } = useLanguage()
@@ -87,13 +154,30 @@ export default function Newsletters() {
   const [items, setItems] = useState<MemberNewsletterDto[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  // Bumped by the retry button to re-run the load effect below.
+  const [reloadNonce, setReloadNonce] = useState(0)
 
   // Re-subscribe ("opt back in") state for the unsubscribed banner.
   const [optInPending, setOptInPending] = useState(false)
   const [optInError, setOptInError] = useState<string | null>(null)
+  // `optInDone` is sticky — once the POST succeeded the member is subscribed
+  // again for the rest of the visit. `optInFlash` is only the confirmation
+  // message, which dismisses itself; the two used to be one flag, so the
+  // confirmation sat under the page until a reload.
   const [optInDone, setOptInDone] = useState(false)
+  const [optInFlash, setOptInFlash] = useState(false)
 
-  // Re-fetch whenever the language changes so title/body reflect the choice.
+  // Focus bookkeeping for the list <-> detail transition. Both are read from an
+  // effect after the commit that swapped the two views, so the target element
+  // already exists.
+  const detailTitleRef = useRef<HTMLHeadingElement | null>(null)
+  const cardLinkRefs = useRef(new Map<string, HTMLAnchorElement>())
+  // Seeded with the id present on mount, so arriving straight at ?id=... (a
+  // shared link) does not yank focus out of the document start.
+  const prevActiveIdRef = useRef<string | null>(activeId)
+
+  // Re-fetch whenever the language changes so title/body reflect the choice,
+  // and whenever the member asks for a retry.
   useEffect(() => {
     let active = true
     if (!token) return
@@ -117,7 +201,7 @@ export default function Newsletters() {
     return () => {
       active = false
     }
-  }, [token, language, t.loadError])
+  }, [token, language, reloadNonce, t.loadError])
 
   // If a stale ?id=... points at something no longer in the list, drop it so
   // the list view shows normally instead of a blank detail state.
@@ -135,14 +219,39 @@ export default function Newsletters() {
     [activeId, items],
   )
 
-  const openDetail = (id: string) => {
+  // Move focus deliberately across the list <-> detail boundary. Without this
+  // the swap leaves focus on <body>: a keyboard visitor who opened a newsletter
+  // had to tab from the top of the page again, and closing it dropped them
+  // nowhere near the card they came from.
+  useEffect(() => {
+    const previousId = prevActiveIdRef.current
+    if (previousId === activeId) return
+    prevActiveIdRef.current = activeId
+    if (activeId) {
+      // Opening (or switching issues): scroll the article into view ourselves
+      // and put focus on its heading, so the next Tab starts inside the piece.
+      scrollToPageTop()
+      detailTitleRef.current?.focus({ preventScroll: true })
+      return
+    }
+    // Closing: back to the card the member came from. Absent when the id was
+    // stale (the effect above drops those), in which case focus stays put.
+    if (previousId) cardLinkRefs.current.get(previousId)?.focus()
+  }, [activeId])
+
+  // The confirmation is a flash, not a state.
+  useEffect(() => {
+    if (!optInFlash) return
+    const timer = window.setTimeout(() => setOptInFlash(false), OPT_IN_FLASH_MS)
+    return () => window.clearTimeout(timer)
+  }, [optInFlash])
+
+  /** Same route with `?id=` set. A real URL is what makes the card title a real
+   *  link — middle-click, ⌘-click and "copy link address" all work again. */
+  const detailHref = (id: string) => {
     const next = new URLSearchParams(searchParams)
     next.set('id', id)
-    setSearchParams(next)
-    // Bring the top of the page into view when moving into detail.
-    if (typeof window !== 'undefined') {
-      window.scrollTo({ top: 0, behavior: 'smooth' })
-    }
+    return `?${next.toString()}`
   }
 
   const backToList = () => {
@@ -151,6 +260,8 @@ export default function Newsletters() {
     setSearchParams(next)
   }
 
+  const retryLoad = () => setReloadNonce((n) => n + 1)
+
   const resubscribe = async () => {
     if (!token || optInPending) return
     setOptInPending(true)
@@ -158,6 +269,7 @@ export default function Newsletters() {
     try {
       await memberOptInNewsletters(token)
       setOptInDone(true)
+      setOptInFlash(true)
       // Pull the member down again so the stored `newsletterOptOut` flag (and
       // every other view reading it) reflects the change.
       await refresh()
@@ -175,12 +287,21 @@ export default function Newsletters() {
   // the follow-up member refresh failed — so the local flag wins over the DTO.
   const showUnsubscribedBanner = member?.newsletterOptOut === true && !optInDone
 
+  // A polite live region only announces reliably when it was already in the DOM
+  // before its text changed, so one always-mounted, screen-reader-only span
+  // carries every non-error status change on this page. Failures get their own
+  // role="alert" at the point they render.
+  const announcement = loading ? t.loading : optInFlash ? t.newslettersOptInSuccess : ''
+
+  const bodyComponents = useMemo(() => shiftedHeadings(active?.body ?? ''), [active?.body])
+
   return (
     <motion.div
       variants={animationVariants.container}
       initial="hidden"
       animate="visible"
       className="dash-stack"
+      aria-busy={loading}
     >
       <motion.section variants={animationVariants.item} className="dash-hero dash-hero--slim">
         {/* .dash-hero sets color:#fff, so it needs these two layers to supply the
@@ -195,36 +316,26 @@ export default function Newsletters() {
         </div>
       </motion.section>
 
-      {(showUnsubscribedBanner || optInDone) && (
-        <motion.section variants={animationVariants.item} className="dash-panel dash-newsletter-banner" role="status">
-          {showUnsubscribedBanner ? (
-            <>
-              <div className="dash-form-actions">
-                <p>{t.newslettersUnsubscribed}</p>
-                <button
-                  type="button"
-                  className="dash-btn dash-btn-ghost"
-                  onClick={() => void resubscribe()}
-                  disabled={optInPending}
-                >
-                  {optInPending ? t.loading : t.newslettersResubscribe}
-                </button>
-              </div>
-              {optInError && (
-                // Inline spacing only: the banner stylesheet zeroes <p> margins.
-                <p className="dash-error" style={{ marginTop: 12 }}>
-                  {optInError}
-                </p>
-              )}
-            </>
-          ) : (
-            <p className="dash-saved-flash">{t.newslettersOptInSuccess}</p>
-          )}
-        </motion.section>
-      )}
+      {/* .sr-only is position:absolute, so this never adds a row to the flex
+          stack — it exists purely to keep the live region mounted. */}
+      <span className="sr-only" role="status" aria-live="polite">
+        {announcement}
+      </span>
 
       {loading && <p className="dash-muted-line">{t.loading}</p>}
-      {error && !loading && <p className="dash-error">{error}</p>}
+
+      {error && !loading && (
+        <motion.section variants={animationVariants.item} className="dash-panel">
+          <div className="dash-form-actions">
+            <p className="dash-error" role="alert">
+              {error}
+            </p>
+            <button type="button" className="dash-btn dash-btn-ghost" onClick={retryLoad}>
+              {t.newslettersRetry}
+            </button>
+          </div>
+        </motion.section>
+      )}
 
       {!loading && !error && active ? (
         // Detail view — full markdown body.
@@ -241,36 +352,53 @@ export default function Newsletters() {
               className="dash-newsletter-detail-cover"
               src={active.coverImageUrl}
               alt=""
-              loading="lazy"
+              // No lazy loading here: on a page whose whole point is this one
+              // newsletter the cover is above the fold, so deferring it only
+              // delays the first paint. The list cards below keep loading="lazy".
               decoding="async"
-              // Intrinsic size hint only — CSS drives the rendered box. It
-              // reserves the space so the body below doesn't jump on load.
+              // Intrinsic size hint, 5:2 — the same ratio
+              // `.dash-newsletter-detail-cover` pins in CSS, so the reserved
+              // box survives the image loading. Keep the two in step.
               width={1200}
               height={480}
+              // A cover that will not load is hidden, not swapped for a
+              // placeholder: the old fallback pointed at
+              // /images/newsletter-cover-default.jpg, which is not in
+              // public/images, so a broken URL became a *second* broken image.
+              // The surrounding layout already handles a coverless issue —
+              // that is what a member sees when none was chosen.
               onError={(e) => {
-                const img = e.currentTarget as HTMLImageElement
-                if (!img.dataset.fallback) {
-                  img.dataset.fallback = '1'
-                  img.src = '/images/newsletter-cover-default.jpg'
-                }
+                e.currentTarget.style.display = 'none'
               }}
             />
           )}
 
           <header className="dash-newsletter-detail-head">
             <div className="dash-newsletter-meta">
-              {/* Skip the pill entirely when there is no tag — an empty one
-                  renders as a bare coloured chip. */}
+              {/* The tag is editorial copy typed per newsletter in the admin
+                  editor — free text, an open set ("hiver", "harvest supper"),
+                  not UI chrome — so it is shown verbatim and deliberately not
+                  routed through translations: there is no vocabulary to map.
+                  Note for the copy owner: the model keeps ONE tag for both
+                  languages (Newsletter.Tag, "short lowercase English phrase"),
+                  so a French member reads whatever the admin typed. Making it
+                  bilingual needs a TagFr/TagEn pair server-side, not a lookup
+                  table here. Skip the pill when empty — it would render as a
+                  bare coloured chip. */}
               {active.tag?.trim() && <span className="dash-pill dash-newsletter-tag">{active.tag.trim()}</span>}
               <span className="dash-newsletter-date">
-                {t.newslettersDatePrefix} {formatDate(active.date, language)}
+                {t.newslettersPublishedOn.replace('{date}', formatDate(active.date, language))}
               </span>
             </div>
-            <h2 id="dash-nl-detail-title">{active.title}</h2>
+            {/* tabIndex={-1} makes the heading a focus target for the effect
+                above; it stays out of the tab order. */}
+            <h2 id="dash-nl-detail-title" ref={detailTitleRef} tabIndex={-1}>
+              {active.title}
+            </h2>
           </header>
 
           <div className="dash-newsletter-body">
-            <ReactMarkdown>{active.body}</ReactMarkdown>
+            <ReactMarkdown components={bodyComponents}>{active.body}</ReactMarkdown>
           </div>
         </motion.article>
       ) : !loading && !error ? (
@@ -284,48 +412,54 @@ export default function Newsletters() {
             </p>
           </motion.section>
         ) : (
-          <motion.section variants={animationVariants.item} className="dash-newsletter-grid" aria-label={t.newslettersTitle}>
+          <motion.section variants={animationVariants.item} className="dash-newsletter-grid" aria-label={t.newslettersListLabel}>
             {items.map((n) => (
-              <article
-                key={n.id}
-                className="dash-newsletter-card"
-                role="button"
-                tabIndex={0}
-                onClick={() => openDetail(n.id)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault()
-                    openDetail(n.id)
-                  }
-                }}
-              >
+              <article key={n.id} className="dash-newsletter-card" aria-labelledby={`nl-card-${n.id}`}>
                 {n.coverImageUrl && (
                   <img
                     className="dash-newsletter-cover"
                     src={n.coverImageUrl}
                     alt=""
                     loading="lazy"
+                    // Same as the detail cover: hide rather than swap in a
+                    // placeholder file that does not exist.
                     onError={(e) => {
-                      const img = e.currentTarget as HTMLImageElement
-                      if (!img.dataset.fallback) {
-                        img.dataset.fallback = '1'
-                        img.src = '/images/newsletter-cover-default.jpg'
-                      }
+                      e.currentTarget.style.display = 'none'
                     }}
                   />
                 )}
 
                 <div className="dash-newsletter-card-body">
                   <div className="dash-newsletter-meta">
+                    {/* Verbatim editorial tag — see the note in the detail view. */}
                     {n.tag?.trim() && <span className="dash-pill dash-newsletter-tag">{n.tag.trim()}</span>}
                     <span className="dash-newsletter-date">{formatDate(n.date, language)}</span>
                   </div>
-                  <h3 className="dash-newsletter-title">{n.title}</h3>
+                  {/* The title is the card's one link, and the only focusable
+                      thing in it: the heading stays a heading (so the list can
+                      be scanned by heading), the accessible name is the title
+                      alone instead of tag + date + title + excerpt + "Read",
+                      and the stretched overlay inside the link keeps the whole
+                      card clickable without a second tab stop. */}
+                  <h3 className="dash-newsletter-title" id={`nl-card-${n.id}`}>
+                    <Link
+                      to={detailHref(n.id)}
+                      className="dash-newsletter-card-link"
+                      ref={(el) => {
+                        const refs = cardLinkRefs.current
+                        if (el) refs.set(n.id, el)
+                        else refs.delete(n.id)
+                      }}
+                    >
+                      {n.title}
+                      <span className="dash-newsletter-card-hit" aria-hidden="true" />
+                    </Link>
+                  </h3>
                   <p className="dash-newsletter-excerpt">{excerpt(n.body)}</p>
-                  {/* Presentational affordance only: the whole card is the
-                      button (role/tabIndex/onKeyDown above), so this carries no
-                      handler of its own — nothing clickable-but-unfocusable. */}
-                  <span className="dash-newsletter-read">
+                  {/* Visual affordance only — the title link above is the
+                      action, so this is hidden from assistive tech rather than
+                      read out as a second, unlabelled "Read". */}
+                  <span className="dash-newsletter-read" aria-hidden="true">
                     {t.newslettersReadMore}
                     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
                       <path d="M5 12h14m-6-6 6 6-6 6" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
@@ -337,6 +471,46 @@ export default function Newsletters() {
           </motion.section>
         )
       ) : null}
+
+      {/* Subscription preference, last on the page. It used to sit directly
+          under the hero, which made an opt-out setting the second thing an
+          unsubscribed member read on every visit, ahead of the newsletters
+          they came for. */}
+      {(showUnsubscribedBanner || optInFlash) && (
+        <motion.section variants={animationVariants.item} className="dash-panel dash-newsletter-banner">
+          {showUnsubscribedBanner ? (
+            <>
+              <div className="dash-form-actions">
+                <p>{t.newslettersUnsubscribed}</p>
+                {/* The label names the action even while the POST is in flight
+                    — it used to swap to t.loading ("Chargement…"), which
+                    described nothing the member had asked for. `disabled` plus
+                    aria-busy carry the pending state instead. A dedicated
+                    `newslettersResubscribing` key would say it better still. */}
+                <button
+                  type="button"
+                  className="dash-btn dash-btn-ghost"
+                  onClick={() => void resubscribe()}
+                  disabled={optInPending}
+                  aria-busy={optInPending}
+                >
+                  {t.newslettersResubscribe}
+                </button>
+              </div>
+              {optInError && (
+                // Inline spacing only: the banner stylesheet zeroes <p> margins.
+                <p className="dash-error" role="alert" style={{ marginTop: 12 }}>
+                  {optInError}
+                </p>
+              )}
+            </>
+          ) : (
+            // Announced through the live region above, so no role here — that
+            // would read the same sentence twice.
+            <p className="dash-saved-flash">{t.newslettersOptInSuccess}</p>
+          )}
+        </motion.section>
+      )}
     </motion.div>
   )
 }

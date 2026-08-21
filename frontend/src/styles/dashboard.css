@@ -15,6 +15,12 @@
   --dash-coral: var(--color-coral, #ff6e50);
   --dash-lavender: var(--color-lavender, #e0bffc);
   --dash-radius: 18px;
+  /* Reading measure for long-form member copy (newsletter detail). Border-box,
+     so it holds the column's 28px gutters as well: ~70 characters of 15.5px
+     Jost. Declared in px rather than ch on purpose — the title block and the
+     body render at different font sizes, and a ch measure would resolve to a
+     different width in each, leaving their left edges a few px apart. */
+  --dash-measure: 620px;
   --dash-shadow: 0 18px 44px rgba(20, 49, 38, 0.12);
   --dash-shadow-sm: 0 8px 22px rgba(20, 49, 38, 0.08);
   --dash-ease: cubic-bezier(0.16, 1, 0.3, 1);
@@ -858,15 +864,32 @@
 .dash-empty, .dash-muted-line { color: var(--dash-muted); font-size: 15px; padding: 18px 6px; margin: 0; }
 
 /* ---- Newsletters (member-portal /dashboard/newsletters) ----
-   The list is a stack of full-width cards; each card carries a cover image
-   (max 240px tall), a tag pill, a date, a title, a short excerpt, and a
-   subtle "Read" affordance. Clicking a card swaps into the detail state
-   which renders the full markdown body. */
+   The feed is an editorial grid rather than a blog stack: the newest issue
+   leads full-width with a taller cover and a larger title, and the back
+   catalogue falls into a two-up rhythm that collapses to one column as soon
+   as the content column can no longer hold two comfortable cards. Each card
+   carries a cover, a tag pill, a date, a linked title, a short excerpt and a
+   "Read" affordance; the title link is the card's only tab stop and its
+   stretched overlay keeps the whole card clickable. Following a card swaps
+   into the detail state, which renders the full markdown body inside a
+   centred reading measure. */
 .dash-newsletter-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+  display: grid;
+  /* auto-fit measures the *container*, so the feed goes two-up exactly when
+     the content column fits two 320px cards and drops to one below that — no
+     breakpoint has to guess whether the 256px sidebar is on screen. The 48%
+     floor caps it at two: three 345px cards on a 1080px page would read as a
+     tile wall, and any odd count would leave a hole in the last row. The
+     outer min() gives the 320px floor up below that, so a 288px container
+     gets a 288px card rather than one hanging 32px over the edge. */
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, max(320px, 48%)), 1fr));
+  gap: 22px;
 }
+/* The lead issue is the feature: full width, taller cover, larger title. */
+.dash-newsletter-grid > .dash-newsletter-card:first-child { grid-column: 1 / -1; }
+.dash-newsletter-grid > .dash-newsletter-card:first-child .dash-newsletter-cover { height: 300px; }
+.dash-newsletter-grid > .dash-newsletter-card:first-child .dash-newsletter-title { font-size: 26px; }
+.dash-newsletter-grid > .dash-newsletter-card:first-child .dash-newsletter-excerpt { font-size: 15.5px; }
 .dash-newsletter-card {
   position: relative;
   display: flex;
@@ -881,17 +904,39 @@
   text-align: left;
 }
 .dash-newsletter-card:hover,
-.dash-newsletter-card:focus-visible {
+.dash-newsletter-card:focus-within {
   transform: translateY(-2px);
   box-shadow: var(--dash-shadow);
-  outline: none;
 }
-.dash-newsletter-card:focus-visible { box-shadow: 0 0 0 3px rgba(38, 86, 64, 0.28), var(--dash-shadow); }
+/* The title is the card's link and the overlay stretches it over the whole
+   card, so middle-click and "open in new tab" work and the card stays a
+   single focusable target. Mirrors the inline styles in Newsletters.tsx. */
+.dash-newsletter-card-link { color: inherit; text-decoration: none; }
+.dash-newsletter-card-hit { position: absolute; inset: 0; }
+/* Focus visibility (WCAG 2.4.7 / 1.4.11). The card's only tab stop is the
+   title link, but the card is the thing a member sees, so the ring goes on
+   the card: a 3px --dash-green outline (≈8:1 on the white card) replaces a
+   rgba(38, 86, 64, 0.28) box-shadow that measured ~1.3:1. An outline is
+   painted outside the border box, so the card's own overflow:hidden — which
+   the cover needs — cannot clip it. */
+.dash-newsletter-card:has(.dash-newsletter-card-link:focus-visible),
+.dash-newsletter-card:focus-visible {
+  outline: 3px solid var(--dash-green);
+  outline-offset: 2px;
+  box-shadow: var(--dash-shadow);
+}
+/* Kept in its own rule: an unsupported :has() would invalidate the whole
+   selector list above if these were merged. */
+@supports not selector(:has(a)) {
+  .dash-newsletter-card:focus-within {
+    outline: 3px solid var(--dash-green);
+    outline-offset: 2px;
+  }
+}
 .dash-newsletter-cover {
   display: block;
   width: 100%;
-  max-height: 240px;
-  height: 240px;
+  height: 216px;
   object-fit: cover;
   background: rgba(38, 86, 64, 0.06);
 }
@@ -899,6 +944,9 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+  /* Fills the card so cards sharing a grid row end level and the "Read"
+     affordance sits on the same line in both. */
+  flex: 1;
   padding: 22px 24px 24px;
 }
 .dash-newsletter-meta {
@@ -922,6 +970,7 @@
   letter-spacing: -0.01em;
   color: var(--dash-ink);
   line-height: 1.3;
+  overflow-wrap: break-word;
 }
 .dash-newsletter-excerpt {
   margin: 0;
@@ -937,11 +986,18 @@
   font-size: 13px;
   font-weight: 500;
   letter-spacing: 0.02em;
-  margin-top: 4px;
+  /* auto, not 4px: pinned to the bottom of the card so a short excerpt next
+     to a long one does not leave the two affordances at different heights. */
+  margin-top: auto;
+  padding-top: 4px;
 }
 .dash-newsletter-read svg { width: 16px; height: 16px; }
 
-/* Detail state — same visual language, tighter reading column for the body. */
+/* Detail state — same visual language, with the title block and the body
+   sharing one centred reading column so their left edges line up and the
+   cover stays full-bleed behind them. overflow:hidden stays (it clips the
+   cover to the card radius), which is exactly why every wide child below
+   owns either its own scroll container or a scale-down rule. */
 .dash-newsletter-detail {
   background: var(--dash-card);
   border: 1px solid var(--dash-line);
@@ -953,12 +1009,22 @@
 .dash-newsletter-detail-cover {
   display: block;
   width: 100%;
-  max-height: 320px;
+  /* The markup ships width="1200" height="480" on this image. Pinning the
+     same 5:2 here — rather than height:auto + max-height, which let the
+     rendered height come from the *loaded* file's own ratio — makes the
+     reserved box and the final box identical, so the article does not jump
+     when the cover arrives. height:auto is required alongside it: the HTML
+     height attribute is a presentational hint, and it would otherwise win
+     over the ratio. */
+  height: auto;
+  aspect-ratio: 5 / 2;
   object-fit: cover;
   background: rgba(38, 86, 64, 0.06);
 }
 .dash-newsletter-detail-head {
   padding: 24px 28px 4px;
+  max-width: var(--dash-measure);
+  margin-inline: auto;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -972,31 +1038,63 @@
   line-height: 1.25;
 }
 .dash-newsletter-body {
-  padding: 18px 28px 0;
-  max-width: 68ch;
+  /* 24px, not 18px: the body's first block loses its own top margin (see
+     below), so this is the whole gap under the title. */
+  padding: 24px 28px 0;
+  /* The measure has to be centred, or 68ch of text hugs the left edge of a
+     1080px card with ~460px of dead space beside it. */
+  max-width: var(--dash-measure);
+  margin-inline: auto;
   color: var(--dash-ink);
   font-size: 15.5px;
   line-height: 1.75;
+  /* A pasted URL or a long token wraps instead of pushing the card sideways. */
+  overflow-wrap: break-word;
 }
-.dash-newsletter-body p { margin: 0 0 1em; }
-.dash-newsletter-body p:last-child { margin-bottom: 0; }
+/* Paragraph separation must read louder than the ~27px step line-height:1.75
+   sets between lines — at the old 1em (15.5px) the gap between paragraphs was
+   *smaller* than the gap between lines, so the body arrived as one
+   undifferentiated block. 1.9em ≈ 29.5px. */
+.dash-newsletter-body p { margin: 0 0 1.9em; }
+.dash-newsletter-body ul,
+.dash-newsletter-body ol { padding-left: 1.4em; margin: 0 0 1.9em; }
+.dash-newsletter-body li + li { margin-top: 0.4em; }
+.dash-newsletter-body > :first-child { margin-top: 0; }
+.dash-newsletter-body > :last-child { margin-bottom: 0; }
 .dash-newsletter-body h1,
 .dash-newsletter-body h2,
-.dash-newsletter-body h3 {
-  margin: 1.4em 0 0.4em;
+.dash-newsletter-body h3,
+.dash-newsletter-body h4,
+.dash-newsletter-body h5,
+.dash-newsletter-body h6 {
+  margin: 1.7em 0 0.5em;
   font-weight: 500;
   color: var(--dash-ink);
   letter-spacing: -0.01em;
+  line-height: 1.3;
 }
-.dash-newsletter-body h1 { font-size: 22px; }
-.dash-newsletter-body h2 { font-size: 19px; }
-.dash-newsletter-body h3 { font-size: 17px; }
-.dash-newsletter-body a { color: var(--dash-green); text-decoration: underline; }
-.dash-newsletter-body ul,
-.dash-newsletter-body ol { padding-left: 1.4em; margin: 0 0 1em; }
+/* The component shifts every body heading below the 28px <h2> detail title,
+   so the levels that actually render are h3–h6 and the ramp runs
+   23 / 19 / 16 / 13-caps — a visible step at each level, instead of the old
+   22 / 19 / 17 which read as one weight. h1 and h2 are defensive only (a
+   body cannot emit them through the shift) and sit at the top of the ramp
+   rather than above it, so they can never rival the title. */
+.dash-newsletter-body h1,
+.dash-newsletter-body h2,
+.dash-newsletter-body h3 { font-size: 23px; }
+.dash-newsletter-body h4 { font-size: 19px; }
+.dash-newsletter-body h5 { font-size: 16px; letter-spacing: 0.01em; }
+.dash-newsletter-body h6 {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--dash-muted);
+}
+.dash-newsletter-body a { color: var(--dash-green); text-decoration: underline; text-underline-offset: 2px; }
 .dash-newsletter-body blockquote {
-  margin: 1em 0;
-  padding: 4px 16px;
+  margin: 1.6em 0;
+  padding: 4px 20px;
   border-left: 3px solid var(--dash-coral);
   color: var(--dash-muted);
   font-style: italic;
@@ -1007,38 +1105,160 @@
   border-radius: 4px;
   font-size: 0.92em;
 }
+/* Body media scales inside the measure instead of being amputated at the
+   card edge. The tint shows while the file is still in flight. */
+.dash-newsletter-body img,
+.dash-newsletter-body svg,
+.dash-newsletter-body video {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin-inline: auto;
+  border-radius: 12px;
+  background: rgba(38, 86, 64, 0.06);
+}
+.dash-newsletter-body figure { margin: 1.9em 0; }
+.dash-newsletter-body figcaption {
+  margin-top: 8px;
+  color: var(--dash-muted);
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: center;
+}
+/* Code blocks and tables are the two things an issue can hold that refuse to
+   scale down, so each becomes its own horizontal scroll container: the wide
+   content stays reachable and the page never scrolls sideways. */
+.dash-newsletter-body pre {
+  margin: 0 0 1.9em;
+  padding: 14px 16px;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  background: rgba(38, 86, 64, 0.06);
+  border: 1px solid var(--dash-line);
+  border-radius: 12px;
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+.dash-newsletter-body pre code {
+  display: block;
+  padding: 0;
+  background: none;
+  border-radius: 0;
+  font-size: inherit;
+}
+.dash-newsletter-body table {
+  /* display:block is what lets overflow apply to a table at all; the row
+     groups inside still lay out as a table. */
+  display: block;
+  width: max-content;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: 0 0 1.9em;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.dash-newsletter-body th,
+.dash-newsletter-body td {
+  text-align: left;
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(38, 86, 64, 0.07);
+}
+.dash-newsletter-body thead th {
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--dash-muted);
+  border-bottom: 1px solid var(--dash-line);
+}
+.dash-newsletter-body tbody tr:last-child td { border-bottom: none; }
+.dash-newsletter-body hr {
+  height: 1px;
+  margin: 2.4em 0;
+  border: none;
+  background: var(--dash-line);
+}
 .dash-newsletter-back {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  margin: 20px 28px 6px;
-  padding: 6px 10px 6px 4px;
+  gap: 8px;
+  /* 44px of touch target (WCAG 2.5.5), up from ~26px. The margin carries the
+     rest of the card gutter so the label still starts on the 28px line the
+     reading column and the head use. */
+  min-height: 44px;
+  margin: 14px 18px 2px;
+  padding: 10px 16px 10px 10px;
   background: transparent;
   border: none;
   color: var(--dash-green);
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-  border-radius: 8px;
+  border-radius: 10px;
   transition: background-color 0.2s var(--dash-ease);
 }
 .dash-newsletter-back:hover { background: rgba(38, 86, 64, 0.06); }
 .dash-newsletter-back svg { width: 16px; height: 16px; }
+.dash-newsletter-back:focus-visible,
+.dash-newsletter-body a:focus-visible {
+  outline: 2px solid var(--dash-green);
+  outline-offset: 2px;
+}
 .dash-newsletter-banner {
   border-left: 3px solid var(--dash-coral);
   padding: 14px 20px;
 }
 .dash-newsletter-banner p { margin: 0; color: var(--dash-ink); font-size: 14px; }
+/* The banner and the retry row both reuse .dash-form-actions, a nowrap flex
+   row: at 390px the sentence and its button fought over the same line. Own
+   rules here rather than a flex-wrap on .dash-form-actions itself, which the
+   profile form also uses. */
+.dash-newsletter-banner .dash-form-actions,
+.dash-panel > .dash-form-actions {
+  flex-wrap: wrap;
+  gap: 12px 16px;
+}
+.dash-newsletter-banner .dash-form-actions > p,
+.dash-panel > .dash-form-actions > .dash-error { flex: 1 1 22ch; min-width: 0; }
+.dash-newsletter-banner .dash-form-actions > .dash-btn,
+.dash-panel > .dash-form-actions > .dash-btn { flex-shrink: 0; }
 .dash-hero--slim { padding-block: 32px; }
 
+@media (forced-colors: active) {
+  /* Forced colours drop the green outline's colour and every box-shadow, so
+     the focus ring is restated in system colours. */
+  .dash-newsletter-card:has(.dash-newsletter-card-link:focus-visible),
+  .dash-newsletter-card:focus-visible,
+  .dash-newsletter-card:focus-within {
+    outline: 3px solid Highlight;
+    outline-offset: 2px;
+  }
+  .dash-newsletter-back:focus-visible,
+  .dash-newsletter-body a:focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: 2px;
+  }
+}
+
 @media (max-width: 600px) {
-  .dash-newsletter-cover { height: 180px; max-height: 180px; }
+  .dash-newsletter-grid { gap: 18px; }
+  .dash-newsletter-cover { height: 180px; }
+  .dash-newsletter-grid > .dash-newsletter-card:first-child .dash-newsletter-cover { height: 200px; }
+  .dash-newsletter-grid > .dash-newsletter-card:first-child .dash-newsletter-title { font-size: 21px; }
+  .dash-newsletter-grid > .dash-newsletter-card:first-child .dash-newsletter-excerpt { font-size: 14.5px; }
   .dash-newsletter-card-body { padding: 18px 18px 20px; }
   .dash-newsletter-detail-head { padding: 20px 20px 4px; }
-  .dash-newsletter-body { padding: 16px 20px 0; font-size: 15px; }
-  .dash-newsletter-back { margin: 16px 20px 4px; }
+  .dash-newsletter-body { padding: 20px 20px 0; font-size: 15px; }
+  .dash-newsletter-body h1,
+  .dash-newsletter-body h2,
+  .dash-newsletter-body h3 { font-size: 21px; }
+  .dash-newsletter-body h4 { font-size: 18px; }
+  .dash-newsletter-back { margin: 12px 10px 2px; }
   .dash-newsletter-title { font-size: 20px; }
   .dash-newsletter-detail-head h2 { font-size: 24px; }
+  .dash-newsletter-banner .dash-form-actions > .dash-btn,
+  .dash-panel > .dash-form-actions > .dash-btn { width: 100%; }
 }
 
 /* ---- Events ---- */
@@ -1188,5 +1408,8 @@
   .dash-nav-link, .dash-stat-card, .dash-event-card, .dash-btn, .dash-sidebar, .dash-news-row { transition: none; }
   .dash-nav-link:hover { transform: none; }
   .dash-news-row:hover { padding-left: 0; }
+  .dash-newsletter-card { transition: none; }
+  .dash-newsletter-card:hover,
+  .dash-newsletter-card:focus-within { transform: none; }
   .dash-boot-spinner { animation: none; }
 }

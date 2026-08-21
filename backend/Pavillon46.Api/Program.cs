@@ -36,6 +36,9 @@ builder.Services.AddSingleton<IAdminStore, AdminStore>();
 builder.Services.AddSingleton<IPasswordResetTokenStore, PasswordResetTokenStore>();
 builder.Services.AddSingleton<INewsletterStore, NewsletterStore>();
 builder.Services.AddSingleton<IUnsubscribeTokenService, UnsubscribeTokenService>();
+// Stateless, and Markdig's pipeline is immutable after Build() — safe as a
+// singleton, and it must be registered before NewsletterSender, which takes it.
+builder.Services.AddSingleton<INewsletterEmailRenderer, NewsletterEmailRenderer>();
 builder.Services.AddSingleton<INewsletterSender, NewsletterSender>();
 builder.Services.AddSingleton<ITokenService, TokenService>();
 builder.Services.AddSingleton<IAnnouncementService, AnnouncementService>();
@@ -264,10 +267,12 @@ static void MapLegacyEnvVars(IConfigurationManager config)
     Map("AZURE_STORAGE_NEWSLETTERS_TABLE", "AzureStorage:NewslettersTableName");
 
     // Newsletter module — HMAC secret for stateless unsubscribe tokens, the
-    // Anthropic credentials for the AI drafter, and the SendGrid batch cap.
+    // Anthropic credentials for the AI drafter, the Unsplash key for cover
+    // lookup, and the SendGrid batch cap.
     Map("NEWSLETTER_UNSUBSCRIBE_SECRET", "Newsletter:UnsubscribeSecret");
     Map("ANTHROPIC_API_KEY", "Newsletter:AnthropicApiKey");
     Map("ANTHROPIC_MODEL", "Newsletter:AnthropicModel");
+    Map("UNSPLASH_ACCESS_KEY", "Newsletter:UnsplashAccessKey");
     var newsletterBatch = Environment.GetEnvironmentVariable("NEWSLETTER_BATCH_SIZE");
     if (int.TryParse(newsletterBatch, out var batchSize) && batchSize > 0)
         config["Newsletter:MaxRecipientsPerBatch"] = batchSize.ToString();

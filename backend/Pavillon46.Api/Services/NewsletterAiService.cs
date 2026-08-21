@@ -12,50 +12,11 @@ public interface INewsletterAiService
     /// <summary>Draft a full bilingual newsletter from a one-line brief.
     /// Returns a result object that carries either the parsed draft or a
     /// structured failure code (see <see cref="AiDraftResult"/>). On success
-    /// <c>Draft</c> is an <see cref="AiDraftPayload"/>, which adds the
-    /// cover-image resolution fields on top of the model's six JSON keys.</summary>
+    /// <c>Draft</c> carries the model's six JSON keys plus the server-resolved
+    /// cover-image fields (see <see cref="AiDraftResponse"/>).</summary>
     Task<AiDraftResult> DraftAsync(string brief, string? tone, CancellationToken ct);
 }
 
-/// <summary>
-/// What the model wrote, plus what the server could (or could not) work out
-/// about the cover photograph. The editor needs the difference: an empty
-/// <see cref="AiDraftResponse.CoverImageUrl"/> with
-/// <c>CoverImageStatus = "no_api_key"</c> is "nobody picked a photo yet, here is
-/// the keyword to search with" — not "here is your cover".
-/// <para>
-/// These live here rather than on <see cref="AiDraftResponse"/> because
-/// NewsletterModels.cs is owned elsewhere; the fields still reach the frontend
-/// because <c>AdminNewslettersController.DraftAi</c> returns <c>Ok(result.Draft)</c>
-/// and ASP.NET Core serializes the runtime type. If the DTO owner later moves
-/// these onto <see cref="AiDraftResponse"/>, delete this class and keep the
-/// property names identical — do NOT leave both, System.Text.Json refuses
-/// shadowed properties.
-/// </para>
-/// </summary>
-public class AiDraftPayload : AiDraftResponse
-{
-    /// <summary>True only when <c>CoverImageUrl</c> is a real Unsplash photo
-    /// this service resolved. False means the URL is empty by design.</summary>
-    public bool CoverImageAutoResolved { get; set; }
-
-    /// <summary>Machine-readable reason, for the UI to phrase in FR/EN:
-    /// <c>resolved</c> | <c>no_api_key</c> | <c>no_match</c> |
-    /// <c>lookup_failed</c> | <c>no_keyword</c>.</summary>
-    public string CoverImageStatus { get; set; } = NewsletterAiService.CoverNoKeyword;
-
-    /// <summary>Fallback English sentence for the same thing, safe to show as-is
-    /// and useful in logs. Empty when the cover resolved.</summary>
-    public string CoverImageNote { get; set; } = "";
-
-    /// <summary>Photographer's name — Unsplash's API terms require crediting
-    /// them wherever the photo is shown. Empty unless the cover resolved.</summary>
-    public string CoverImagePhotographer { get; set; } = "";
-
-    /// <summary>Photographer's Unsplash profile, with the referral parameters
-    /// the terms ask for. Empty unless the cover resolved.</summary>
-    public string CoverImagePhotographerUrl { get; set; } = "";
-}
 
 /// <summary>
 /// Typed HttpClient wrapping the Anthropic Messages API. One shot, no retry —
@@ -80,7 +41,7 @@ public class NewsletterAiService : INewsletterAiService
     private readonly NewsletterOptions _opts;
     private readonly ILogger<NewsletterAiService> _logger;
 
-    // Cover-image resolution outcomes (AiDraftPayload.CoverImageStatus).
+    // Cover-image resolution outcomes (AiDraftResponse.CoverImageStatus).
     public const string CoverResolved = "resolved";
     public const string CoverNoApiKey = "no_api_key";
     public const string CoverNoMatch = "no_match";
@@ -359,12 +320,12 @@ public class NewsletterAiService : INewsletterAiService
         return new AiDraftResult { Success = true, Draft = parsed };
     }
 
-    private static AiDraftPayload? TryParseDraft(string text)
+    private static AiDraftResponse? TryParseDraft(string text)
     {
         var opts = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
         try
         {
-            var direct = JsonSerializer.Deserialize<AiDraftPayload>(text, opts);
+            var direct = JsonSerializer.Deserialize<AiDraftResponse>(text, opts);
             if (direct is not null) return direct;
         }
         catch (JsonException)
@@ -380,7 +341,7 @@ public class NewsletterAiService : INewsletterAiService
         var slice = text.Substring(first, last - first + 1);
         try
         {
-            return JsonSerializer.Deserialize<AiDraftPayload>(slice, opts);
+            return JsonSerializer.Deserialize<AiDraftResponse>(slice, opts);
         }
         catch (JsonException)
         {

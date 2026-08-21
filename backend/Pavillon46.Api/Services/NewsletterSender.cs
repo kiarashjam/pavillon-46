@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Text;
 using Microsoft.Extensions.Options;
@@ -67,6 +68,7 @@ public class NewsletterSender : INewsletterSender
     private readonly SendGridOptions _sendgrid;
     private readonly SiteOptions _site;
     private readonly NewsletterOptions _newsletterOpts;
+    private readonly INewsletterEmailRenderer _renderer;
     private readonly ILogger<NewsletterSender> _logger;
 
     // Hard cap enforced regardless of config — SendGrid rejects any message
@@ -103,6 +105,7 @@ public class NewsletterSender : INewsletterSender
         IOptions<SendGridOptions> sendgrid,
         IOptions<SiteOptions> site,
         IOptions<NewsletterOptions> newsletterOpts,
+        INewsletterEmailRenderer renderer,
         ILogger<NewsletterSender> logger)
     {
         _members = members;
@@ -111,6 +114,7 @@ public class NewsletterSender : INewsletterSender
         _sendgrid = sendgrid.Value;
         _site = site.Value;
         _newsletterOpts = newsletterOpts.Value;
+        _renderer = renderer;
         _logger = logger;
     }
 
@@ -203,15 +207,15 @@ public class NewsletterSender : INewsletterSender
             var members = await _members.ListAsync(ct);
             foreach (var m in members)
             {
-                if (!IsEligibleRecipient(m)) continue;
-                if (wanted is not null && !wanted.Contains(m.Id) && !wanted.Contains(m.Email ?? "")) continue;
+                if (!IsEligibleRecipient(m, out var email)) continue;
+                if (wanted is not null && !wanted.Contains(m.Id) && !wanted.Contains(email)) continue;
                 var lang = NormalizeLang(m.PreferredLanguage);
                 if (!buckets.TryGetValue(lang, out var list))
                 {
                     list = new List<Recipient>();
                     buckets[lang] = list;
                 }
-                list.Add(new Recipient(m.Id, m.Email, m.FirstName ?? "", m.LastName ?? "", m.Title ?? ""));
+                list.Add(new Recipient(m.Id, email, m.FirstName ?? "", m.LastName ?? "", m.Title ?? ""));
             }
         }
 
@@ -333,13 +337,21 @@ public class NewsletterSender : INewsletterSender
         }
     }
 
-    /// <summary>Same eligibility gate for a full send and for a resend: active,
-    /// not opted out, plausible address.</summary>
-    private static bool IsEligibleRecipient(Member m) =>
-        string.Equals(m.Status, "active", StringComparison.OrdinalIgnoreCase)
-        && !m.NewsletterOptOut
-        && !string.IsNullOrWhiteSpace(m.Email)
-        && m.Email.Contains('@');
+    /// <summary>The one eligibility gate, shared by a full send and a resend:
+    /// active, not opted out, and holding a plausible address. On true,
+    /// <paramref name="email"/> is the non-null address — declared with
+    /// <c>NotNullWhen</c> so callers get that guarantee from the type system
+    /// instead of asserting it with <c>!</c>.</summary>
+    private static bool IsEligibleRecipient(Member m, [NotNullWhen(true)] out string? email)
+    {
+        email = null;
+        if (!string.Equals(m.Status, "active", StringComparison.OrdinalIgnoreCase)) return false;
+        if (m.NewsletterOptOut) return false;
+        if (string.IsNullOrWhiteSpace(m.Email)) return false;
+        if (!m.Email.Contains('@')) return false;
+        email = m.Email;
+        return true;
+    }
 
     private static string KindName(SendKind kind) => kind switch
     {
@@ -643,18 +655,32 @@ public class NewsletterSender : INewsletterSender
         var isEn = string.Equals(lang, "en", StringComparison.OrdinalIgnoreCase);
         var logo = _site.Page("images/logo.png");
         var body = isEn ? n.BodyEn : n.BodyFr;
-        var paragraphs = SplitParagraphs(body);
         var year = DateTime.UtcNow.Year;
         var unsubscribeLabel = isEn ? "Unsubscribe" : "Se désabonner";
-        var cover = string.IsNullOrWhiteSpace(n.CoverImageUrl)
-            ? _site.Page("images/newsletter-cover-default.jpg")
-            : n.CoverImageUrl;
         var tagHtml = string.IsNullOrWhiteSpace(n.Tag) ? "" : WebUtility.HtmlEncode(n.Tag.Trim().ToUpperInvariant());
 
-        var paragraphHtml = string.Join(
-            "",
-            paragraphs.Select(p =>
-                $"<p style=\"margin:0 0 18px 0;font-size:16px;color:#3a4a42;line-height:1.7;\">{WebUtility.HtmlEncode(p)}</p>"));
+        // No cover means NO cover row — not a fallback image. This used to point
+        // at images/newsletter-cover-default.jpg, which does not exist in
+        // wwwroot/public, so every newsletter sent without a chosen cover put a
+        // broken-image placeholder at the top of the mail. An issue with no
+        // photograph simply opens on the title.
+        //
+        // The URL itself is validated as absolute http(s) when it is saved (see
+        // AdminNewslettersController's cover check); it is HtmlEncode'd here as
+        // well because it lands inside an attribute.
+        var coverRow = string.IsNullOrWhiteSpace(n.CoverImageUrl)
+            ? ""
+            : $@"<tr><td style=""padding:0;background:#fcf8f7;"">
+        <img src=""{WebUtility.HtmlEncode(n.CoverImageUrl.Trim())}"" alt="""" width=""600"" style=""display:block;width:100%;max-width:600px;height:auto;""/>
+      </td></tr>";
+
+        // Markdown → inline-styled, email-safe HTML. The renderer emits its own
+        // tags from a fixed allow-list, encodes every text run and attribute
+        // value itself, and refuses any href that is not absolute http/https/
+        // mailto — so the fragment below is ALREADY safe HTML and must not be
+        // HtmlEncode'd again (a second pass would print literal <p> tags).
+        // Everything else interpolated into this template stays encoded.
+        var paragraphHtml = _renderer.RenderHtmlFragment(body);
 
         return $@"<!DOCTYPE html>
 <html lang=""{lang}"">
@@ -666,9 +692,7 @@ public class NewsletterSender : INewsletterSender
         <img src=""{logo}"" alt=""Pavillon 46"" width=""140"" style=""display:inline-block;max-width:140px;width:100%;height:auto;filter:brightness(0) invert(1);margin-bottom:10px;""/>
         <p style=""margin:0;font-size:11px;letter-spacing:0.24em;text-transform:uppercase;color:#c9d8d0;"">{tagHtml}</p>
       </td></tr>
-      <tr><td style=""padding:0;background:#fcf8f7;"">
-        <img src=""{WebUtility.HtmlEncode(cover)}"" alt="""" width=""600"" style=""display:block;width:100%;max-width:600px;height:auto;""/>
-      </td></tr>
+      {coverRow}
       <tr><td style=""padding:32px 32px 8px;"">
         <h1 style=""margin:0 0 18px 0;color:#265640;font-family:Jost,'Helvetica Neue',Arial,sans-serif;font-size:24px;font-weight:400;line-height:1.3;"">-titleHtml-</h1>
         <p style=""margin:0 0 18px 0;font-size:16px;color:#3a4a42;line-height:1.7;"">-greetingHtml-</p>
@@ -683,21 +707,17 @@ public class NewsletterSender : INewsletterSender
 </body></html>";
     }
 
-    private static string BuildPlain(Newsletter n, string lang)
+    // Instance (was static) so it can reach the renderer. The plain part keeps
+    // the -subject-/-greeting- tokens — the text/plain substitutions, which are
+    // NOT the HTML-encoded -titleHtml-/-greetingHtml- pair used above.
+    private string BuildPlain(Newsletter n, string lang)
     {
         var isEn = string.Equals(lang, "en", StringComparison.OrdinalIgnoreCase);
         var body = isEn ? n.BodyEn : n.BodyFr;
         var unsubscribeLabel = isEn ? "Unsubscribe" : "Se désabonner";
-        return $"-subject-\n\n-greeting-\n\n{body}\n\n---\n{unsubscribeLabel}: -unsubscribeUrl-";
-    }
-
-    private static IReadOnlyList<string> SplitParagraphs(string body)
-    {
-        if (string.IsNullOrWhiteSpace(body)) return Array.Empty<string>();
-        return body.Split(new[] { "\r\n\r\n", "\n\n" }, StringSplitOptions.RemoveEmptyEntries)
-            .Select(p => p.Trim())
-            .Where(p => p.Length > 0)
-            .ToList();
+        // Markdown stripped to prose: no markup and no HTML entities, which is
+        // what text/plain needs — HtmlEncode here would leak &amp; to readers.
+        return $"-subject-\n\n-greeting-\n\n{_renderer.RenderPlainText(body)}\n\n---\n{unsubscribeLabel}: -unsubscribeUrl-";
     }
 
     private sealed record Recipient(string Id, string Email, string FirstName, string LastName, string Title);

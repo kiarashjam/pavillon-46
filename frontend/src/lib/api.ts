@@ -655,16 +655,54 @@ export async function adminResetAdminPassword(
 // admin bearer token, mirroring the admin/members surface.
 // ---------------------------------------------------------------------------
 
+/** A **persisted** audit row, as it hangs off `NewsletterDto.lastSend`,
+ *  `lastTestSend` and `sendHistory` (server: `Models.NewsletterSendAudit`).
+ *
+ *  `failedRecipients` here holds **member ids**, capped at 200 — the uncapped
+ *  address list is `[JsonIgnore]` server-side and never reaches a stored audit.
+ *  `failedTotal` is the true count when the id list was capped. For the
+ *  response of a send you just triggered, see {@link NewsletterSendResultDto},
+ *  which is the only place `failedRecipients` carries real addresses. */
 export interface NewsletterSendAuditDto {
   sentAt: string
   adminId: string
   totalRecipients: number
   sent: number
   failed: number
+  /** True number of failures; `failedRecipients` may have been capped. */
+  failedTotal: number
   batches: number
   testMode: boolean
+  /** `'send' | 'test' | 'resend'` — widened to `string` so an unknown kind from
+   *  a newer server does not become a type error in old clients. */
+  kind: string
+  /** Member ids (legacy rows may still hold addresses), capped at 200. */
   failedRecipients: string[]
   errors: string[]
+}
+
+/** The 200 body of `POST /{id}/send` and `POST /{id}/resend-failed`
+ *  (server: `Models.SendAuditDto`).
+ *
+ *  A fully-failed send is **200, not 502**: a non-2xx from these two endpoints
+ *  means the request itself was refused (validation, a 409 claim, an
+ *  unconfigured sender), never "the mail did not go out". Read `ok` / `outcome`
+ *  to tell what happened to the mail.
+ *
+ *  Unlike the persisted {@link NewsletterSendAuditDto}, `failedRecipients` on
+ *  this DTO carries the real **email addresses** for the request you just made
+ *  and is uncapped; `failedRecipientIds` is the capped, persisted id list — the
+ *  set `/resend-failed` will actually retry, so size a "resend to N" affordance
+ *  off that array, never off `failedRecipients`. */
+export interface NewsletterSendResultDto extends NewsletterSendAuditDto {
+  newsletterId: string
+  /** `failed === 0`. */
+  ok: boolean
+  outcome: 'sent' | 'partial' | 'all_failed'
+  /** Email addresses for this request, uncapped. */
+  failedRecipients: string[]
+  /** Persisted member ids — what `/resend-failed` acts on. */
+  failedRecipientIds: string[]
 }
 
 export interface NewsletterDto {
@@ -685,6 +723,21 @@ export interface NewsletterDto {
   aiDrafted: boolean
   sourceBrief: string
   lastSend?: NewsletterSendAuditDto | null
+  /** The last **test** send, kept apart from `lastSend` so a test can never
+   *  overwrite the record of what members actually received. */
+  lastTestSend?: NewsletterSendAuditDto | null
+  /** Most recent real sends/resends, newest first, capped at 10 server-side.
+   *  Populated on the detail read only — the list endpoint omits it. */
+  sendHistory?: NewsletterSendAuditDto[] | null
+  /** Set while a send is in flight; a second send is refused with 409
+   *  `send_already_in_progress`. Lets the UI grey its Send button out instead
+   *  of discovering the conflict the hard way. */
+  sendClaimedAtUtc?: string | null
+  /** The `From:` address members will actually see, resolved server-side from
+   *  the SendGrid config (env-only, so the browser cannot work it out). Present
+   *  on the **detail** read; empty on list rows. Show it in the send
+   *  confirmation rather than hard-coding an address. */
+  senderAddress?: string
   /** Number of active, non-opt-out members with an email — the audience a send
    *  would actually reach. Computed server-side in AdminNewslettersController
    *  and serialized as a non-nullable `int`, so clients should use this rather
@@ -726,7 +779,21 @@ export interface AiDraftResponse {
   bodyEn: string
   tag: string
   coverImageKeyword: string
+  /** Empty unless `coverImageAutoResolved` — the server never invents a URL. */
   coverImageUrl: string
+  /** True only when `coverImageUrl` is a real photo the server resolved from
+   *  Unsplash. False means the URL is empty *by design*: show a "search for
+   *  «keyword»" state, not a broken image. */
+  coverImageAutoResolved: boolean
+  /** Why: `resolved` | `no_api_key` | `no_match` | `lookup_failed` |
+   *  `no_keyword`. Phrase this in FR/EN in the UI. */
+  coverImageStatus: string
+  /** English fallback sentence for the same thing, safe to display as-is. */
+  coverImageNote: string
+  /** Unsplash's terms require crediting the photographer wherever the photo is
+   *  shown. Both are empty unless the cover resolved. */
+  coverImagePhotographer: string
+  coverImagePhotographerUrl: string
 }
 
 export interface SendNewsletterBody {
@@ -790,18 +857,51 @@ export async function adminUnpublishNewsletter(token: string, id: string): Promi
   )
 }
 
+/** Send a newsletter. Omit `testEmails` entirely for a real send to every
+ *  active, subscribed member; supply it for a test send.
+ *
+ *  Do **not** send `{ testEmails: [] }` or `{ testEmails: [''] }`: a field that
+ *  is present at all reads as intent to test, and the server answers 400
+ *  `no_valid_test_recipients` rather than mailing the whole membership. That
+ *  refusal is the fix for a bug where a blank test address mailed everyone.
+ *
+ *  Resolves 200 even when every message failed — check `outcome` on the result.
+ *  Rejects with {@link ApiError} for request-level refusals, whose `errorType`
+ *  is one of `no_valid_test_recipients` / `too_many_test_recipients` (400),
+ *  `send_already_in_progress` (409, a send is already running),
+ *  `newsletter_not_published` (409 — note the prefix: the *unpublish* endpoint
+ *  spells its own conflict `not_published`), or `sender_not_configured` (500). */
 export async function adminSendNewsletter(
   token: string,
   id: string,
   body: SendNewsletterBody = {},
-): Promise<NewsletterSendAuditDto> {
-  return jsonRequest<NewsletterSendAuditDto>(
+): Promise<NewsletterSendResultDto> {
+  return jsonRequest<NewsletterSendResultDto>(
     `/api/admin/newsletters/${encodeURIComponent(id)}/send`,
     {
       method: 'POST',
       headers: bearer(token),
       body: JSON.stringify(body),
     },
+  )
+}
+
+/** Retry only the recipients the most recent **real** send recorded as failed.
+ *  Members who already received the issue are never re-mailed: they are not in
+ *  the stored failed list. The list is re-filtered through the same
+ *  active/subscribed/valid-address gate, so someone who has since unsubscribed
+ *  is skipped.
+ *
+ *  Same 200-with-audit contract as {@link adminSendNewsletter}. Rejects with
+ *  `errorType` `no_prior_send`, `nothing_to_resend` or
+ *  `send_already_in_progress` (all 409). */
+export async function adminResendFailedNewsletter(
+  token: string,
+  id: string,
+): Promise<NewsletterSendResultDto> {
+  return jsonRequest<NewsletterSendResultDto>(
+    `/api/admin/newsletters/${encodeURIComponent(id)}/resend-failed`,
+    { method: 'POST', headers: bearer(token) },
   )
 }
 

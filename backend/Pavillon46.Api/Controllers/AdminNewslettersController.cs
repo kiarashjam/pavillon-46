@@ -53,6 +53,7 @@ public class AdminNewslettersController : ControllerBase
     private readonly INewsletterAiService _ai;
     private readonly KeyedRateLimiter _rateLimiter;
     private readonly NewsletterOptions _newsletterOpts;
+    private readonly SendGridOptions _sendgrid;
     private readonly ILogger<AdminNewslettersController> _logger;
 
     public AdminNewslettersController(
@@ -62,6 +63,7 @@ public class AdminNewslettersController : ControllerBase
         INewsletterAiService ai,
         KeyedRateLimiter rateLimiter,
         IOptions<NewsletterOptions> newsletterOpts,
+        IOptions<SendGridOptions> sendgrid,
         ILogger<AdminNewslettersController> logger)
     {
         _newsletters = newsletters;
@@ -70,6 +72,7 @@ public class AdminNewslettersController : ControllerBase
         _ai = ai;
         _rateLimiter = rateLimiter;
         _newsletterOpts = newsletterOpts.Value;
+        _sendgrid = sendgrid.Value;
         _logger = logger;
     }
 
@@ -110,7 +113,11 @@ public class AdminNewslettersController : ControllerBase
         if (n is null) return NotFound(new { message = "Newsletter not found." });
         // Send history only on the detail read — the list endpoint would carry it
         // for every row for no benefit.
-        return Ok(NewsletterDto.From(n, await ComputeAudienceCountAsync(ct), includeHistory: true));
+        return Ok(NewsletterDto.From(
+            n,
+            await ComputeAudienceCountAsync(ct),
+            includeHistory: true,
+            senderAddress: _sendgrid.ResolvedFromEmail()));
     }
 
     [HttpPost("")]

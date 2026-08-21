@@ -17,15 +17,21 @@ public class Newsletter
     public string Id { get; set; } = "";
     public string TitleFr { get; set; } = "";
     public string TitleEn { get; set; } = "";
-    // Paragraphs are separated by "\n\n" — the sender splits on that when
-    // building HTML and the dashboard renderer does the same.
+    // CommonMark. NewsletterEmailRenderer turns it into inline-styled email HTML
+    // and into plain text for the text/plain part; the dashboard and the admin
+    // preview render the same source through react-markdown. Raw HTML is never
+    // markup on any of the three surfaces.
     public string BodyFr { get; set; } = "";
     public string BodyEn { get; set; } = "";
     // Short lowercase English phrase (e.g. "winter", "harvest supper").
     public string Tag { get; set; } = "";
-    // Final cover image URL used in the email and dashboard. Either an Unsplash
-    // Source URL derived from CoverImageKeyword (HEAD-verified server-side) or
-    // the bundled site fallback when Unsplash does not resolve.
+    // Final cover image URL used in the email and dashboard. Either a photo
+    // NewsletterAiService resolved through the Unsplash Search API (pinned to a
+    // fixed rendition on images.unsplash.com, so every recipient sees the same
+    // frame) or one an admin pasted; validated as absolute http(s) on write.
+    // EMPTY IS A VALID STATE and means "no cover was chosen": nothing here is
+    // ever fabricated, and the email omits the cover row entirely rather than
+    // falling back to a placeholder file.
     public string CoverImageUrl { get; set; } = "";
     public string CoverImageKeyword { get; set; } = "";
     // "draft" | "published" | "sent"
@@ -182,7 +188,19 @@ public class NewsletterDto
     // time in AdminNewslettersController against the current member store.
     public int AudienceCount { get; set; }
 
-    public static NewsletterDto From(Newsletter n, int audienceCount, bool includeHistory = false) => new()
+    /// <summary>The <c>From:</c> address members will actually see, resolved
+    /// server-side from <c>SendGridOptions</c> (env-only, so the browser has no
+    /// other way to learn it). Populated on the detail read; empty elsewhere —
+    /// the send-confirmation dialog needs it, a list row does not. Without it
+    /// the dialog had to hard-code a guess, and told the admin the wrong sender
+    /// in the one dialog whose action cannot be undone.</summary>
+    public string SenderAddress { get; set; } = "";
+
+    public static NewsletterDto From(
+        Newsletter n,
+        int audienceCount,
+        bool includeHistory = false,
+        string senderAddress = "") => new()
     {
         Id = n.Id,
         TitleFr = n.TitleFr,
@@ -205,6 +223,7 @@ public class NewsletterDto
         SendHistory = includeHistory ? (n.SendHistory ?? new List<NewsletterSendAudit>()) : null,
         SendClaimedAtUtc = n.SendClaimedAtUtc,
         AudienceCount = audienceCount,
+        SenderAddress = senderAddress,
     };
 }
 
@@ -219,6 +238,23 @@ public class MemberNewsletterDto
     public string CoverImageUrl { get; set; } = "";
 }
 
+/// <summary>
+/// What the model wrote, plus what the server could (or could not) work out
+/// about the cover photograph. The editor needs the difference: an empty
+/// <see cref="CoverImageUrl"/> with <c>CoverImageStatus = "no_api_key"</c> means
+/// "nobody picked a photo yet, here is the keyword to search with" — not "here
+/// is your cover", and must not render as a broken image.
+/// <para>
+/// The first seven properties are the model's six JSON keys plus the resolved
+/// URL. The Cover* properties below are set by <c>NewsletterAiService</c> AFTER
+/// the model's JSON is deserialized and are overwritten unconditionally, so a
+/// model that tries to emit them cannot forge an attribution or claim a cover
+/// resolved. They live here, on the DTO, rather than on a service-local subclass:
+/// <c>AiDraftResult.Draft</c> is typed as this class, so anything that casts to
+/// the declared type or declares a ProducesResponseType would otherwise silently
+/// drop five fields off the wire.
+/// </para>
+/// </summary>
 public class AiDraftResponse
 {
     public string TitleFr { get; set; } = "";
@@ -228,6 +264,27 @@ public class AiDraftResponse
     public string Tag { get; set; } = "";
     public string CoverImageKeyword { get; set; } = "";
     public string CoverImageUrl { get; set; } = "";
+
+    /// <summary>True only when <see cref="CoverImageUrl"/> is a real Unsplash
+    /// photo the server resolved. False means the URL is empty by design.</summary>
+    public bool CoverImageAutoResolved { get; set; }
+
+    /// <summary>Machine-readable reason, for the UI to phrase in FR/EN:
+    /// <c>resolved</c> | <c>no_api_key</c> | <c>no_match</c> |
+    /// <c>lookup_failed</c> | <c>no_keyword</c>.</summary>
+    public string CoverImageStatus { get; set; } = "no_keyword";
+
+    /// <summary>Fallback English sentence for the same thing, safe to show as-is
+    /// and useful in logs. Empty when the cover resolved.</summary>
+    public string CoverImageNote { get; set; } = "";
+
+    /// <summary>Photographer's name — Unsplash's API terms require crediting
+    /// them wherever the photo is shown. Empty unless the cover resolved.</summary>
+    public string CoverImagePhotographer { get; set; } = "";
+
+    /// <summary>Photographer's Unsplash profile, with the referral parameters
+    /// the terms ask for. Empty unless the cover resolved.</summary>
+    public string CoverImagePhotographerUrl { get; set; } = "";
 }
 
 // Wrapper the AI service returns to the controller so failures carry an error

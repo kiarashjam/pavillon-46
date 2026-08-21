@@ -246,6 +246,118 @@ export interface DashboardTranslations {
   newsletterTestEmailsInvalid: string
   newsletterSendAllFailed: string
   newsletterAudienceUnknown: string
+  // Newsletters (admin editor: panel headings)
+  newsletterPanelDraftingTitle: string
+  newsletterPanelMetadataTitle: string
+  newsletterPanelFrenchTitle: string
+  newsletterPanelEnglishTitle: string
+  newsletterPanelPreviewTitle: string
+  newsletterPanelActionsTitle: string
+  // Newsletters (admin editor: field labels + validation)
+  newsletterFieldTag: string
+  newsletterFieldImageKeyword: string
+  newsletterFieldCoverUrl: string
+  newsletterFieldTitleFr: string
+  newsletterFieldTitleEn: string
+  newsletterFieldBodyFr: string
+  newsletterFieldBodyEn: string
+  newsletterRequiredMark: string
+  newsletterFieldRequired: string
+  // Newsletters (admin editor: unsaved-changes confirm)
+  newsletterUnsavedTitle: string
+  newsletterUnsavedBody: string
+  newsletterUnsavedStay: string
+  newsletterUnsavedLeave: string
+  // Newsletters (admin editor: state explanations)
+  newsletterSendNeedsPublish: string
+  newsletterSentReadOnly: string
+  // Newsletters (admin editor: action buttons)
+  newsletterSave: string
+  newsletterSaving: string
+  newsletterSaved: string
+  newsletterCancel: string
+  newsletterDelete: string
+  newsletterDeleting: string
+  newsletterPublish: string
+  newsletterUnpublish: string
+  newsletterPublishing: string
+  // Newsletters (admin list: columns)
+  newsletterColDate: string
+  newsletterColTitle: string
+  newsletterColTag: string
+  newsletterColStatus: string
+  newsletterColRecipients: string
+  newsletterColLastSent: string
+  newsletterRecipientsFigureLabel: string
+  // Newsletters (admin list: status filter options)
+  newsletterFilterAll: string
+  newsletterFilterDraft: string
+  newsletterFilterPublished: string
+  newsletterFilterSent: string
+  // Newsletters (admin list: KPI cards)
+  newsletterKpiDrafts: string
+  newsletterKpiDraftsSub: string
+  newsletterKpiPublished: string
+  newsletterKpiPublishedSub: string
+  newsletterKpiSent: string
+  newsletterKpiSentSub: string
+  // Newsletters (admin editor: cover-image state)
+  //
+  // The server never invents a cover URL: an empty `coverImageUrl` with a
+  // `coverImageStatus` is "nobody has picked a photograph yet", and must render
+  // as an explicit state rather than a broken image.
+  newsletterCoverNone: string
+  /** `{keyword}` — the search phrase the AI proposed. */
+  newsletterCoverSearchHint: string
+  newsletterCoverFailed: string
+  /** `{name}` — Unsplash's API terms require crediting the photographer
+   *  wherever the photo is shown, so this is not optional decoration. */
+  newsletterCoverCredit: string
+  // Newsletters (admin, shared vocabulary)
+  //
+  // These seven were duplicated verbatim in local copy maps inside
+  // AdminNewsletterEditor / AdminNewslettersSection / NewsletterSendConfirmModal
+  // — the same words, defined two or three times, free to drift apart. They are
+  // keys so a wording change lands everywhere at once.
+  //
+  // The singular status labels are NOT the same strings as newsletterKpi* /
+  // newsletterFilter*, which are plurals ("Brouillons") and read wrong on a
+  // single row's pill.
+  newsletterStatusDraft: string
+  newsletterStatusPublished: string
+  newsletterStatusSent: string
+  newsletterUntitled: string
+  newsletterKicker: string
+  newsletterClose: string
+  /** Short busy label. `newsletterListLoading` is the fuller sentence for the
+   *  list's own loading state. */
+  newsletterBusy: string
+  // Newsletters (admin list: empty / loading / error states)
+  newsletterListEmptyTitle: string
+  newsletterListEmptyBody: string
+  newsletterListEmptyCta: string
+  newsletterListLoading: string
+  newsletterListRetry: string
+  // Newsletters (admin send flow)
+  newsletterSendModalTitle: string
+  newsletterSendSummary: string
+  newsletterSendRecipientCount: string
+  newsletterSendRecipientCountOne: string
+  newsletterSendTestLabel: string
+  newsletterSendTestHint: string
+  newsletterSendTestAction: string
+  newsletterSendAllAction: string
+  newsletterSendTypedConfirm: string
+  newsletterSendOutcomeAllSent: string
+  newsletterSendOutcomePartial: string
+  newsletterSendOutcomeAllFailed: string
+  newsletterSendFailedListHint: string
+  newsletterSendResendFailed: string
+  newsletterSendIrreversible: string
+  // Newsletters (member page)
+  newslettersRetry: string
+  newslettersListLabel: string
+  newslettersPublishedOn: string
 }
 
 export interface ThankYouTranslations {
@@ -524,6 +636,96 @@ export const translations: Record<Language, Translations> = {
       newsletterTestEmailsInvalid: 'Aucune adresse valide détectée.',
       newsletterSendAllFailed: "Tous les envois ont échoué. Consultez le journal d'envoi.",
       newsletterAudienceUnknown: 'Nombre de destinataires indisponible.',
+      newsletterPanelDraftingTitle: 'Rédaction assistée',
+      newsletterPanelMetadataTitle: 'Métadonnées',
+      newsletterPanelFrenchTitle: 'Texte français',
+      newsletterPanelEnglishTitle: 'Texte anglais',
+      newsletterPanelPreviewTitle: 'Aperçu',
+      newsletterPanelActionsTitle: 'Actions',
+      newsletterFieldTag: 'Rubrique',
+      newsletterFieldImageKeyword: "Mot-clé de l'image",
+      newsletterFieldCoverUrl: 'URL de la couverture',
+      newsletterFieldTitleFr: 'Titre (français)',
+      newsletterFieldTitleEn: 'Titre (anglais)',
+      newsletterFieldBodyFr: 'Texte (français)',
+      newsletterFieldBodyEn: 'Texte (anglais)',
+      newsletterRequiredMark: '*',
+      newsletterFieldRequired: 'Ce champ est requis avant publication.',
+      newsletterUnsavedTitle: 'Quitter sans enregistrer ?',
+      newsletterUnsavedBody:
+        'Les modifications de cette infolettre ne sont pas encore enregistrées. Elles seront perdues si vous quittez maintenant.',
+      newsletterUnsavedStay: 'Rester sur la page',
+      newsletterUnsavedLeave: 'Quitter sans enregistrer',
+      newsletterSendNeedsPublish:
+        "Publiez l'infolettre avant de l'envoyer : seule une infolettre publiée peut partir aux membres.",
+      newsletterSentReadOnly:
+        'Cette infolettre a été envoyée. Son contenu est figé pour rester fidèle à ce que les membres ont reçu.',
+      newsletterSave: 'Enregistrer',
+      newsletterSaving: 'Enregistrement…',
+      newsletterSaved: 'Enregistré',
+      newsletterCancel: 'Annuler',
+      newsletterDelete: 'Supprimer',
+      newsletterDeleting: 'Suppression…',
+      newsletterPublish: 'Publier',
+      newsletterUnpublish: 'Retirer la publication',
+      newsletterPublishing: 'Publication…',
+      newsletterColDate: 'Date',
+      newsletterColTitle: 'Titre',
+      newsletterColTag: 'Rubrique',
+      newsletterColStatus: 'Statut',
+      newsletterColRecipients: 'Destinataires',
+      newsletterColLastSent: 'Dernier envoi',
+      newsletterRecipientsFigureLabel: '{sent} envois aboutis sur {total} destinataires',
+      newsletterFilterAll: 'Tous les statuts',
+      newsletterFilterDraft: 'Brouillons',
+      newsletterFilterPublished: 'Publiées',
+      newsletterFilterSent: 'Envoyées',
+      newsletterKpiDrafts: 'Brouillons',
+      newsletterKpiDraftsSub: "en cours d'écriture",
+      newsletterKpiPublished: 'Publiées',
+      newsletterKpiPublishedSub: 'prêtes à envoyer',
+      newsletterKpiSent: 'Envoyées',
+      newsletterKpiSentSub: 'parties aux membres',
+      newsletterCoverNone: 'Aucune couverture choisie.',
+      newsletterCoverSearchHint:
+        'Cherchez « {keyword} » sur Unsplash, puis collez l’URL de l’image ci-dessus.',
+      newsletterCoverFailed: 'Cette URL ne charge pas. Vérifiez-la ou choisissez une autre image.',
+      newsletterCoverCredit: 'Photo : {name}',
+      newsletterStatusDraft: 'Brouillon',
+      newsletterStatusPublished: 'Publiée',
+      newsletterStatusSent: 'Envoyée',
+      newsletterUntitled: '(sans titre)',
+      newsletterKicker: 'Éditorial',
+      newsletterClose: 'Fermer',
+      newsletterBusy: 'Chargement…',
+      newsletterListEmptyTitle: 'Aucune infolettre',
+      newsletterListEmptyBody: 'Rédigez le premier texte que les membres recevront.',
+      newsletterListEmptyCta: 'Nouvelle infolettre',
+      newsletterListLoading: 'Chargement des infolettres…',
+      newsletterListRetry: 'Réessayer',
+      newsletterSendModalTitle: 'Envoyer aux membres',
+      newsletterSendSummary: 'Objet : « {subject} » — expédié depuis {sender}.',
+      newsletterSendRecipientCount:
+        '{count} membres actifs et abonnés recevront cette infolettre.',
+      newsletterSendRecipientCountOne:
+        'Un seul membre actif et abonné recevra cette infolettre.',
+      newsletterSendTestLabel: 'Envoi de test',
+      newsletterSendTestHint:
+        "Une ou plusieurs adresses, séparées par des virgules. Seules ces adresses reçoivent l'infolettre ; le statut et l'historique restent inchangés.",
+      newsletterSendTestAction: 'Envoyer le test ({count})',
+      newsletterSendAllAction: 'Envoyer à tous les membres',
+      newsletterSendTypedConfirm:
+        "Saisissez le titre exact de l'infolettre pour confirmer l'envoi : {title}",
+      newsletterSendOutcomeAllSent: 'Infolettre remise à {count} membres.',
+      newsletterSendOutcomePartial: '{sent} envois aboutis, {failed} en échec.',
+      newsletterSendOutcomeAllFailed: "Aucun envoi n'a abouti.",
+      newsletterSendFailedListHint: 'Les adresses concernées sont listées ci-dessous.',
+      newsletterSendResendFailed: 'Renvoyer aux {count} adresses en échec',
+      newsletterSendIrreversible:
+        'Un envoi ne peut pas être annulé : les messages partent immédiatement.',
+      newslettersRetry: 'Réessayer',
+      newslettersListLabel: 'Liste des infolettres',
+      newslettersPublishedOn: 'Publiée le {date}',
     },
     thankYou: {
       title: 'Merci - Pavillon 46',
@@ -813,6 +1015,95 @@ export const translations: Record<Language, Translations> = {
       newsletterTestEmailsInvalid: 'No valid address detected.',
       newsletterSendAllFailed: 'All sends failed. Check the send log.',
       newsletterAudienceUnknown: 'Recipient count unavailable.',
+      newsletterPanelDraftingTitle: 'Assisted drafting',
+      newsletterPanelMetadataTitle: 'Metadata',
+      newsletterPanelFrenchTitle: 'French copy',
+      newsletterPanelEnglishTitle: 'English copy',
+      newsletterPanelPreviewTitle: 'Preview',
+      newsletterPanelActionsTitle: 'Actions',
+      newsletterFieldTag: 'Tag',
+      newsletterFieldImageKeyword: 'Image keyword',
+      newsletterFieldCoverUrl: 'Cover image URL',
+      newsletterFieldTitleFr: 'Title (French)',
+      newsletterFieldTitleEn: 'Title (English)',
+      newsletterFieldBodyFr: 'Body (French)',
+      newsletterFieldBodyEn: 'Body (English)',
+      newsletterRequiredMark: '*',
+      newsletterFieldRequired: 'Required before publishing.',
+      newsletterUnsavedTitle: 'Leave without saving?',
+      newsletterUnsavedBody:
+        'The changes to this newsletter have not been saved yet. They will be lost if you leave now.',
+      newsletterUnsavedStay: 'Stay on this page',
+      newsletterUnsavedLeave: 'Leave without saving',
+      newsletterSendNeedsPublish:
+        'Publish this newsletter before sending it — only a published newsletter can go out to members.',
+      newsletterSentReadOnly:
+        'This newsletter has been sent. Its content is locked so it still matches what members received.',
+      newsletterSave: 'Save',
+      newsletterSaving: 'Saving…',
+      newsletterSaved: 'Saved',
+      newsletterCancel: 'Cancel',
+      newsletterDelete: 'Delete',
+      newsletterDeleting: 'Deleting…',
+      newsletterPublish: 'Publish',
+      newsletterUnpublish: 'Unpublish',
+      newsletterPublishing: 'Publishing…',
+      newsletterColDate: 'Date',
+      newsletterColTitle: 'Title',
+      newsletterColTag: 'Tag',
+      newsletterColStatus: 'Status',
+      newsletterColRecipients: 'Recipients',
+      newsletterColLastSent: 'Last sent',
+      newsletterRecipientsFigureLabel: '{sent} of {total} recipients reached',
+      newsletterFilterAll: 'All statuses',
+      newsletterFilterDraft: 'Drafts',
+      newsletterFilterPublished: 'Published',
+      newsletterFilterSent: 'Sent',
+      newsletterKpiDrafts: 'Drafts',
+      newsletterKpiDraftsSub: 'being written',
+      newsletterKpiPublished: 'Published',
+      newsletterKpiPublishedSub: 'ready to send',
+      newsletterKpiSent: 'Sent',
+      newsletterKpiSentSub: 'out to members',
+      newsletterCoverNone: 'No cover chosen.',
+      newsletterCoverSearchHint:
+        'Search Unsplash for “{keyword}”, then paste the image URL above.',
+      newsletterCoverFailed: 'This URL does not load. Check it, or choose another image.',
+      newsletterCoverCredit: 'Photo: {name}',
+      newsletterStatusDraft: 'Draft',
+      newsletterStatusPublished: 'Published',
+      newsletterStatusSent: 'Sent',
+      newsletterUntitled: '(untitled)',
+      newsletterKicker: 'Editorial',
+      newsletterClose: 'Close',
+      newsletterBusy: 'Loading…',
+      newsletterListEmptyTitle: 'No newsletters yet',
+      newsletterListEmptyBody: 'Write the first piece your members will receive.',
+      newsletterListEmptyCta: 'New newsletter',
+      newsletterListLoading: 'Loading newsletters…',
+      newsletterListRetry: 'Try again',
+      newsletterSendModalTitle: 'Send to members',
+      newsletterSendSummary: 'Subject: “{subject}” — sent from {sender}.',
+      newsletterSendRecipientCount:
+        '{count} active, subscribed members will receive this newsletter.',
+      newsletterSendRecipientCountOne:
+        'One active, subscribed member will receive this newsletter.',
+      newsletterSendTestLabel: 'Test send',
+      newsletterSendTestHint:
+        'One or more addresses, separated by commas. Only these addresses receive the newsletter; the status and history stay unchanged.',
+      newsletterSendTestAction: 'Send test ({count})',
+      newsletterSendAllAction: 'Send to all members',
+      newsletterSendTypedConfirm:
+        'Type the newsletter title exactly to confirm the send: {title}',
+      newsletterSendOutcomeAllSent: 'Newsletter delivered to {count} members.',
+      newsletterSendOutcomePartial: '{sent} delivered, {failed} failed.',
+      newsletterSendOutcomeAllFailed: 'No send went through.',
+      newsletterSendFailedListHint: 'The addresses concerned are listed below.',
+      newsletterSendResendFailed: 'Resend to the {count} that failed',
+      newsletterSendIrreversible: 'A send cannot be undone — the messages leave immediately.',
+      newslettersRetry: 'Try again',
+      newslettersListLabel: 'Newsletter list',
+      newslettersPublishedOn: 'Published on {date}',
     },
     thankYou: {
       title: 'Thank You - Pavillon 46',
