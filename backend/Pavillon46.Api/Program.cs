@@ -106,10 +106,14 @@ app.MapControllers();
 app.MapGet("/healthz", () => Results.Ok(new { ok = true }));
 
 var sendgridOpts = app.Services.GetRequiredService<IOptions<SendGridOptions>>().Value;
-if (string.IsNullOrWhiteSpace(sendgridOpts.ApiKey) || string.IsNullOrWhiteSpace(sendgridOpts.FromEmail))
+if (!sendgridOpts.IsConfigured())
 {
     app.Logger.LogWarning(
         "SendGrid is not fully configured (SENDGRID_API_KEY / FROM_EMAIL). Waitlist, credentials and password-reset emails will not be delivered.");
+}
+else
+{
+    app.Logger.LogInformation("SendGrid is configured (from {FromEmail}).", sendgridOpts.ResolvedFromEmail());
 }
 
 await SeedInitialAdminAsync(app);
@@ -139,9 +143,30 @@ static async Task SeedInitialAdminAsync(WebApplication app)
     try
     {
         var existing = await admins.ListAsync();
-        if (existing.Any(a => string.Equals((a.Email ?? "").Trim(), seedEmail, StringComparison.OrdinalIgnoreCase)))
+        var seed = existing.FirstOrDefault(a =>
+            string.Equals((a.Email ?? "").Trim(), seedEmail, StringComparison.OrdinalIgnoreCase));
+        if (seed is not null)
         {
-            logger.LogInformation("Admin seed: {Email} already present — no admin rows changed.", seedEmail);
+            // Recovery when reset mail cannot be delivered: if Azure now has
+            // ADMIN_SEED_PASSWORD and this account still must change password,
+            // apply it. Never touch a desk that already chose its own password.
+            var configured = auth.AdminSeedPassword ?? "";
+            if (seed.MustChangePassword
+                && !string.IsNullOrEmpty(configured)
+                && !PasswordHasher.Verify(configured, seed.PasswordHash))
+            {
+                seed.PasswordHash = PasswordHasher.Hash(configured);
+                seed.PasswordVersion = unchecked(seed.PasswordVersion + 1);
+                seed.UpdatedAt = DateTime.UtcNow.ToString("o");
+                await admins.UpsertAsync(seed);
+                logger.LogInformation(
+                    "Admin seed: applied ADMIN_SEED_PASSWORD for {Email} (must still change it on first login).",
+                    seedEmail);
+            }
+            else
+            {
+                logger.LogInformation("Admin seed: {Email} already present — no admin rows changed.", seedEmail);
+            }
             return;
         }
 
@@ -204,7 +229,9 @@ static void MapLegacyEnvVars(IConfigurationManager config)
 
     Map("SENDGRID_API_KEY", "SendGrid:ApiKey");
     Map("FROM_EMAIL", "SendGrid:FromEmail");
+    Map("SENDGRID_FROM_EMAIL", "SendGrid:FromEmail");
     Map("FROM_NAME", "SendGrid:FromName");
+    Map("SENDGRID_FROM_NAME", "SendGrid:FromName");
     Map("ADMIN_EMAIL", "SendGrid:AdminEmail");
 
     Map("TWILIO_ACCOUNT_SID", "Twilio:AccountSid");

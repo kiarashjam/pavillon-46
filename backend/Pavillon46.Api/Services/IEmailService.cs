@@ -4,6 +4,7 @@ namespace Pavillon46.Api.Services;
 
 public interface IEmailService
 {
+    bool IsConfigured { get; }
     Task SendWaitlistEmailsAsync(WaitlistSubmitRequest request, string lang, CancellationToken ct = default);
     Task SendRawEmailAsync(string toEmail, string subject, string plainText, string html, CancellationToken ct = default);
     Task SendMemberCredentialsAsync(Member member, string plainPassword, string lang, CancellationToken ct = default);

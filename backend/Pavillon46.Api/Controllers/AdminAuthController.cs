@@ -27,7 +27,7 @@ public class AdminAuthController : ControllerBase
     private readonly ActivityOptions _activity;
     private readonly ILogger<AdminAuthController> _logger;
 
-    private const int ForgotPerEmailMax = 3;
+    private const int ForgotPerEmailMax = 8;
     private const int ForgotPerEmailWindowMs = 15 * 60_000;
     private const int ForgotPerIpMax = 20;
     private const int ForgotPerIpWindowMs = 60 * 60_000;
@@ -179,6 +179,16 @@ public class AdminAuthController : ControllerBase
             {
                 errorType = "not_admin",
                 message = "This email is not part of the admin desk. Check the address and try again.",
+            });
+        }
+
+        if (!_email.IsConfigured)
+        {
+            _logger.LogError("admin-forgot-password.email_not_configured adminId={AdminId}", admin.Id);
+            return StatusCode(503, new
+            {
+                errorType = "email_not_configured",
+                message = "The server cannot send email. In Azure set SENDGRID_API_KEY and FROM_EMAIL (verified sender), then try again. To sign in without mail, set ADMIN_SEED_PASSWORD and restart the API.",
             });
         }
 

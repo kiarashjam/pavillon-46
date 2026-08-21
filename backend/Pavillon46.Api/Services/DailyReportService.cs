@@ -101,7 +101,7 @@ public class DailyReportService : IDailyReportService
             return new DailyReportResult(true, "already-sent", reportDay, null, true, 0, 0, 0, 0);
         }
 
-        if (string.IsNullOrWhiteSpace(_sendgrid.ApiKey) || string.IsNullOrWhiteSpace(_sendgrid.FromEmail))
+        if (!_sendgrid.IsConfigured())
         {
             throw new InvalidOperationException("Missing SENDGRID_API_KEY or FROM_EMAIL");
         }
