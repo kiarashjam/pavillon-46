@@ -48,8 +48,8 @@ public interface INewsletterSender
 /// bucket recipients by language (test mode uses NewsletterOptions.DefaultTestLanguage),
 /// chunk each language group into batches capped by NewsletterOptions.MaxRecipientsPerBatch
 /// (SendGrid's own personalization cap is 1000, which we never exceed), send one
-/// SendGridMessage per batch with per-recipient substitutions for -firstName-,
-/// -greeting-, -unsubscribeUrl-, -subject-, retry once on failure with a small
+/// SendGridMessage per batch with per-recipient substitutions for %%P46_FIRSTNAME%%,
+/// %%P46_GREETING%%, %%P46_UNSUBSCRIBE_URL%%, %%P46_SUBJECT%%, retry once on failure with a small
 /// delay, and record every partial failure in a NewsletterSendAudit that also
 /// gets persisted back onto the newsletter row.
 /// <para>
@@ -280,7 +280,7 @@ public class NewsletterSender : INewsletterSender
                                 {
                                     new(r.Email, $"{r.FirstName} {r.LastName}".Trim()),
                                 },
-                                // Two token families on purpose. The "-…Html-" values
+                                // Two token families on purpose. The "…_HTML" values
                                 // are HTML-encoded because SendGrid substitution is a
                                 // literal string replace into the HTML body — an
                                 // unencoded title or member name would otherwise inject
@@ -288,14 +288,25 @@ public class NewsletterSender : INewsletterSender
                                 // feed the Subject header and the text/plain part, where
                                 // entities would show up literally, so they are only
                                 // header-sanitized (CR/LF stripped) instead.
+                                //
+                                // The %%P46_*%% shape matters. These were once written
+                                // as -greeting- / -firstName-, which is prose a newsletter
+                                // body could plausibly contain — and because the replace
+                                // is literal and untargeted, such a body became a splice
+                                // point for the *plain* (un-encoded) value. FirstName is
+                                // member-supplied and only trimmed, so a member could put
+                                // markup in their own name and have it rendered live in
+                                // their HTML mail. A tag nobody types by accident removes
+                                // the splice point; NewsletterEmailRenderer additionally
+                                // neutralises the sentinel if it ever does appear in a body.
                                 Substitutions = new Dictionary<string, string>
                                 {
-                                    ["-firstName-"] = SanitizeHeader(r.FirstName),
-                                    ["-greeting-"] = SanitizeHeader(BuildGreeting(lang, r.FirstName)),
-                                    ["-greetingHtml-"] = WebUtility.HtmlEncode(BuildGreeting(lang, r.FirstName)),
-                                    ["-unsubscribeUrl-"] = $"{_site.Origin()}/api/newsletters/unsubscribe?t={_tokens.Create(r.Id)}&lang={lang}",
-                                    ["-subject-"] = SanitizeHeader(subjectRaw),
-                                    ["-titleHtml-"] = WebUtility.HtmlEncode(subjectRaw),
+                                    ["%%P46_FIRSTNAME%%"] = SanitizeHeader(r.FirstName),
+                                    ["%%P46_GREETING%%"] = SanitizeHeader(BuildGreeting(lang, r.FirstName)),
+                                    ["%%P46_GREETING_HTML%%"] = WebUtility.HtmlEncode(BuildGreeting(lang, r.FirstName)),
+                                    ["%%P46_UNSUBSCRIBE_URL%%"] = $"{_site.Origin()}/api/newsletters/unsubscribe?t={_tokens.Create(r.Id)}&lang={lang}",
+                                    ["%%P46_SUBJECT%%"] = SanitizeHeader(subjectRaw),
+                                    ["%%P46_TITLE_HTML%%"] = WebUtility.HtmlEncode(subjectRaw),
                                 },
                                 CustomArgs = new Dictionary<string, string>
                                 {
@@ -372,7 +383,7 @@ public class NewsletterSender : INewsletterSender
         new()
         {
             From = template.From,
-            Subject = "-subject-",
+            Subject = "%%P46_SUBJECT%%",
             PlainTextContent = template.Plain,
             HtmlContent = template.Html,
             Personalizations = personalizations.ToList(),
@@ -684,7 +695,7 @@ public class NewsletterSender : INewsletterSender
 
         return $@"<!DOCTYPE html>
 <html lang=""{lang}"">
-<head><meta charset=""UTF-8""><meta name=""viewport"" content=""width=device-width,initial-scale=1.0""><title>-titleHtml-</title></head>
+<head><meta charset=""UTF-8""><meta name=""viewport"" content=""width=device-width,initial-scale=1.0""><title>%%P46_TITLE_HTML%%</title></head>
 <body style=""font-family:Jost,sans-serif;color:#1d2b24;background:#0f261d;margin:0;padding:0;"">
   <table role=""presentation"" cellspacing=""0"" cellpadding=""0"" border=""0"" width=""100%"" style=""background:#0f261d;padding:24px 0;""><tr><td align=""center"">
     <table role=""presentation"" cellspacing=""0"" cellpadding=""0"" border=""0"" width=""600"" style=""max-width:600px;margin:0 auto;background:#fcf8f7;border-radius:14px;overflow:hidden;box-shadow:0 18px 48px rgba(0,0,0,0.3);"">
@@ -694,13 +705,13 @@ public class NewsletterSender : INewsletterSender
       </td></tr>
       {coverRow}
       <tr><td style=""padding:32px 32px 8px;"">
-        <h1 style=""margin:0 0 18px 0;color:#265640;font-family:Jost,'Helvetica Neue',Arial,sans-serif;font-size:24px;font-weight:400;line-height:1.3;"">-titleHtml-</h1>
-        <p style=""margin:0 0 18px 0;font-size:16px;color:#3a4a42;line-height:1.7;"">-greetingHtml-</p>
+        <h1 style=""margin:0 0 18px 0;color:#265640;font-family:Jost,'Helvetica Neue',Arial,sans-serif;font-size:24px;font-weight:400;line-height:1.3;"">%%P46_TITLE_HTML%%</h1>
+        <p style=""margin:0 0 18px 0;font-size:16px;color:#3a4a42;line-height:1.7;"">%%P46_GREETING_HTML%%</p>
         {paragraphHtml}
       </td></tr>
       <tr><td style=""padding:24px 32px;background:#f0ece9;border-top:1px solid rgba(38,86,64,0.1);font-size:12px;color:#8a9a92;text-align:center;line-height:1.7;"">
         <p style=""margin:0 0 6px 0;"">© {year} Pavillon 46 — La Croix-sur-Lutry, Suisse</p>
-        <p style=""margin:0;""><a href=""-unsubscribeUrl-"" style=""color:#8a9a92;font-size:12px;text-decoration:underline;"">{WebUtility.HtmlEncode(unsubscribeLabel)}</a></p>
+        <p style=""margin:0;""><a href=""%%P46_UNSUBSCRIBE_URL%%"" style=""color:#8a9a92;font-size:12px;text-decoration:underline;"">{WebUtility.HtmlEncode(unsubscribeLabel)}</a></p>
       </td></tr>
     </table>
   </td></tr></table>
@@ -708,8 +719,8 @@ public class NewsletterSender : INewsletterSender
     }
 
     // Instance (was static) so it can reach the renderer. The plain part keeps
-    // the -subject-/-greeting- tokens — the text/plain substitutions, which are
-    // NOT the HTML-encoded -titleHtml-/-greetingHtml- pair used above.
+    // the %%P46_SUBJECT%%/%%P46_GREETING%% tokens — the text/plain substitutions, which are
+    // NOT the HTML-encoded %%P46_TITLE_HTML%%/%%P46_GREETING_HTML%% pair used above.
     private string BuildPlain(Newsletter n, string lang)
     {
         var isEn = string.Equals(lang, "en", StringComparison.OrdinalIgnoreCase);
@@ -717,7 +728,7 @@ public class NewsletterSender : INewsletterSender
         var unsubscribeLabel = isEn ? "Unsubscribe" : "Se désabonner";
         // Markdown stripped to prose: no markup and no HTML entities, which is
         // what text/plain needs — HtmlEncode here would leak &amp; to readers.
-        return $"-subject-\n\n-greeting-\n\n{_renderer.RenderPlainText(body)}\n\n---\n{unsubscribeLabel}: -unsubscribeUrl-";
+        return $"%%P46_SUBJECT%%\n\n%%P46_GREETING%%\n\n{_renderer.RenderPlainText(body)}\n\n---\n{unsubscribeLabel}: %%P46_UNSUBSCRIBE_URL%%";
     }
 
     private sealed record Recipient(string Id, string Email, string FirstName, string LastName, string Title);

@@ -270,6 +270,7 @@ export interface DashboardTranslations {
   newsletterUnsavedLeave: string
   // Newsletters (admin editor: state explanations)
   newsletterSendNeedsPublish: string
+  newsletterSendNeedsSave: string
   newsletterSentReadOnly: string
   // Newsletters (admin editor: action buttons)
   newsletterSave: string
@@ -658,6 +659,8 @@ export const translations: Record<Language, Translations> = {
       newsletterUnsavedLeave: 'Quitter sans enregistrer',
       newsletterSendNeedsPublish:
         "Publiez l'infolettre avant de l'envoyer : seule une infolettre publiée peut partir aux membres.",
+      newsletterSendNeedsSave:
+        "Enregistrez vos modifications avant l'envoi : l'infolettre part telle qu'elle est enregistrée, pas telle qu'elle s'affiche.",
       newsletterSentReadOnly:
         'Cette infolettre a été envoyée. Son contenu est figé pour rester fidèle à ce que les membres ont reçu.',
       newsletterSave: 'Enregistrer',
@@ -1037,6 +1040,8 @@ export const translations: Record<Language, Translations> = {
       newsletterUnsavedLeave: 'Leave without saving',
       newsletterSendNeedsPublish:
         'Publish this newsletter before sending it — only a published newsletter can go out to members.',
+      newsletterSendNeedsSave:
+        'Save your changes before sending — the newsletter goes out exactly as stored, not as shown here.',
       newsletterSentReadOnly:
         'This newsletter has been sent. Its content is locked so it still matches what members received.',
       newsletterSave: 'Save',

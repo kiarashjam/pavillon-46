@@ -675,12 +675,18 @@ export default function AdminNewsletterEditor() {
     )
   }
 
+  // isDirty is in here for a reason that is easy to miss: the send dispatches
+  // server-side from the PERSISTED row, not from what is on screen. Allowing a
+  // send with unsaved edits therefore mailed the old text, and the post-send
+  // refetch then overwrote the editor (form *and* snapshot) with the server
+  // copy — so the pending edits were mailed-around and then silently discarded.
   const sendDisabled =
     isSent ||
     status !== 'published' ||
     publishBusy ||
     saving ||
     deleteBusy ||
+    isDirty ||
     audienceCount == null
 
   // One line explains, at all times, why the send button is in the state it is.
@@ -691,9 +697,11 @@ export default function AdminNewsletterEditor() {
     ? null
     : status !== 'published'
       ? t.newsletterSendNeedsPublish
-      : audienceUnknown
-        ? t.newsletterAudienceUnknown
-        : t.newsletterSendIrreversible
+      : isDirty
+        ? t.newsletterSendNeedsSave
+        : audienceUnknown
+          ? t.newsletterAudienceUnknown
+          : t.newsletterSendIrreversible
   const sendDescribedBy = isSent ? 'nl-sent-notice' : 'nl-send-explainer'
 
   return (

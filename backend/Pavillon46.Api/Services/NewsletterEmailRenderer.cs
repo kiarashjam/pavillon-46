@@ -54,9 +54,12 @@ public interface INewsletterEmailRenderer
 /// Recursion is depth-capped so an adversarial body (deeply nested quotes or
 /// lists) cannot exhaust the stack of a request thread.
 ///
-/// Note on SendGrid: substitutions (-titleHtml-, -greetingHtml-,
-/// -unsubscribeUrl-, …) are a literal string replace performed on the body
-/// *after* rendering. This renderer therefore never emits those tokens itself.
+/// Note on SendGrid: substitutions (%%P46_TITLE_HTML%%, %%P46_GREETING%%,
+/// %%P46_UNSUBSCRIBE_URL%%, …) are a literal, untargeted string replace applied
+/// to the rendered body. So any such token appearing in author text becomes a
+/// splice point for the substituted value — and some of those values are member
+/// supplied (FirstName). The renderer therefore neutralises the sentinel in its
+/// own output; it does not merely decline to emit it. See NeutraliseSubstitutionTokens.
 ///
 /// The class is stateless and the Markdig pipeline is immutable once built, so
 /// a single instance is safe to share — register it as a singleton.
@@ -91,6 +94,9 @@ public sealed class NewsletterEmailRenderer : INewsletterEmailRenderer
     private const string StyleLink = "color:#265640;text-decoration:underline;";
     private const string StyleStrong = "font-weight:600;";
     private const string StyleEmphasis = "font-style:italic;";
+    // pre wraps rather than scrolls: an email body has no horizontal scroll.
+    private const string StyleCode = "margin:0 0 18px 0;padding:14px 16px;background:#f0ece9;border-radius:8px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:14px;color:#3a4a42;line-height:1.6;white-space:pre-wrap;word-break:break-word;";
+    private const string StyleRule = "margin:26px 0;border:0;border-top:1px solid rgba(38,86,64,0.18);";
 
     private static readonly Regex BlankLineRuns = new(@"\n{3,}", RegexOptions.Compiled);
     private static readonly Regex TrailingSpaces = new(@"[ \t]+\n", RegexOptions.Compiled);
@@ -116,7 +122,7 @@ public sealed class NewsletterEmailRenderer : INewsletterEmailRenderer
 
         var sb = new StringBuilder(markdown.Length * 2);
         WriteBlocksHtml(document, sb, 0);
-        return sb.ToString();
+        return NeutraliseSubstitutionTokens(sb.ToString(), html: true);
     }
 
     public string RenderPlainText(string markdown)
@@ -138,7 +144,55 @@ public sealed class NewsletterEmailRenderer : INewsletterEmailRenderer
 
         var sb = new StringBuilder(markdown.Length + 32);
         WriteBlocksText(document, sb, 0, string.Empty);
-        return NormalizeText(sb.ToString());
+        return NeutraliseSubstitutionTokens(NormalizeText(sb.ToString()), html: false);
+    }
+
+    /// <summary>
+    /// Breaks any SendGrid substitution sentinel that survived from author text,
+    /// so the provider's literal replace cannot splice a substituted value into
+    /// the body. Some of those values are member-supplied (FirstName), and the
+    /// plain-text family is not HTML-encoded, so a body containing the sentinel
+    /// was a live injection point into that member's own HTML mail.
+    /// <para>
+    /// In HTML the second percent is emitted as <c>&amp;#37;</c>: renders
+    /// identically, no longer matches. In text/plain there is no encoding to hide
+    /// behind, so a zero-width joiner is inserted — invisible in every mail client
+    /// and enough to break the literal match.
+    /// </para>
+    /// </summary>
+    private static string NeutraliseSubstitutionTokens(string rendered, bool html)
+    {
+        if (string.IsNullOrEmpty(rendered)) return rendered;
+        // Cheap guard: the sentinel always starts with "%%P46_".
+        if (!rendered.Contains("%%P46_", StringComparison.Ordinal)) return rendered;
+
+        return SubstitutionSentinel.Replace(
+            rendered,
+            m => html
+                ? $"%&#37;{m.Groups[1].Value}%%"
+                : $"%⁠%{m.Groups[1].Value}%%");
+    }
+
+    private static readonly Regex SubstitutionSentinel =
+        new(@"%%(P46_[A-Z0-9_]{1,40})%%", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+    /// <summary>
+    /// Text of a fenced or indented code block. Markdig exposes the lines as
+    /// slices over the original source rather than as a single string.
+    /// </summary>
+    private static string CodeBlockText(CodeBlock code)
+    {
+        var lines = code.Lines.Lines;
+        if (lines is null) return string.Empty;
+
+        var sb = new StringBuilder();
+        // Lines is a fixed-capacity array; Count is the meaningful length.
+        for (var i = 0; i < code.Lines.Count; i++)
+        {
+            sb.Append(lines[i].Slice.ToString());
+            if (i < code.Lines.Count - 1) sb.Append('\n');
+        }
+        return sb.ToString().TrimEnd();
     }
 
     private static string NormalizeText(string text)
@@ -225,9 +279,32 @@ public sealed class NewsletterEmailRenderer : INewsletterEmailRenderer
                     sb.Append("</blockquote>");
                     break;
 
+                // A code block is content, and dropping it silently meant a body
+                // consisting only of a fence produced an EMPTY email — title,
+                // greeting, footer, no words — while the editor preview still
+                // showed it. Rendered as preformatted text rather than discarded.
+                case CodeBlock code:
+                    {
+                        var text = CodeBlockText(code);
+                        if (text.Length > 0)
+                        {
+                            sb.Append("<pre style=\"").Append(StyleCode).Append("\">")
+                              .Append(WebUtility.HtmlEncode(text))
+                              .Append("</pre>");
+                        }
+                    }
+                    break;
+
+                // A horizontal rule is cheap to honour and authors use it as a
+                // section break.
+                case ThematicBreakBlock:
+                    sb.Append("<hr style=\"").Append(StyleRule).Append("\" />");
+                    break;
+
                 // Everything else is outside the supported subset and is
-                // dropped: code blocks, thematic breaks, tables, raw HTML
-                // blocks, link reference definitions.
+                // dropped: tables (no remark-gfm on the other two surfaces
+                // either, so they degrade identically), raw HTML blocks, link
+                // reference definitions.
                 default:
                     break;
             }
@@ -401,6 +478,22 @@ public sealed class NewsletterEmailRenderer : INewsletterEmailRenderer
 
                 case QuoteBlock quote:
                     WriteBlocksText(quote, sb, depth + 1, indent);
+                    break;
+
+                case CodeBlock code:
+                    {
+                        var text = CodeBlockText(code);
+                        if (text.Length > 0)
+                        {
+                            foreach (var line in text.Replace("\r\n", "\n").Split('\n'))
+                                sb.Append(indent).Append("    ").Append(line).Append('\n');
+                            sb.Append('\n');
+                        }
+                    }
+                    break;
+
+                case ThematicBreakBlock:
+                    sb.Append(indent).Append("———").Append("\n\n");
                     break;
 
                 default:

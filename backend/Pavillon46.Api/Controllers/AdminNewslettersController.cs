@@ -174,6 +174,9 @@ public class AdminNewslettersController : ControllerBase
                 errorType = "cannot_edit_sent",
             });
 
+        // Refuse while a dispatch holds the claim — see SendInFlightConflict.
+        if (SendInFlightConflict(newsletter) is { } inFlight) return inFlight;
+
         if (body.TitleFr is not null) newsletter.TitleFr = body.TitleFr.Trim();
         if (body.TitleEn is not null) newsletter.TitleEn = body.TitleEn.Trim();
         if (body.BodyFr is not null) newsletter.BodyFr = body.BodyFr.Trim();
@@ -213,6 +216,9 @@ public class AdminNewslettersController : ControllerBase
                 errorType = "cannot_delete_sent",
             });
 
+        // Refuse while a dispatch holds the claim — see SendInFlightConflict.
+        if (SendInFlightConflict(newsletter) is { } inFlight) return inFlight;
+
         await _newsletters.DeleteAsync(newsletter.Id, ct);
         _logger.LogInformation("Admin deleted newsletter {Id}", newsletter.Id);
         return NoContent();
@@ -225,6 +231,9 @@ public class AdminNewslettersController : ControllerBase
         if (newsletter is null) return NotFound(new { message = "Newsletter not found." });
         if (!string.Equals(newsletter.Status, "draft", StringComparison.OrdinalIgnoreCase))
             return Conflict(new { message = "Only draft newsletters can be published.", errorType = "not_draft" });
+
+        // Refuse while a dispatch holds the claim — see SendInFlightConflict.
+        if (SendInFlightConflict(newsletter) is { } inFlight) return inFlight;
 
         newsletter.Status = "published";
         newsletter.PublishedAt = DateTime.UtcNow.ToString("o");
@@ -241,6 +250,9 @@ public class AdminNewslettersController : ControllerBase
         if (newsletter is null) return NotFound(new { message = "Newsletter not found." });
         if (!string.Equals(newsletter.Status, "published", StringComparison.OrdinalIgnoreCase))
             return Conflict(new { message = "Only published newsletters can be unpublished.", errorType = "not_published" });
+
+        // Refuse while a dispatch holds the claim — see SendInFlightConflict.
+        if (SendInFlightConflict(newsletter) is { } inFlight) return inFlight;
 
         newsletter.Status = "draft";
         newsletter.PublishedAt = null;
@@ -297,13 +309,20 @@ public class AdminNewslettersController : ControllerBase
 
         var testMode = testEmails.Count > 0;
 
-        // Idempotency layer 1, before any I/O: a same-instance double-click is
-        // refused here without touching storage or SendGrid.
-        var gate = TryEnterSendGate(id);
+        // Confirm the row exists before touching the gate map, so a bogus id
+        // cannot leave a lock behind (see TryEnterSendGate).
+        var known = await _newsletters.GetByIdAsync(id, ct);
+        if (known is null) return NotFound(new { message = "Newsletter not found." });
+
+        // Idempotency layer 1: a same-instance double-click is refused here
+        // without a SendGrid call. Layer 2 (the persisted ETag claim, below) is
+        // what covers a second instance or a restart.
+        var gate = TryEnterSendGate(known.Id);
         if (gate is null) return SendAlreadyInProgress(null);
         try
         {
-            var (newsletter, etag) = await _newsletters.GetWithEtagAsync(id, ct);
+            // Re-read inside the gate so the ETag we claim against is current.
+            var (newsletter, etag) = await _newsletters.GetWithEtagAsync(known.Id, ct);
             if (newsletter is null) return NotFound(new { message = "Newsletter not found." });
 
             if (!testMode && !string.Equals(newsletter.Status, "published", StringComparison.OrdinalIgnoreCase))
@@ -340,11 +359,16 @@ public class AdminNewslettersController : ControllerBase
     [HttpPost("{id}/resend-failed")]
     public async Task<IActionResult> ResendFailed(string id, CancellationToken ct)
     {
-        var gate = TryEnterSendGate(id);
+        // Existence first, so the gate map stays bounded (see TryEnterSendGate).
+        var known = await _newsletters.GetByIdAsync(id, ct);
+        if (known is null) return NotFound(new { message = "Newsletter not found." });
+
+        var gate = TryEnterSendGate(known.Id);
         if (gate is null) return SendAlreadyInProgress(null);
         try
         {
-            var (newsletter, etag) = await _newsletters.GetWithEtagAsync(id, ct);
+            // Re-read inside the gate so the ETag we claim against is current.
+            var (newsletter, etag) = await _newsletters.GetWithEtagAsync(known.Id, ct);
             if (newsletter is null) return NotFound(new { message = "Newsletter not found." });
 
             var lastRealSend = MostRecentRealSend(newsletter);
@@ -430,9 +454,21 @@ public class AdminNewslettersController : ControllerBase
     /// never blocks, so a double-click costs nothing. The caller MUST release the
     /// returned semaphore in a finally.
     /// </summary>
-    private static SemaphoreSlim? TryEnterSendGate(string? newsletterId)
+    /// <summary>
+    /// Enters the in-process gate for a newsletter, or returns null when another
+    /// dispatch on this instance already holds it.
+    /// <para>
+    /// Callers MUST pass the canonical id read from an existing row, never the
+    /// raw route value. The map is process-lifetime, so keying it on unvalidated
+    /// input let an authenticated admin grow it without bound by POSTing random
+    /// ids; keying it on ids that exist bounds it by the number of newsletters.
+    /// Using the stored id also means two spellings of the same id cannot end up
+    /// on two different gates.
+    /// </para>
+    /// </summary>
+    private static SemaphoreSlim? TryEnterSendGate(string canonicalNewsletterId)
     {
-        var gate = SendGates.GetOrAdd(newsletterId ?? "", _ => new SemaphoreSlim(1, 1));
+        var gate = SendGates.GetOrAdd(canonicalNewsletterId, _ => new SemaphoreSlim(1, 1));
         return gate.Wait(0) ? gate : null;
     }
 
@@ -450,7 +486,7 @@ public class AdminNewslettersController : ControllerBase
         Func<CancellationToken, Task<NewsletterSendAudit>> dispatch,
         CancellationToken ct)
     {
-        var claimConflict = await TryClaimSendAsync(newsletter, etag, adminId, ct);
+        var (claimConflict, ownedStamp) = await TryClaimSendAsync(newsletter, etag, adminId, ct);
         if (claimConflict is not null) return claimConflict;
 
         NewsletterSendAudit audit;
@@ -468,7 +504,9 @@ public class AdminNewslettersController : ControllerBase
             // The sender clears the claim as part of its audit write; this covers
             // the paths where it never got that far (a missing API key, a
             // newsletter that vanished between the read and the dispatch).
-            await ReleaseSendClaimAsync(newsletter.Id);
+            // Passing our own stamp keeps this from freeing a claim that a later
+            // dispatch has since taken.
+            await ReleaseSendClaimAsync(newsletter.Id, ownedStamp);
         }
 
         // 200 even when every recipient failed — the body's ok/outcome pair
@@ -481,42 +519,80 @@ public class AdminNewslettersController : ControllerBase
     /// Fail-closed: if the conditional update does not land — someone else
     /// claimed the row, or changed it at all — this refuses rather than sending.
     /// </summary>
-    private async Task<IActionResult?> TryClaimSendAsync(
+    private async Task<(IActionResult? Conflict, string? OwnedStamp)> TryClaimSendAsync(
         Newsletter newsletter,
         string? etag,
         string adminId,
         CancellationToken ct)
     {
-        var now = DateTime.UtcNow;
-        var staleAfter = TimeSpan.FromMinutes(Math.Clamp(_newsletterOpts.SendClaimStaleMinutes, 1, 24 * 60));
-
         // A live claim means a send is running (or died less than the staleness
         // window ago). An older one is assumed dead and taken over.
-        if (!string.IsNullOrWhiteSpace(newsletter.SendClaimedAtUtc)
-            && DateTime.TryParse(
-                newsletter.SendClaimedAtUtc,
-                CultureInfo.InvariantCulture,
-                DateTimeStyles.RoundtripKind | DateTimeStyles.AdjustToUniversal,
-                out var claimedAt)
-            && now - claimedAt < staleAfter)
+        if (HasLiveSendClaim(newsletter))
         {
-            return SendAlreadyInProgress(newsletter.SendClaimedAtUtc);
+            return (SendAlreadyInProgress(newsletter.SendClaimedAtUtc), null);
         }
 
-        newsletter.SendClaimedAtUtc = now.ToString("o");
+        var stamp = DateTime.UtcNow.ToString("o");
+        newsletter.SendClaimedAtUtc = stamp;
         newsletter.SendClaimedByAdminId = adminId;
-        newsletter.UpdatedAt = newsletter.SendClaimedAtUtc;
+        newsletter.UpdatedAt = stamp;
 
         if (!await _newsletters.TryUpdateIfUnchangedAsync(newsletter, etag, ct))
         {
             _logger.LogWarning(
                 "Newsletter {Id} send claim lost a race (admin {AdminId}) — refusing to dispatch",
                 newsletter.Id, adminId);
-            return SendAlreadyInProgress(null);
+            return (SendAlreadyInProgress(null), null);
         }
 
-        return null;
+        // Hand the stamp back so the release path can prove it owns the claim it
+        // is about to clear (see ReleaseSendClaimAsync).
+        return (null, stamp);
     }
+
+    /// <summary>
+    /// True while a send is dispatching for this row — either genuinely running,
+    /// or abandoned less than <c>SendClaimStaleMinutes</c> ago.
+    /// <para>
+    /// Fail-closed on a claim we cannot parse: an unreadable timestamp is treated
+    /// as live rather than absent, so a corrupt value blocks concurrent sends
+    /// until the operator clears it instead of silently allowing them.
+    /// </para>
+    /// </summary>
+    private bool HasLiveSendClaim(Newsletter newsletter)
+    {
+        if (string.IsNullOrWhiteSpace(newsletter.SendClaimedAtUtc)) return false;
+
+        var staleAfter = TimeSpan.FromMinutes(Math.Clamp(_newsletterOpts.SendClaimStaleMinutes, 1, 24 * 60));
+        if (!DateTime.TryParse(
+                newsletter.SendClaimedAtUtc,
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.RoundtripKind | DateTimeStyles.AdjustToUniversal,
+                out var claimedAt))
+        {
+            return true;
+        }
+
+        return DateTime.UtcNow - claimedAt < staleAfter;
+    }
+
+    /// <summary>
+    /// Refuses a mutation while a send is in flight for this row. Without this
+    /// guard an unpublish (or edit, or delete) landing mid-send writes back a
+    /// copy of the row it read: the claim disappears — letting a second instance
+    /// dispatch concurrently — and if the write lands after the sender's audit,
+    /// the audit and the "sent" status are wiped too. A delete is worse still:
+    /// the sender's audit write is an upsert, so the row reappears as "sent".
+    /// </summary>
+    private ObjectResult? SendInFlightConflict(Newsletter newsletter) =>
+        HasLiveSendClaim(newsletter)
+            ? Conflict(new
+            {
+                message = "This newsletter is being sent right now. Try again once the send has finished.",
+                errorType = "send_in_progress",
+                claimedAtUtc = newsletter.SendClaimedAtUtc,
+            })
+            : null;
 
     /// <summary>
     /// Clears the send claim, best effort. Never uses the request's token: the
@@ -524,8 +600,11 @@ public class AdminNewslettersController : ControllerBase
     /// otherwise the newsletter stays locked until the staleness window expires.
     /// Re-reads first, so it never overwrites the audit the sender just wrote.
     /// </summary>
-    private async Task ReleaseSendClaimAsync(string newsletterId)
+    private async Task ReleaseSendClaimAsync(string newsletterId, string? ownedStamp)
     {
+        // Nothing to release: the claim was never taken.
+        if (string.IsNullOrEmpty(ownedStamp)) return;
+
         for (var attempt = 1; attempt <= 3; attempt++)
         {
             try
@@ -536,6 +615,20 @@ public class AdminNewslettersController : ControllerBase
                     && string.IsNullOrEmpty(fresh.SendClaimedByAdminId))
                 {
                     return; // the sender's audit write already released it
+                }
+
+                // Only clear OUR claim. This used to free whatever claim it found,
+                // which on two instances meant A's release could wipe B's live
+                // claim and let a third request dispatch concurrently with B —
+                // reachable whenever the status gate does not save us, i.e. an
+                // all-failed send (status stays "published") or /resend-failed,
+                // which has no status gate at all.
+                if (!string.Equals(fresh.SendClaimedAtUtc, ownedStamp, StringComparison.Ordinal))
+                {
+                    _logger.LogInformation(
+                        "Newsletter {Id} send claim now belongs to another dispatch — leaving it alone.",
+                        newsletterId);
+                    return;
                 }
 
                 fresh.SendClaimedAtUtc = null;
