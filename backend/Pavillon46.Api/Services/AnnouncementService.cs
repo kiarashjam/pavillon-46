@@ -4,16 +4,20 @@ namespace Pavillon46.Api.Services;
 
 public interface IAnnouncementService
 {
-    List<AnnouncementDto> GetForLanguage(string lang);
+    Task<List<AnnouncementDto>> GetForLanguageAsync(string lang, CancellationToken ct = default);
 }
 
 /// <summary>
-/// Curated, bilingual member announcements. Static for now (no admin authoring
-/// surface yet); swap for a store later without changing the controller/API.
+/// Curated, bilingual member announcements. Combines a small static editorial
+/// seed (kept in-file so an empty newsletter store still shows something on
+/// the dashboard) with every published/sent newsletter, projected onto the
+/// same <see cref="AnnouncementDto"/> shape the frontend already renders.
+/// Cover images are intentionally dropped by this projection — the dashboard
+/// event list is short-form; the dedicated newsletters page renders imagery.
 /// </summary>
 public class AnnouncementService : IAnnouncementService
 {
-    private static readonly List<MemberAnnouncement> Source = new()
+    private static readonly List<MemberAnnouncement> Seed = new()
     {
         new MemberAnnouncement
         {
@@ -47,10 +51,53 @@ public class AnnouncementService : IAnnouncementService
         },
     };
 
-    public List<AnnouncementDto> GetForLanguage(string lang)
+    private readonly INewsletterStore _newsletters;
+    private readonly ILogger<AnnouncementService> _logger;
+
+    public AnnouncementService(INewsletterStore newsletters, ILogger<AnnouncementService> logger)
+    {
+        _newsletters = newsletters;
+        _logger = logger;
+    }
+
+    public async Task<List<AnnouncementDto>> GetForLanguageAsync(string lang, CancellationToken ct = default)
     {
         var isEn = string.Equals(lang, "en", StringComparison.OrdinalIgnoreCase);
-        return Source
+
+        // Newsletters that reached the member-visible states get merged onto
+        // the dashboard event list. A store hiccup must never break the seed
+        // announcements — we log and continue.
+        var newsletters = new List<Newsletter>();
+        try
+        {
+            var all = await _newsletters.ListAsync(ct);
+            newsletters = all
+                .Where(n =>
+                    string.Equals(n.Status, "published", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(n.Status, "sent", StringComparison.OrdinalIgnoreCase))
+                .Where(n => !string.IsNullOrWhiteSpace(n.PublishedAt))
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Newsletter store unavailable — announcement list falls back to seed only.");
+        }
+
+        var newsletterEntries = newsletters.Select(n => new MemberAnnouncement
+        {
+            Id = "newsletter-" + n.Id,
+            // PublishedAt is ISO-8601 — take the first 10 chars for YYYY-MM-DD.
+            Date = SafeDate(n.PublishedAt),
+            Tag = string.IsNullOrWhiteSpace(n.Tag) ? "Newsletter" : n.Tag,
+            TitleFr = n.TitleFr,
+            TitleEn = n.TitleEn,
+            BodyFr = n.BodyFr,
+            BodyEn = n.BodyEn,
+        });
+
+        var combined = Seed.Concat(newsletterEntries);
+
+        return combined
             .OrderByDescending(a => a.Date, StringComparer.Ordinal)
             .Select(a => new AnnouncementDto
             {
@@ -61,5 +108,11 @@ public class AnnouncementService : IAnnouncementService
                 Body = isEn ? a.BodyEn : a.BodyFr,
             })
             .ToList();
+    }
+
+    private static string SafeDate(string? isoTimestamp)
+    {
+        if (string.IsNullOrWhiteSpace(isoTimestamp)) return "";
+        return isoTimestamp.Length >= 10 ? isoTimestamp[..10] : isoTimestamp;
     }
 }

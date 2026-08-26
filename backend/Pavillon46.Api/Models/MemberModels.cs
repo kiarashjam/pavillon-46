@@ -34,6 +34,10 @@ public class Member
     // current row is rejected by MemberAuthorizeFilter, so a password change
     // logs out every existing session.
     public int PasswordVersion { get; set; }
+    // Newsletter opt-out flag. Default false — members are invitation-only and
+    // expect newsletters. Flipped true by the public unsubscribe link, back to
+    // false by the dashboard resubscribe button.
+    public bool NewsletterOptOut { get; set; }
     public string CreatedAt { get; set; } = "";
     public string UpdatedAt { get; set; } = "";
     public string LastLoginAt { get; set; } = "";
@@ -219,6 +223,7 @@ public class MemberDto
     public int SuccessfulReferrals { get; set; }
     public int BonusPoints { get; set; }
     public bool MustChangePassword { get; set; }
+    public bool NewsletterOptOut { get; set; }
     public string CreatedAt { get; set; } = "";
     public string LastLoginAt { get; set; } = "";
 
@@ -240,6 +245,7 @@ public class MemberDto
         SuccessfulReferrals = m.SuccessfulReferrals,
         BonusPoints = m.BonusPoints,
         MustChangePassword = m.MustChangePassword,
+        NewsletterOptOut = m.NewsletterOptOut,
         CreatedAt = m.CreatedAt,
         LastLoginAt = m.LastLoginAt,
     };

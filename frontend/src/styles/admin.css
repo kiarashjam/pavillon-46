@@ -18,6 +18,16 @@
   --ad-green-soft: #3f8163;
   --ad-coral: #ff6e50;
   --ad-lavender: #e0bffc;
+  /* Label ink for the coral fills. White on the coral gradient measures
+     2.76:1 at the 0% stop and 2.34:1 at 100% — far under the 4.5:1 AA floor
+     for a 14px/500 button label. This deep estate ink measures 6.59:1 at the
+     worst stop (7.78:1 at the lightest), so the brand coral never has to shift
+     and every other coral use — pills, kickers, borders, the nav accent —
+     stays exactly as it was. */
+  --ad-on-coral: #0a1812;
+  /* Delivered / healthy. The green already used by .adash-kpi-ico.is-green,
+     named so the newsletter send receipt can read calm instead of alarmed. */
+  --ad-success: #7fd6a8;
   --ad-radius: 16px;
   --ad-ease: cubic-bezier(0.16, 1, 0.3, 1);
   --ad-shadow: 0 18px 44px rgba(0, 0, 0, 0.4);
@@ -235,7 +245,7 @@
   border: 0; border-radius: 12px; cursor: pointer;
   font-family: var(--font-primary); font-size: 13.5px; font-weight: 500; letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #fff;
+  color: var(--ad-on-coral);
   background: linear-gradient(120deg, var(--ad-coral) 0%, #f98b73 100%);
   box-shadow: 0 10px 24px rgba(255, 110, 80, 0.28);
   transition: transform 0.2s var(--ad-ease), box-shadow 0.3s var(--ad-ease), opacity 0.2s var(--ad-ease);
@@ -311,6 +321,9 @@
   outline: 2px solid rgba(255, 110, 80, 0.55);
   outline-offset: 2px;
 }
+/* The submit button is itself coral, so the coral ring above disappeared into
+   it. Deep estate green reads against both the button and the ivory panel. */
+.adash-auth-submit:focus-visible { outline-color: #265640; }
 
 @media (max-width: 880px) {
   .adash-auth { flex-direction: column; overflow: visible; }
@@ -479,6 +492,17 @@
 
 /* ---------- KPI cards ---------- */
 .adash-kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+/* 3-up strips (newsletter lifecycle counts). Written as a two-class selector on
+   purpose: the base .adash-kpi-grid breakpoints further down step 4 → 2 → 1, and
+   at (0,1,0) they would fight this variant depending on source order. At (0,2,0)
+   the variant owns its own column count at every width, so the whole responsive
+   story for a 3-up strip is these two rules and nothing else. */
+.adash-kpi-grid.adash-kpi-grid-3 { grid-template-columns: repeat(3, 1fr); }
+@media (max-width: 600px) {
+  /* Three compact cards below this are ~108px wide — a number with no room for
+     its label. One per row instead. */
+  .adash-kpi-grid.adash-kpi-grid-3 { grid-template-columns: 1fr; }
+}
 .adash-kpi {
   position: relative; overflow: hidden;
   background: var(--ad-surface); border: 1px solid var(--ad-border); border-radius: var(--ad-radius);
@@ -493,6 +517,14 @@
 }
 .adash-kpi:hover { transform: translateY(-3px); border-color: var(--ad-border-strong); background: var(--ad-surface-2); }
 .adash-kpi-link { cursor: pointer; }
+/* A KPI card used as a filter toggle promises a state with aria-pressed; without
+   a visual for it the pressed card looked identical to the other two. Only the
+   newsletter strip sets the attribute, so the navigational KPI cards elsewhere
+   are untouched. */
+.adash-kpi-link[aria-pressed='true'] {
+  background: var(--ad-surface-2); border-color: rgba(255, 110, 80, 0.5);
+  box-shadow: inset 3px 0 0 var(--ad-coral);
+}
 .adash-kpi-top { display: flex; align-items: center; justify-content: space-between; }
 .adash-kpi-label { font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ad-muted); }
 .adash-kpi-ico {
@@ -544,14 +576,33 @@
   transition: transform 0.2s var(--ad-ease), box-shadow 0.3s var(--ad-ease), background 0.25s var(--ad-ease), border-color 0.25s var(--ad-ease);
 }
 .adash-btn:disabled { opacity: 0.55; cursor: not-allowed; }
-.adash-btn-primary { background: linear-gradient(120deg, var(--ad-coral) 0%, #f98b73 100%); color: #fff; box-shadow: 0 8px 20px rgba(255,110,80,0.24); }
+/* Dark ink, not white: see --ad-on-coral. 6.59:1 at the darkest gradient stop
+   against the 2.76:1 the white label managed. Same coral, same weight. */
+.adash-btn-primary { background: linear-gradient(120deg, var(--ad-coral) 0%, #f98b73 100%); color: var(--ad-on-coral); box-shadow: 0 8px 20px rgba(255,110,80,0.24); }
 .adash-btn-primary:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 12px 26px rgba(255,110,80,0.32); }
 .adash-btn-ghost { background: var(--ad-surface); border-color: var(--ad-border); color: var(--ad-text); }
 .adash-btn-ghost:hover:not(:disabled) { background: var(--ad-surface-2); border-color: var(--ad-border-strong); }
 .adash-btn-danger { background: rgba(214, 69, 47, 0.16); border-color: rgba(214, 69, 47, 0.5); color: #ff9b85; }
 .adash-btn-danger:hover:not(:disabled) { background: rgba(214, 69, 47, 0.26); border-color: rgba(214, 69, 47, 0.7); color: #ffb6a4; }
 .adash-btn-sm { height: 34px; padding: 0 12px; font-size: 13px; border-radius: 9px; }
-.adash-btn:focus-visible, .adash-nav-link:focus-visible, .adash-link:focus-visible, .adash-signout:focus-visible { outline: 2px solid var(--ad-coral); outline-offset: 2px; }
+/* One focus ring for every interactive thing in the console. Coral on the deep
+   green shell measures 5.5:1 against the panel surface, well past the 3:1
+   non-text floor. The text inputs previously had `outline: none` plus a 20%-alpha
+   green glow, which is not a focus indicator anyone can see — they get the ring
+   too now, with the green border/glow left in place as the inner treatment. */
+.adash-btn:focus-visible, .adash-nav-link:focus-visible, .adash-link:focus-visible, .adash-signout:focus-visible,
+.adash-input:focus-visible, .adash-select:focus-visible, .adash-status-select:focus-visible,
+.adash-check input:focus-visible, .adash-modal-close:focus-visible, .adash-pw-toggle:focus-visible,
+.adash-people-tab:focus-visible, .adash-seg button:focus-visible, .adash-kpi-link:focus-visible,
+.adash-storage-pill:focus-visible, .adash-burger:focus-visible, .adash-table a:focus-visible,
+.adash-send-summary summary:focus-visible, .adash-receipt:focus-visible {
+  outline: 2px solid var(--ad-coral); outline-offset: 2px;
+}
+/* Coral ring on a coral fill is a coral halo. Ivory reads against both. */
+.adash-btn-primary:focus-visible { outline-color: var(--ad-text); }
+/* Keyboard focus lands on the link inside the row, so the row has to light up
+   the way it does on hover — otherwise tabbing a table loses the current row. */
+.adash-row-clickable:focus-within { background: rgba(255,255,255,0.04); }
 
 /* ---------- Tables ---------- */
 .adash-table-wrap { overflow-x: auto; border-radius: 12px; border: 1px solid var(--ad-border); }
@@ -594,8 +645,22 @@
 .adash-pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 11px; border-radius: 999px; font-size: 11.5px; font-weight: 600; letter-spacing: 0.02em; }
 .adash-pill.is-pending { background: rgba(224,191,252,0.18); color: #d9bdfa; }
 .adash-pill.is-reviewing { background: rgba(255,200,80,0.18); color: #ffd887; }
-.adash-pill.is-accepted, .adash-pill.is-active { background: rgba(127,214,168,0.18); color: #8fe3b4; }
+.adash-pill.is-accepted, .adash-pill.is-active, .adash-pill.is-published { background: rgba(127,214,168,0.18); color: #8fe3b4; }
 .adash-pill.is-declined, .adash-pill.is-suspended { background: rgba(255,110,80,0.2); color: #ffb1a0; }
+/* Newsletter lifecycle: draft (neutral ivory) → published (reuses the active
+   green above) → sent (calm blue, so a delivered issue reads as terminal). */
+.adash-pill.is-draft { background: rgba(243,239,233,0.1); color: rgba(243,239,233,0.66); }
+.adash-pill.is-sent { background: rgba(140,190,255,0.18); color: #a9ccff; }
+/* Metadata chip — a newsletter tag, a FR/EN language badge. Deliberately not a
+   peer of the status pills above: no colour, a hairline edge instead of an 18%
+   fill, smaller and lettercased. It labels, it does not signal, so the two read
+   as different ranks when they sit in adjacent table cells. Label contrast is
+   5.9:1 on the panel; the edge is intentionally quieter than the 3:1 non-text
+   floor because it is decoration — the text carries all of the information. */
+.adash-pill.is-tag {
+  padding: 3px 9px; font-size: 10.5px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase;
+  background: rgba(255,255,255,0.045); border: 1px solid var(--ad-border-strong); color: var(--ad-muted);
+}
 
 .adash-status-select {
   height: 32px; border-radius: 8px; border: 1px solid var(--ad-border);
@@ -640,6 +705,71 @@
 .adash-cred-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .adash-hint { font-size: 12.5px; color: var(--ad-muted); }
 .adash-hint.warn { color: #ffb1a0; }
+
+/* ---------- Newsletters — send gate, receipt, preview ---------- */
+/* The receipt is a .adash-panel first — the neutral console surface — and the
+   severity class only tints it. It used to borrow .adash-creds above, the coral
+   "copy this secret now" skin, so a clean delivery to the whole membership read
+   as an alarm. is-bad keeps that same coral on purpose: a send where nothing
+   arrived IS the alarm. is-warn and is-ok step down from it. */
+.adash-receipt.is-ok {
+  background: linear-gradient(140deg, rgba(127,214,168,0.1), rgba(255,255,255,0.03));
+  border-color: rgba(127,214,168,0.34);
+}
+.adash-receipt.is-warn {
+  background: linear-gradient(140deg, rgba(255,200,80,0.1), rgba(255,255,255,0.03));
+  border-color: rgba(255,200,80,0.36);
+}
+.adash-receipt.is-bad {
+  background: linear-gradient(140deg, rgba(255,110,80,0.12), rgba(255,255,255,0.03));
+  border-color: rgba(255,110,80,0.4);
+}
+/* Headline carries the outcome so it does not rest on the tint alone. Same three
+   colours as the status pills; 7.1:1 / 9.0:1 / 7.6:1 on their own tints. */
+.adash-receipt.is-ok h3 { color: var(--ad-success); }
+.adash-receipt.is-warn h3 { color: #ffd887; }
+.adash-receipt.is-bad h3 { color: #ffb1a0; }
+
+/* "Here is what is about to go out" — quoted content, not another card, so it
+   is recessed rather than raised. Same inset value as .adash-dl cells. */
+.adash-send-summary { background: rgba(6,16,12,0.42); box-shadow: none; line-height: 1.6; }
+.adash-send-summary p { font-size: 14px; }
+.adash-send-summary summary { cursor: pointer; }
+
+/* The send action lives in its own bordered group, never adjacent to Save, so a
+   misclick while saving a draft cannot open the send flow for every member. The
+   frame is what marks the action as consequential — .adash-btn-danger is shared
+   with the routine Delete buttons and cannot carry that weight alone. */
+.adash-send-zone {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 12px;
+  padding: 14px 16px; border-radius: 12px;
+  border: 1px solid rgba(214,69,47,0.35); background: rgba(214,69,47,0.06);
+}
+
+/* Action bar pinned to the viewport bottom of a long editor form. Must be a
+   direct child of the form — sticky only travels inside its own containing
+   block. Opaque, not --ad-surface: the form would scroll through a translucent
+   bar. Two classes so it always wins over the plain .adash-detail-foot. */
+.adash-detail-foot.adash-sticky-foot {
+  position: sticky; bottom: 12px; z-index: 5;
+  padding: 12px 16px; border-radius: 14px; border: 1px solid var(--ad-border);
+  background: rgba(9,20,15,0.96);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  box-shadow: 0 -6px 24px rgba(4,10,7,0.45);
+}
+
+/* Rendered-Markdown preview surface. Lifted a touch off the panel it sits in,
+   and given a reading rhythm — the editor was setting padding and background
+   inline, which put the preview outside the token scale. */
+.adash-preview { padding: 20px; background: rgba(255,255,255,0.03); }
+.adash-preview h1, .adash-preview h2, .adash-preview h3 { margin: 18px 0 8px; font-weight: 400; letter-spacing: -0.01em; }
+.adash-preview h1 { font-size: 24px; }
+.adash-preview h2 { font-size: 20px; }
+.adash-preview h3 { font-size: 17px; }
+.adash-preview p, .adash-preview li { font-size: 14.5px; line-height: 1.7; color: var(--ad-text); }
+.adash-preview a { color: var(--ad-coral); }
+.adash-preview > :first-child { margin-top: 0; }
+.adash-preview > :last-child { margin-bottom: 0; }
 
 /* ---------- Activity (bars + insights) ---------- */
 .adash-filter-grid { display: grid; grid-template-columns: repeat(5, minmax(120px,1fr)); gap: 12px; align-items: end; }
@@ -690,8 +820,17 @@
 .adash-activity-filters { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .adash-seg { display: inline-flex; background: var(--ad-surface); border: 1px solid var(--ad-border); border-radius: 11px; padding: 3px; gap: 2px; }
 .adash-seg button { border: none; background: transparent; color: var(--ad-muted); font-family: var(--font-primary); font-size: 13px; font-weight: 500; padding: 7px 14px; border-radius: 8px; cursor: pointer; transition: background 0.2s var(--ad-ease), color 0.2s var(--ad-ease); }
-.adash-seg button:hover { color: var(--ad-text); }
-.adash-seg button.is-active { background: linear-gradient(135deg, var(--ad-green) 0%, var(--ad-green-soft) 100%); color: #fff; }
+.adash-seg button:hover:not(:disabled) { color: var(--ad-text); }
+/* aria-pressed carries the state alongside .is-active so a two-option toggle
+   group (FR/EN preview, test/all send mode) can use the segmented control the
+   console already has instead of assembling one out of primary + ghost button
+   pairs and an inline borderColor. Both spellings, same treatment. */
+.adash-seg button.is-active, .adash-seg button[aria-pressed='true'] { background: linear-gradient(135deg, var(--ad-green) 0%, var(--ad-green-soft) 100%); color: #fff; }
+/* A segment can be gated (send-to-all before publish); it needs to look gated. */
+.adash-seg button:disabled { opacity: 0.45; cursor: not-allowed; }
+/* Compact segments for two- or three-letter labels. Matches .adash-btn-sm. */
+.adash-seg-sm { border-radius: 9px; padding: 2px; }
+.adash-seg-sm button { font-size: 12.5px; padding: 5px 11px; border-radius: 7px; }
 .adash-metric-note { margin: 12px 0 0; font-size: 12.5px; color: var(--ad-muted); }
 .adash-h3-sub { font-size: 12px; font-weight: 400; color: var(--ad-muted); letter-spacing: 0; text-transform: none; }
 
@@ -756,6 +895,60 @@
 @media (max-width: 560px) {
   .adash-whoami-name { display: none; }
 }
+/* ---------- Forced colours (Windows high contrast, etc.) ----------
+   Forced-colours repaints color / background-color / border-color / outline-color
+   from the system palette, so the focus rings above survive on their own. What it
+   does NOT repaint is a background *image* — and every fill in this console that
+   carries meaning (coral primary, green active segment, tinted receipt) is a
+   gradient, i.e. an image. Left alone they sit under a system-forced label colour
+   in whatever the user was trying to escape. Strip the images, then rebuild the
+   hierarchy out of system colours and real edges. */
+@media (forced-colors: active) {
+  /* The estate-green wash and the film grain are pure decoration painted over
+     the whole viewport. In this mode they are a gradient sitting on top of the
+     user's chosen background, so they go away entirely. */
+  .adash-ambient, .adash-grain { display: none; }
+  /* Chrome surfaces whose gradient would otherwise stay dark under forced text. */
+  .adash-sidebar, .adash-modal { background-image: none; background-color: Canvas; }
+  /* The auth gate is the door to these screens, and its ivory panel gradients
+     would survive as images under forced text — near-white under a white
+     CanvasText. Flatten it; the photo column is decoration and goes the way of
+     .adash-ambient, leaving the form full width. */
+  .adash-auth, .adash-auth-panel { background-image: none; background-color: Canvas; }
+  .adash-auth-visual { display: none; }
+  /* Meaning-bearing fills. */
+  .adash-btn-primary, .adash-auth-submit, .adash-people-tab.is-active,
+  .adash-seg button.is-active, .adash-seg button[aria-pressed='true'],
+  .adash-receipt.is-ok, .adash-receipt.is-warn, .adash-receipt.is-bad, .adash-creds {
+    background-image: none;
+  }
+  .adash-kpi::after { display: none; }
+  /* .adash-btn's resting border is transparent, and transparent is preserved
+     rather than repainted — without this the buttons have no edge at all. */
+  .adash-btn, .adash-auth-submit, .adash-modal-close,
+  .adash-input, .adash-select, .adash-status-select {
+    border: 1px solid ButtonBorder;
+  }
+  .adash-btn-primary, .adash-btn-danger, .adash-auth-submit { background-color: ButtonFace; color: ButtonText; }
+  /* Pressed / selected has to be a colour pair, not a tint. */
+  .adash-seg button.is-active, .adash-seg button[aria-pressed='true'], .adash-people-tab.is-active {
+    background-color: Highlight; color: HighlightText;
+  }
+  .adash-kpi-link[aria-pressed='true'] { box-shadow: none; outline: 2px solid Highlight; outline-offset: -2px; }
+  /* opacity is not part of the forced palette, so a disabled control still has
+     to say so in a system colour. */
+  .adash-btn:disabled, .adash-auth-submit:disabled, .adash-seg button:disabled {
+    color: GrayText; border-color: GrayText;
+  }
+  /* Status surfaces flatten to Canvas here; an edge keeps them legible as
+     discrete objects, and their text labels already carry the meaning. */
+  .adash-pill, .adash-error, .adash-receipt, .adash-creds,
+  .adash-send-summary, .adash-send-zone {
+    border: 1px solid CanvasText;
+  }
+  .adash-receipt h3 { color: CanvasText; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .adash-nav-link, .adash-kpi, .adash-btn, .adash-sidebar, .adash-table tbody tr { transition: none; }
   .adash-auth-visual-media, .adash-auth-spinner, .adash-splash-ring, .adash-skel-row { animation: none; }

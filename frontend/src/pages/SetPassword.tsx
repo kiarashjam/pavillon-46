@@ -10,7 +10,7 @@ import { changePassword } from '../lib/api'
 
 export default function SetPassword() {
   const { language } = useLanguage()
-  const { token, member, loading, setMember } = useAuth()
+  const { token, member, loading, applySession } = useAuth()
   const navigate = useNavigate()
   const t = useTranslations(language, 'dashboard')
   const tLogin = useTranslations(language, 'login')
@@ -44,8 +44,10 @@ export default function SetPassword() {
     setSubmitting(true)
     setError(null)
     try {
-      const updated = await changePassword(token, pw)
-      setMember(updated)
+      // Adopt the re-issued session: the server bumped PasswordVersion, so the
+      // token we authenticated this call with is already dead.
+      const session = await changePassword(token, pw)
+      applySession({ token: session.token, member: session.member })
       navigate('/dashboard', { replace: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : t.loadError)

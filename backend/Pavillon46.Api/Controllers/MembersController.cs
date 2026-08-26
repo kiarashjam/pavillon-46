@@ -14,9 +14,11 @@ public class MembersController : ControllerBase
     private readonly IMemberStore _members;
     private readonly IApplicantStore _applicants;
     private readonly IAnnouncementService _announcements;
+    private readonly INewsletterStore _newsletters;
     private readonly ILeadsWebhookService _webhook;
     private readonly IEmailService _email;
     private readonly IPasswordResetTokenStore _resetTokens;
+    private readonly ITokenService _tokens;
     private readonly SiteOptions _site;
     private readonly ILogger<MembersController> _logger;
 
@@ -24,18 +26,22 @@ public class MembersController : ControllerBase
         IMemberStore members,
         IApplicantStore applicants,
         IAnnouncementService announcements,
+        INewsletterStore newsletters,
         ILeadsWebhookService webhook,
         IEmailService email,
         IPasswordResetTokenStore resetTokens,
+        ITokenService tokens,
         IOptions<SiteOptions> site,
         ILogger<MembersController> logger)
     {
         _members = members;
         _applicants = applicants;
         _announcements = announcements;
+        _newsletters = newsletters;
         _webhook = webhook;
         _email = email;
         _resetTokens = resetTokens;
+        _tokens = tokens;
         _site = site.Value;
         _logger = logger;
     }
@@ -131,7 +137,18 @@ public class MembersController : ControllerBase
             _logger.LogWarning(ex, "Password-changed confirmation email failed for {Email}", member.Email);
         }
 
-        return Ok(MemberDto.From(member));
+        // Re-issue the session token so it carries the bumped PasswordVersion.
+        // Without this the caller's existing token has a stale `pv` and is
+        // rejected by MemberAuthorizeFilter on the very next request — which
+        // logged every invited member straight back out to /login the moment
+        // they set their first password. Mirrors AdminAuthController.
+        var (newToken, expiresAt) = _tokens.Create(member);
+        return Ok(new LoginResponse
+        {
+            Token = newToken,
+            ExpiresAt = expiresAt.UtcDateTime.ToString("o"),
+            Member = MemberDto.From(member),
+        });
     }
 
     [HttpGet("me/referrals")]
@@ -241,11 +258,72 @@ public class MembersController : ControllerBase
     }
 
     [HttpGet("events")]
-    public IActionResult Events([FromQuery] string? lang)
+    public async Task<IActionResult> Events([FromQuery] string? lang, CancellationToken ct)
     {
-        var principal = HttpContext.GetMember();
         var resolved = string.IsNullOrEmpty(lang) ? "fr" : lang;
-        return Ok(new { announcements = _announcements.GetForLanguage(resolved) });
+        var announcements = await _announcements.GetForLanguageAsync(resolved, ct);
+        return Ok(new { announcements });
+    }
+
+    /// <summary>
+    /// Member-facing feed of published (and sent) newsletters. Sorted by
+    /// PublishedAt descending; title/body pre-localized based on the
+    /// <c>lang</c> query param (defaults to FR when missing).
+    /// </summary>
+    [HttpGet("newsletters")]
+    public async Task<IActionResult> ListNewsletters([FromQuery] string? lang, CancellationToken ct)
+    {
+        var isEn = string.Equals(lang, "en", StringComparison.OrdinalIgnoreCase);
+        var all = await _newsletters.ListAsync(ct);
+
+        var newsletters = all
+            .Where(n =>
+                string.Equals(n.Status, "published", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(n.Status, "sent", StringComparison.OrdinalIgnoreCase))
+            .Where(n => !string.IsNullOrWhiteSpace(n.PublishedAt))
+            .OrderByDescending(n => n.PublishedAt, StringComparer.Ordinal)
+            .Select(n => new MemberNewsletterDto
+            {
+                Id = n.Id,
+                Date = (n.PublishedAt ?? "").Length >= 10 ? (n.PublishedAt ?? "")[..10] : (n.PublishedAt ?? ""),
+                Tag = n.Tag,
+                Title = isEn ? (string.IsNullOrWhiteSpace(n.TitleEn) ? n.TitleFr : n.TitleEn) : n.TitleFr,
+                Body = isEn ? (string.IsNullOrWhiteSpace(n.BodyEn) ? n.BodyFr : n.BodyEn) : n.BodyFr,
+                CoverImageUrl = n.CoverImageUrl,
+            })
+            .ToList();
+
+        return Ok(new { newsletters });
+    }
+
+    [HttpPost("newsletters/opt-out")]
+    public async Task<IActionResult> OptOutNewsletters(CancellationToken ct)
+    {
+        var member = await CurrentMemberAsync(ct);
+        if (member is null) return Unauthorized(new { message = "Member not found." });
+
+        if (!member.NewsletterOptOut)
+        {
+            member.NewsletterOptOut = true;
+            member.UpdatedAt = DateTime.UtcNow.ToString("o");
+            await _members.UpsertAsync(member, ct);
+        }
+        return NoContent();
+    }
+
+    [HttpPost("newsletters/opt-in")]
+    public async Task<IActionResult> OptInNewsletters(CancellationToken ct)
+    {
+        var member = await CurrentMemberAsync(ct);
+        if (member is null) return Unauthorized(new { message = "Member not found." });
+
+        if (member.NewsletterOptOut)
+        {
+            member.NewsletterOptOut = false;
+            member.UpdatedAt = DateTime.UtcNow.ToString("o");
+            await _members.UpsertAsync(member, ct);
+        }
+        return NoContent();
     }
 }
 

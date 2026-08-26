@@ -11,6 +11,7 @@ interface AuthContextValue {
   login: (email: string, password: string) => Promise<MemberDto>
   logout: () => void
   setMember: (member: MemberDto) => void
+  applySession: (next: { token: string; member: MemberDto }) => void
   refresh: () => Promise<void>
 }
 
@@ -62,6 +63,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [persist],
   )
 
+  /** Adopt a session issued by something other than login — currently the
+   *  change-password endpoint, which must hand back a new token because it
+   *  bumps PasswordVersion and thereby invalidates the one we hold. */
+  const applySession = useCallback(
+    (next: { token: string; member: MemberDto }) => {
+      setToken(next.token)
+      setMemberState(next.member)
+      persist(next.token, next.member)
+    },
+    [persist],
+  )
+
   const refresh = useCallback(async () => {
     const current = localStorage.getItem(TOKEN_KEY)
     if (!current) {
@@ -104,8 +117,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [logout])
 
   const value = useMemo<AuthContextValue>(
-    () => ({ token, member, loading, login, logout, setMember, refresh }),
-    [token, member, loading, login, logout, setMember, refresh],
+    () => ({ token, member, loading, login, logout, setMember, applySession, refresh }),
+    [token, member, loading, login, logout, setMember, applySession, refresh],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

@@ -137,6 +137,10 @@ export interface MemberDto {
   successfulReferrals: number
   bonusPoints: number
   mustChangePassword: boolean
+  /** Mirrors `MemberDto.NewsletterOptOut` (non-nullable `bool` server-side, so
+   *  always present in the payload). True once the member used the unsubscribe
+   *  link; the dashboard resubscribe button flips it back to false. */
+  newsletterOptOut: boolean
   createdAt: string
   lastLoginAt: string
 }
@@ -294,6 +298,21 @@ async function jsonRequest<T>(path: string, init: RequestInit): Promise<T> {
   return response.json() as Promise<T>
 }
 
+/** Like jsonRequest but for endpoints that answer 204 No Content, where
+ *  response.json() would throw on the empty body. Shares the same error and
+ *  401-broadcast path so an expired token still ends the session. */
+async function emptyRequest(path: string, init: RequestInit): Promise<void> {
+  const response = await fetch(apiUrl(path), {
+    ...init,
+    headers: { 'Content-Type': 'application/json', ...(init.headers ?? {}) },
+  })
+  if (!response.ok) {
+    if (response.status === 401) notifyUnauthorized(path)
+    const { message, errorType } = await readError(response)
+    throw new ApiError(response.status, message, errorType)
+  }
+}
+
 const bearer = (token: string) => ({ Authorization: `Bearer ${token}` })
 
 export async function login(email: string, password: string): Promise<LoginResponse> {
@@ -332,12 +351,15 @@ export async function updateProfile(token: string, body: ProfileUpdateBody): Pro
   })
 }
 
+/** Returns a FRESH session (new token + member): changing the password bumps
+ *  PasswordVersion server-side, which invalidates the token used to make this
+ *  call. Callers must store the returned token or the next request will 401. */
 export async function changePassword(
   token: string,
   newPassword: string,
   currentPassword?: string,
-): Promise<MemberDto> {
-  return jsonRequest<MemberDto>('/api/members/me/change-password', {
+): Promise<LoginResponse> {
+  return jsonRequest<LoginResponse>('/api/members/me/change-password', {
     method: 'POST',
     headers: bearer(token),
     body: JSON.stringify({ newPassword, currentPassword }),
@@ -358,6 +380,43 @@ export async function submitReferral(token: string, body: ReferralBody): Promise
 
 export async function getEvents(token: string, lang: 'fr' | 'en'): Promise<{ announcements: AnnouncementDto[] }> {
   return jsonRequest<{ announcements: AnnouncementDto[] }>(`/api/members/events?lang=${lang}`, {
+    headers: bearer(token),
+  })
+}
+
+/** Member-facing newsletter row — already localized by the API, so `title` and
+ *  `body` reflect the language passed in the query. */
+export interface MemberNewsletterDto {
+  id: string
+  date: string
+  tag: string
+  title: string
+  body: string
+  coverImageUrl: string
+}
+
+export async function getMemberNewsletters(
+  token: string,
+  lang: 'fr' | 'en',
+): Promise<{ newsletters: MemberNewsletterDto[] }> {
+  return jsonRequest<{ newsletters: MemberNewsletterDto[] }>(
+    `/api/members/newsletters?lang=${lang}`,
+    { headers: bearer(token) },
+  )
+}
+
+/** Re-subscribe the signed-in member (clears Member.NewsletterOptOut). */
+export async function memberOptInNewsletters(token: string): Promise<void> {
+  return emptyRequest('/api/members/newsletters/opt-in', {
+    method: 'POST',
+    headers: bearer(token),
+  })
+}
+
+/** Unsubscribe from inside the portal, without needing an emailed link. */
+export async function memberOptOutNewsletters(token: string): Promise<void> {
+  return emptyRequest('/api/members/newsletters/opt-out', {
+    method: 'POST',
     headers: bearer(token),
   })
 }
@@ -589,4 +648,270 @@ export async function adminResetAdminPassword(
     `/api/admin/admins/${encodeURIComponent(id)}/reset-password?sendEmail=${sendEmail}`,
     { method: 'POST', headers: bearer(token) },
   )
+}
+
+// ---------------------------------------------------------------------------
+// Admin newsletters — the editorial module. Every endpoint is gated by the
+// admin bearer token, mirroring the admin/members surface.
+// ---------------------------------------------------------------------------
+
+/** A **persisted** audit row, as it hangs off `NewsletterDto.lastSend`,
+ *  `lastTestSend` and `sendHistory` (server: `Models.NewsletterSendAudit`).
+ *
+ *  `failedRecipients` here holds **member ids**, capped at 200 — the uncapped
+ *  address list is `[JsonIgnore]` server-side and never reaches a stored audit.
+ *  `failedTotal` is the true count when the id list was capped. For the
+ *  response of a send you just triggered, see {@link NewsletterSendResultDto},
+ *  which is the only place `failedRecipients` carries real addresses. */
+export interface NewsletterSendAuditDto {
+  sentAt: string
+  adminId: string
+  totalRecipients: number
+  sent: number
+  failed: number
+  /** True number of failures; `failedRecipients` may have been capped. */
+  failedTotal: number
+  batches: number
+  testMode: boolean
+  /** `'send' | 'test' | 'resend'` — widened to `string` so an unknown kind from
+   *  a newer server does not become a type error in old clients. */
+  kind: string
+  /** Member ids (legacy rows may still hold addresses), capped at 200. */
+  failedRecipients: string[]
+  errors: string[]
+}
+
+/** The 200 body of `POST /{id}/send` and `POST /{id}/resend-failed`
+ *  (server: `Models.SendAuditDto`).
+ *
+ *  A fully-failed send is **200, not 502**: a non-2xx from these two endpoints
+ *  means the request itself was refused (validation, a 409 claim, an
+ *  unconfigured sender), never "the mail did not go out". Read `ok` / `outcome`
+ *  to tell what happened to the mail.
+ *
+ *  Unlike the persisted {@link NewsletterSendAuditDto}, `failedRecipients` on
+ *  this DTO carries the real **email addresses** for the request you just made
+ *  and is uncapped; `failedRecipientIds` is the capped, persisted id list — the
+ *  set `/resend-failed` will actually retry, so size a "resend to N" affordance
+ *  off that array, never off `failedRecipients`. */
+export interface NewsletterSendResultDto extends NewsletterSendAuditDto {
+  newsletterId: string
+  /** `failed === 0`. */
+  ok: boolean
+  outcome: 'sent' | 'partial' | 'all_failed'
+  /** Email addresses for this request, uncapped. */
+  failedRecipients: string[]
+  /** Persisted member ids — what `/resend-failed` acts on. */
+  failedRecipientIds: string[]
+}
+
+export interface NewsletterDto {
+  id: string
+  titleFr: string
+  titleEn: string
+  bodyFr: string
+  bodyEn: string
+  tag: string
+  coverImageUrl: string
+  coverImageKeyword: string
+  status: 'draft' | 'published' | 'sent'
+  createdByAdminId: string
+  createdAt: string
+  updatedAt: string
+  publishedAt?: string | null
+  lastSentAt?: string | null
+  aiDrafted: boolean
+  sourceBrief: string
+  lastSend?: NewsletterSendAuditDto | null
+  /** The last **test** send, kept apart from `lastSend` so a test can never
+   *  overwrite the record of what members actually received. */
+  lastTestSend?: NewsletterSendAuditDto | null
+  /** Most recent real sends/resends, newest first, capped at 10 server-side.
+   *  Populated on the detail read only — the list endpoint omits it. */
+  sendHistory?: NewsletterSendAuditDto[] | null
+  /** Set while a send is in flight; a second send is refused with 409
+   *  `send_already_in_progress`. Lets the UI grey its Send button out instead
+   *  of discovering the conflict the hard way. */
+  sendClaimedAtUtc?: string | null
+  /** The `From:` address members will actually see, resolved server-side from
+   *  the SendGrid config (env-only, so the browser cannot work it out). Present
+   *  on the **detail** read; empty on list rows. Show it in the send
+   *  confirmation rather than hard-coding an address. */
+  senderAddress?: string
+  /** Number of active, non-opt-out members with an email — the audience a send
+   *  would actually reach. Computed server-side in AdminNewslettersController
+   *  and serialized as a non-nullable `int`, so clients should use this rather
+   *  than recounting `/api/admin/members` themselves. */
+  audienceCount: number
+}
+
+export interface AdminNewslettersResponse {
+  newsletters: NewsletterDto[]
+  total: number
+  drafts: number
+  published: number
+  sent: number
+}
+
+export interface CreateNewsletterBody {
+  titleFr: string
+  titleEn: string
+  bodyFr: string
+  bodyEn: string
+  tag: string
+  coverImageUrl?: string
+  coverImageKeyword?: string
+  sourceBrief?: string
+  aiDrafted?: boolean
+}
+
+export type UpdateNewsletterBody = Partial<CreateNewsletterBody>
+
+export interface AiDraftBody {
+  brief: string
+  tone?: string
+}
+
+export interface AiDraftResponse {
+  titleFr: string
+  titleEn: string
+  bodyFr: string
+  bodyEn: string
+  tag: string
+  coverImageKeyword: string
+  /** Empty unless `coverImageAutoResolved` — the server never invents a URL. */
+  coverImageUrl: string
+  /** True only when `coverImageUrl` is a real photo the server resolved from
+   *  Unsplash. False means the URL is empty *by design*: show a "search for
+   *  «keyword»" state, not a broken image. */
+  coverImageAutoResolved: boolean
+  /** Why: `resolved` | `no_api_key` | `no_match` | `lookup_failed` |
+   *  `no_keyword`. Phrase this in FR/EN in the UI. */
+  coverImageStatus: string
+  /** English fallback sentence for the same thing, safe to display as-is. */
+  coverImageNote: string
+  /** Unsplash's terms require crediting the photographer wherever the photo is
+   *  shown. Both are empty unless the cover resolved. */
+  coverImagePhotographer: string
+  coverImagePhotographerUrl: string
+}
+
+export interface SendNewsletterBody {
+  testEmails?: string[]
+}
+
+export async function adminListNewsletters(token: string): Promise<AdminNewslettersResponse> {
+  return jsonRequest<AdminNewslettersResponse>('/api/admin/newsletters', { headers: bearer(token) })
+}
+
+export async function adminGetNewsletter(token: string, id: string): Promise<NewsletterDto> {
+  return jsonRequest<NewsletterDto>(`/api/admin/newsletters/${encodeURIComponent(id)}`, {
+    headers: bearer(token),
+  })
+}
+
+export async function adminCreateNewsletter(
+  token: string,
+  body: CreateNewsletterBody,
+): Promise<NewsletterDto> {
+  return jsonRequest<NewsletterDto>('/api/admin/newsletters', {
+    method: 'POST',
+    headers: bearer(token),
+    body: JSON.stringify(body),
+  })
+}
+
+export async function adminUpdateNewsletter(
+  token: string,
+  id: string,
+  body: UpdateNewsletterBody,
+): Promise<NewsletterDto> {
+  return jsonRequest<NewsletterDto>(`/api/admin/newsletters/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    headers: bearer(token),
+    body: JSON.stringify(body),
+  })
+}
+
+export async function adminDeleteNewsletter(
+  token: string,
+  id: string,
+): Promise<{ ok: boolean; id: string }> {
+  return jsonRequest(`/api/admin/newsletters/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    headers: bearer(token),
+  })
+}
+
+export async function adminPublishNewsletter(token: string, id: string): Promise<NewsletterDto> {
+  return jsonRequest<NewsletterDto>(
+    `/api/admin/newsletters/${encodeURIComponent(id)}/publish`,
+    { method: 'POST', headers: bearer(token) },
+  )
+}
+
+export async function adminUnpublishNewsletter(token: string, id: string): Promise<NewsletterDto> {
+  return jsonRequest<NewsletterDto>(
+    `/api/admin/newsletters/${encodeURIComponent(id)}/unpublish`,
+    { method: 'POST', headers: bearer(token) },
+  )
+}
+
+/** Send a newsletter. Omit `testEmails` entirely for a real send to every
+ *  active, subscribed member; supply it for a test send.
+ *
+ *  Do **not** send `{ testEmails: [] }` or `{ testEmails: [''] }`: a field that
+ *  is present at all reads as intent to test, and the server answers 400
+ *  `no_valid_test_recipients` rather than mailing the whole membership. That
+ *  refusal is the fix for a bug where a blank test address mailed everyone.
+ *
+ *  Resolves 200 even when every message failed — check `outcome` on the result.
+ *  Rejects with {@link ApiError} for request-level refusals, whose `errorType`
+ *  is one of `no_valid_test_recipients` / `too_many_test_recipients` (400),
+ *  `send_already_in_progress` (409, a send is already running),
+ *  `newsletter_not_published` (409 — note the prefix: the *unpublish* endpoint
+ *  spells its own conflict `not_published`), or `sender_not_configured` (500). */
+export async function adminSendNewsletter(
+  token: string,
+  id: string,
+  body: SendNewsletterBody = {},
+): Promise<NewsletterSendResultDto> {
+  return jsonRequest<NewsletterSendResultDto>(
+    `/api/admin/newsletters/${encodeURIComponent(id)}/send`,
+    {
+      method: 'POST',
+      headers: bearer(token),
+      body: JSON.stringify(body),
+    },
+  )
+}
+
+/** Retry only the recipients the most recent **real** send recorded as failed.
+ *  Members who already received the issue are never re-mailed: they are not in
+ *  the stored failed list. The list is re-filtered through the same
+ *  active/subscribed/valid-address gate, so someone who has since unsubscribed
+ *  is skipped.
+ *
+ *  Same 200-with-audit contract as {@link adminSendNewsletter}. Rejects with
+ *  `errorType` `no_prior_send`, `nothing_to_resend` or
+ *  `send_already_in_progress` (all 409). */
+export async function adminResendFailedNewsletter(
+  token: string,
+  id: string,
+): Promise<NewsletterSendResultDto> {
+  return jsonRequest<NewsletterSendResultDto>(
+    `/api/admin/newsletters/${encodeURIComponent(id)}/resend-failed`,
+    { method: 'POST', headers: bearer(token) },
+  )
+}
+
+export async function adminDraftNewsletterWithAi(
+  token: string,
+  body: AiDraftBody,
+): Promise<AiDraftResponse> {
+  return jsonRequest<AiDraftResponse>('/api/admin/newsletters/draft-ai', {
+    method: 'POST',
+    headers: bearer(token),
+    body: JSON.stringify(body),
+  })
 }

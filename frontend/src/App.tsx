@@ -21,10 +21,13 @@ import AdminResetPassword from './pages/admin/AdminResetPassword'
 import AdminOverview from './pages/admin/AdminOverview'
 import AdminPeople from './pages/admin/AdminPeople'
 import AdminActivitySection from './pages/admin/AdminActivitySection'
+import AdminNewslettersSection from './pages/admin/AdminNewslettersSection'
+import AdminNewsletterEditor from './pages/admin/AdminNewsletterEditor'
 import Overview from './pages/dashboard/Overview'
 import Referral from './pages/dashboard/Referral'
 import MyReferrals from './pages/dashboard/MyReferrals'
 import Profile from './pages/dashboard/Profile'
+import Newsletters from './pages/dashboard/Newsletters'
 
 export default function App() {
   return (
@@ -53,6 +56,8 @@ export default function App() {
               <Route path="members" element={<AdminPeople initialTab="members" />} />
               <Route path="referrals" element={<AdminPeople initialTab="submitters" />} />
               <Route path="activity" element={<AdminActivitySection />} />
+              <Route path="newsletters" element={<AdminNewslettersSection />} />
+              <Route path="newsletters/:id" element={<AdminNewsletterEditor />} />
             </Route>
 
             <Route
@@ -66,6 +71,7 @@ export default function App() {
               <Route index element={<Overview />} />
               <Route path="referral" element={<Referral />} />
               <Route path="referrals" element={<MyReferrals />} />
+              <Route path="newsletters" element={<Newsletters />} />
               <Route path="profile" element={<Profile />} />
             </Route>
           </Routes>
