@@ -41,13 +41,13 @@ public class AnnouncementService : IAnnouncementService
         },
         new MemberAnnouncement
         {
-            Id = "opening-2027",
-            Date = "2027-12-01",
+            Id = "opening-" + SiteFacts.OpeningYear,
+            Date = SiteFacts.OpeningSortDate,
             Tag = "Opening",
-            TitleFr = "Ouverture fin 2027",
-            TitleEn = "Opening end of 2027",
-            BodyFr = "Le Pavillon 46 ouvrira ses portes fin 2027 à La Croix-sur-Lutry. Les membres bénéficieront d'un accès prioritaire aux réservations.",
-            BodyEn = "Pavillon 46 will open its doors at the end of 2027 in La Croix-sur-Lutry. Members will enjoy priority access to reservations.",
+            TitleFr = $"Ouverture {SiteFacts.OpeningYear}",
+            TitleEn = $"Opening {SiteFacts.OpeningYear}",
+            BodyFr = $"Le Pavillon 46 ouvrira ses portes en {SiteFacts.OpeningYear} à La Croix-sur-Lutry. Les membres bénéficieront d'un accès prioritaire aux réservations.",
+            BodyEn = $"Pavillon 46 will open its doors in {SiteFacts.OpeningYear} in La Croix-sur-Lutry. Members will enjoy priority access to reservations.",
         },
     };
 
