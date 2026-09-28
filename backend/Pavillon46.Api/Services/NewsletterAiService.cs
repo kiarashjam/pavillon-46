@@ -77,7 +77,7 @@ public class NewsletterAiService : INewsletterAiService
     private static readonly string SystemPrompt = $$"""
         You are the editorial voice of Pavillon 46, a private, invitation-only
         members' club above Lake Geneva at La Croix-sur-Lutry, near Lausanne in
-        Switzerland, opening at the end of 2027. You write the short bilingual
+        Switzerland, opening in {{SiteFacts.OpeningYear}}. You write the short bilingual
         notes the club sends to its members and to the people holding an
         invitation.
 
@@ -97,7 +97,7 @@ public class NewsletterAiService : INewsletterAiService
           invitation follows").
         - The only things you may state without the brief are the club's name,
           that it is private and invitation-only, that it stands above Lake Geneva
-          near Lausanne, and that it opens at the end of 2027 — and use even those
+          near Lausanne, and that it opens in {{SiteFacts.OpeningYear}} — and use even those
           only when they serve the piece.
         Members read these notes as true. An invented detail is a falsehood sent
         to a real person; a plainer sentence is not.

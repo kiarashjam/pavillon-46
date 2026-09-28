@@ -1,6 +1,23 @@
 // Centralized translations for Pavillon 46 — full FR/EN copy ported from the
 // original Next.js project (lib/translations.js).
 
+/**
+ * The calendar year Pavillon 46 opens, as it appears in member-facing copy.
+ *
+ * Every FR/EN string that states the opening year interpolates this, so the
+ * year is changed in one place. Each locale keeps its own phrasing around it
+ * ("Ouverture 2028" / "Opening 2028"), because the grammar differs — only the
+ * year itself is shared.
+ *
+ * The backend holds a matching constant, `SiteFacts.OpeningYear` in
+ * backend/Pavillon46.Api/Models/SiteFacts.cs, which feeds the seeded opening
+ * announcement and the newsletter AI system prompt. A TS bundle cannot import a
+ * C# constant, and fetching this over the API would make the landing page's
+ * headline copy wait on a network round trip — so the two are kept in sync by
+ * hand. Change both together.
+ */
+export const OPENING_YEAR = '2028'
+
 export type Language = 'fr' | 'en'
 
 export interface HearAboutOptions {
@@ -424,7 +441,7 @@ export const translations: Record<Language, Translations> = {
     home: {
       title: 'Pavillon 46',
       description: 'Bienvenue au Pavillon 46 - La vie pleine de couleurs',
-      openingDate: 'Ouverture fin 2027',
+      openingDate: `Ouverture ${OPENING_YEAR}`,
       welcomeText: 'Bienvenue au',
       sloganPart1: 'La vie',
       sloganPart2: 'pleine de',
@@ -559,8 +576,8 @@ export const translations: Record<Language, Translations> = {
       referralCardTitle: 'Parrainez une personne de confiance',
       referralCardText: "L'accès au Pavillon 46 se fait sur invitation. Parrainez une personne — à la signature de son contrat, vous recevez chacun un mois offert.",
       referralCardButton: 'Parrainer maintenant',
-      openingTitle: 'Ouverture fin 2027',
-      openingText: 'Le Pavillon 46 ouvrira ses portes fin 2027 à La Croix-sur-Lutry. Les membres bénéficient d\'un accès prioritaire.',
+      openingTitle: `Ouverture ${OPENING_YEAR}`,
+      openingText: `Le Pavillon 46 ouvrira ses portes en ${OPENING_YEAR} à La Croix-sur-Lutry. Les membres bénéficient d'un accès prioritaire.`,
       referralTitle: 'Parrainer un membre fondateur',
       referralSubtitle: 'Recommandez une personne pour devenir membre fondateur. Vous recevrez un code de parrainage.',
       fldFirstName: 'Prénom',
@@ -806,7 +823,7 @@ export const translations: Record<Language, Translations> = {
     home: {
       title: 'Pavillon 46',
       description: 'Welcome to Pavillon 46 - Life in Full Color',
-      openingDate: 'Opening end of 2027',
+      openingDate: `Opening ${OPENING_YEAR}`,
       welcomeText: 'Welcome to',
       sloganPart1: 'Life in',
       sloganPart2: 'Full',
@@ -941,8 +958,8 @@ export const translations: Record<Language, Translations> = {
       referralCardTitle: 'Refer someone you trust',
       referralCardText: 'Access to Pavillon 46 is by invitation. Refer someone — when they sign their contract, you each get a month free.',
       referralCardButton: 'Refer now',
-      openingTitle: 'Opening end of 2027',
-      openingText: 'Pavillon 46 will open at the end of 2027 in La Croix-sur-Lutry. Members enjoy priority access.',
+      openingTitle: `Opening ${OPENING_YEAR}`,
+      openingText: `Pavillon 46 will open in ${OPENING_YEAR} in La Croix-sur-Lutry. Members enjoy priority access.`,
       referralTitle: 'Refer a founding member',
       referralSubtitle: 'Recommend someone to become a founding member. You will receive a referral code.',
       fldFirstName: 'First name',

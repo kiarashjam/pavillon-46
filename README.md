@@ -1,7 +1,7 @@
 # Pavillon 46
 
 The Pavillon 46 website — a bilingual (French / English) waitlist, member-area, and internal
-activity dashboard for an invitation-only Swiss venue opening end of 2027.
+activity dashboard for an invitation-only Swiss venue opening in 2028.
 
 This repository contains two apps:
 
