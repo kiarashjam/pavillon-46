@@ -5,23 +5,89 @@ Next.js API routes (`/pages/api/*`) and exposes the same endpoints under `/api/*
 
 ## Endpoints
 
-| Verb | Route | Purpose |
-| --- | --- | --- |
-| `POST` | `/api/send-email` | Waitlist signup → admin notification + user confirmation + ACI lead webhook |
-| `POST` | `/api/send-verification` | Twilio SMS code send |
-| `POST` | `/api/verify-code` | Twilio SMS code check |
-| `POST` | `/api/activity/log` | Client activity tracker (page views, clicks) |
-| `GET`  | `/api/activity/report` | Admin activity report (requires `x-report-key`) |
-| `POST` | `/api/activity/daily-report` | Cron-driven daily email summary |
-| `POST` | `/api/admin/auth/forgot-password` | Admin forgot-password (emails a reset link, or 404 if not an admin) |
-| `POST` | `/api/admin/auth/reset-password` | Consume admin reset token and set a new password |
-| `GET`  | `/api/admin/admins` | List admin accounts |
-| `POST` | `/api/admin/admins` | Invite / create an admin (returns a one-time password) |
-| `PUT`  | `/api/admin/admins/{id}` | Edit an admin (name, email, status) |
-| `DELETE` | `/api/admin/admins/{id}` | Delete an admin (not yourself / not the last active) |
-| `POST` | `/api/admin/applicants` | Add a submitter by hand |
-| `PATCH` | `/api/admin/applicants/{id}` | Edit a submitter's details or status |
-| `GET`  | `/healthz` | Health check |
+Auth column: **public** — anyone; **member** — `Authorization: Bearer <member token>`;
+**admin** — `Authorization: Bearer <admin token>`. Errors are JSON `{ "message", "errorType"? }`.
+Conventions for adding endpoints are in [`AGENTS.md`](./AGENTS.md).
+
+### Public site and waitlist
+
+| Verb | Route | Auth | Purpose |
+| --- | --- | --- | --- |
+| `POST` | `/api/send-verification` | public | Send a Twilio Verify SMS code |
+| `POST` | `/api/verify-code` | public | Check the SMS code |
+| `POST` | `/api/send-email` | public | Waitlist submission → admin notification, applicant confirmation, ACI lead webhook |
+| `POST` | `/api/activity/log` | public | Page views and clicks from the activity tracker (rate-limited; IP hashed) |
+| `GET` | `/api/activity/report` | admin or report key | Activity report. Accepts an admin token, or the `x-report-key` header matching `ACTIVITY_REPORT_KEY` |
+| `GET` `POST` | `/api/activity/daily-report` | admin or report key | Email the daily activity summary (called by the cron workflow) |
+| `GET` | `/healthz` | public | Health check |
+
+### Member sign-in
+
+| Verb | Route | Auth | Purpose |
+| --- | --- | --- | --- |
+| `POST` | `/api/auth/login` | public | Sign in → session token |
+| `POST` | `/api/auth/forgot-password` | public | Email a reset link. Always `200 { ok: true }`, whether or not the account exists |
+| `POST` | `/api/auth/reset-password` | public | Set a new password from a reset token (no session returned) |
+
+### Member portal
+
+| Verb | Route | Auth | Purpose |
+| --- | --- | --- | --- |
+| `GET` | `/api/members/me` | member | Current member |
+| `PUT` | `/api/members/me` | member | Update profile |
+| `POST` | `/api/members/me/change-password` | member | Change password → returns a fresh session; older tokens stop working |
+| `GET` | `/api/members/me/referrals` | member | The member's referrals |
+| `POST` | `/api/members/me/referrals` | member | Refer someone (creates an applicant) |
+| `GET` | `/api/members/events?lang=` | member | Announcements: seeded items plus published newsletters, localised |
+| `GET` | `/api/members/newsletters` | member | Published and sent newsletters, newest first, localised |
+| `POST` | `/api/members/newsletters/opt-in` | member | Receive newsletter emails again |
+| `POST` | `/api/members/newsletters/opt-out` | member | Stop receiving newsletter emails |
+| `GET` | `/api/newsletters/unsubscribe?t=&lang=` | public (signed link) | One-click unsubscribe from an email. Always `200` with an HTML page |
+
+### Admin sign-in
+
+| Verb | Route | Auth | Purpose |
+| --- | --- | --- | --- |
+| `POST` | `/api/admin/auth/login` | public | Sign in → admin session token |
+| `GET` | `/api/admin/auth/me` | admin | Current admin |
+| `POST` | `/api/admin/auth/change-password` | admin | Change password → returns a fresh session |
+| `POST` | `/api/admin/auth/forgot-password` | public | Email a reset link. Unknown emails get `400` with `errorType: "not_admin"` |
+| `POST` | `/api/admin/auth/reset-password` | public | Set a new password from a reset token |
+
+### Admin console
+
+| Verb | Route | Auth | Purpose |
+| --- | --- | --- | --- |
+| `GET` | `/api/admin/admins` | admin | List admin accounts |
+| `POST` | `/api/admin/admins` | admin | Create an admin (returns a one-time password) |
+| `PUT` | `/api/admin/admins/{id}` | admin | Edit an admin (name, email, status) |
+| `DELETE` | `/api/admin/admins/{id}` | admin | Delete an admin (not yourself, not the last active one) |
+| `POST` | `/api/admin/admins/{id}/reset-password` | admin | Reset another admin's password; signs them out |
+| `GET` | `/api/admin/members` | admin | List members |
+| `POST` | `/api/admin/members` | admin | Create a member (returns a generated password, optionally emails it) |
+| `POST` | `/api/admin/members/send-credentials` | admin | Email a member their sign-in credentials |
+| `PUT` | `/api/admin/members/{id}` | admin | Edit a member |
+| `DELETE` | `/api/admin/members/{id}` | admin | Delete a member |
+| `POST` | `/api/admin/members/{id}/reset-password` | admin | Reset a member's password; signs them out |
+| `GET` | `/api/admin/applicants` | admin | List waitlist submitters and referrals |
+| `POST` | `/api/admin/applicants` | admin | Add a submitter by hand |
+| `PATCH` | `/api/admin/applicants/{id}` | admin | Edit a submitter's details or status |
+| `DELETE` | `/api/admin/applicants/{id}` | admin | Delete a submitter |
+
+### Admin newsletters
+
+| Verb | Route | Auth | Purpose |
+| --- | --- | --- | --- |
+| `GET` | `/api/admin/newsletters` | admin | List newsletters |
+| `POST` | `/api/admin/newsletters` | admin | Create a draft |
+| `POST` | `/api/admin/newsletters/draft-ai` | admin | Draft FR/EN copy and a cover photo from a brief (Claude + Unsplash) |
+| `GET` | `/api/admin/newsletters/{id}` | admin | Get one newsletter |
+| `PUT` | `/api/admin/newsletters/{id}` | admin | Update (refused while a send is running) |
+| `DELETE` | `/api/admin/newsletters/{id}` | admin | Delete (refused while a send is running) |
+| `POST` | `/api/admin/newsletters/{id}/publish` | admin | Show it in the member portal |
+| `POST` | `/api/admin/newsletters/{id}/unpublish` | admin | Hide it from the member portal |
+| `POST` | `/api/admin/newsletters/{id}/send` | admin | Email it to every active, opted-in member — or only to `testEmails` when given. A list with no valid address is refused |
+| `POST` | `/api/admin/newsletters/{id}/resend-failed` | admin | Retry only the recipients the last real send recorded as failed |
 
 ## Configuration
 

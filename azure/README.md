@@ -42,6 +42,14 @@ az deployment sub create \
 
 In **Azure Portal → App Service → pavillon46-api → Configuration → Application settings**, add:
 
+- **`AUTH_TOKEN_SECRET` — required.** Signs every member and admin session. Use a long random
+  value (`openssl rand -base64 48`) and keep it out of the repository. Without it the API signs
+  sessions with a default that is committed to this repository, so anyone who has read the code
+  could sign in as an admin. Changing it later signs everyone out, once.
+- **`NEWSLETTER_UNSUBSCRIBE_SECRET` — required to send newsletters.** Signs the unsubscribe link
+  in every newsletter email. Without it (or with the repository default) the API refuses to
+  send, rather than issue forgeable links. Use a different random value from `AUTH_TOKEN_SECRET`.
+- `ANTHROPIC_API_KEY` (AI newsletter drafts) and `UNSPLASH_ACCESS_KEY` (cover photos) — optional.
 - `SENDGRID_API_KEY`, `FROM_EMAIL` (must be a **verified SendGrid sender**), `ADMIN_EMAIL`
 - Optional recovery: `ADMIN_SEED_PASSWORD` — applied on restart only to `kia@bonapp.group` while that account still must change password. Does not overwrite a password that was already changed.
 - `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_VERIFY_SERVICE_SID`
