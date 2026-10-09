@@ -55,11 +55,9 @@ export interface WaitlistTranslations {
   title: string
   description: string
   heading: string
-  nameStepDescription: string
-  emailStepDescription: string
+  detailsStepDescription: string
+  verifyStepDescription: string
   hearAboutLabel: string
-  phoneStepDescription: string
-  codeSentTo: string
   firstNameLabel: string
   lastNameLabel: string
   emailLabel: string
@@ -73,11 +71,11 @@ export interface WaitlistTranslations {
   phoneLabel: string
   countryCodeLabel: string
   codeLabel: string
-  stepName: string
-  stepEmail: string
+  phoneHint: string
+  codeSentHint: string
+  stepDetails: string
   stepSource: string
   stepPhone: string
-  stepVerify: string
   progressLabel: string
   stepDone: string
   stepCounter: string
@@ -480,11 +478,9 @@ export const translations: Record<Language, Translations> = {
       title: "Rejoindre la liste d'attente - Pavillon 46",
       description: "Rejoignez la liste d'attente pour Pavillon 46",
       heading: "Quelque chose d'unique se profile",
-      nameStepDescription: 'Commençons par votre nom.',
-      emailStepDescription: 'Où pouvons-nous vous écrire\u00a0?',
+      detailsStepDescription: 'Faisons connaissance.',
+      verifyStepDescription: 'Pour finir, vérifions votre numéro de mobile.',
       hearAboutLabel: 'Comment avez-vous entendu parler du Pavillon 46\u00a0?',
-      phoneStepDescription: 'Nous vous enverrons un code par SMS pour vérifier votre numéro.',
-      codeSentTo: 'Code envoyé par SMS au {phone}.',
       firstNameLabel: 'Prénom',
       lastNameLabel: 'Nom',
       emailLabel: 'Adresse e-mail',
@@ -498,11 +494,11 @@ export const translations: Record<Language, Translations> = {
       phoneLabel: 'Numéro de mobile',
       countryCodeLabel: 'Indicatif du pays',
       codeLabel: 'Code reçu par SMS',
-      stepName: 'Nom',
-      stepEmail: 'Contact',
+      phoneHint: 'Nous vous enverrons un code par SMS.',
+      codeSentHint: 'Code envoyé. Il arrive en général en quelques secondes.',
+      stepDetails: 'Coordonnées',
       stepSource: 'Source',
       stepPhone: 'Mobile',
-      stepVerify: 'Code',
       progressLabel: "Progression de l'inscription",
       stepDone: 'étape terminée',
       stepCounter: 'Étape {current} sur {total}',
@@ -888,11 +884,9 @@ export const translations: Record<Language, Translations> = {
       title: 'Join the Waitlist - Pavillon 46',
       description: 'Join the waitlist for Pavillon 46',
       heading: 'Something unique is coming',
-      nameStepDescription: "Let's start with your name.",
-      emailStepDescription: 'Where can we write to you?',
+      detailsStepDescription: "Let's get to know you.",
+      verifyStepDescription: "Finally, let's verify your mobile number.",
       hearAboutLabel: 'How did you hear about Pavillon 46?',
-      phoneStepDescription: "We'll text you a code to verify your number.",
-      codeSentTo: "We've texted a code to {phone}.",
       firstNameLabel: 'First name',
       lastNameLabel: 'Last name',
       emailLabel: 'Email address',
@@ -906,11 +900,11 @@ export const translations: Record<Language, Translations> = {
       phoneLabel: 'Mobile number',
       countryCodeLabel: 'Country code',
       codeLabel: 'Code from the text message',
-      stepName: 'Name',
-      stepEmail: 'Contact',
+      phoneHint: "We'll text you a code.",
+      codeSentHint: 'Code sent. It usually arrives within seconds.',
+      stepDetails: 'Details',
       stepSource: 'Source',
       stepPhone: 'Mobile',
-      stepVerify: 'Code',
       progressLabel: 'Sign-up progress',
       stepDone: 'completed',
       stepCounter: 'Step {current} of {total}',
