@@ -55,43 +55,70 @@ export interface WaitlistTranslations {
   title: string
   description: string
   heading: string
-  firstNamePlaceholder: string
-  lastNamePlaceholder: string
-  phonePlaceholder: string
-  emailPlaceholder: string
-  postalCodePlaceholder: string
-  referralCodePlaceholder: string
-  submitButton: string
-  continueButton: string
-  backButton: string
-  submitting: string
-  errorMessage: string
-  serverError: string
+  nameStepDescription: string
+  emailStepDescription: string
+  hearAboutLabel: string
+  phoneStepDescription: string
+  codeSentTo: string
+  firstNameLabel: string
+  lastNameLabel: string
+  emailLabel: string
+  postalCodeLabel: string
+  postalCodeHint: string
+  referralCodeLabel: string
+  optionalTag: string
+  referralToggle: string
+  referralFromLink: string
+  hearAboutOtherLabel: string
+  phoneLabel: string
+  countryCodeLabel: string
+  codeLabel: string
   stepName: string
   stepEmail: string
   stepSource: string
   stepPhone: string
   stepVerify: string
-  emailStepDescription: string
-  hearAboutStepDescription: string
-  hearAboutLabel: string
-  hearAboutPlaceholder: string
-  hearAboutValidationSelect: string
-  hearAboutOtherPlaceholder: string
-  hearAboutOptions: HearAboutOptions
-  phoneStepDescription: string
+  progressLabel: string
+  stepDone: string
+  stepCounter: string
+  continueButton: string
+  backButton: string
+  backToHome: string
+  sendCodeButton: string
   sendingCode: string
-  codeSentTo: string
-  codePlaceholder: string
   verifyCode: string
+  verifying: string
+  submitting: string
+  submitSuccess: string
+  retrySubmit: string
   resendCode: string
   resendIn: string
+  changeNumber: string
+  codeResent: string
+  resendAvailable: string
+  phoneVerifiedRetry: string
+  firstNameRequired: string
+  lastNameRequired: string
+  emailRequired: string
+  emailInvalid: string
+  postalCodeRequired: string
+  postalCodeInvalid: string
+  hearAboutValidationSelect: string
+  phoneRequired: string
+  phoneInvalid: string
+  codeRequired: string
+  codeIncomplete: string
   invalidCode: string
   codeExpired: string
+  codeTooManyAttempts: string
+  rateLimited: string
+  verifyUnavailable: string
   verifyError: string
-  phoneVerifiedRetry: string
-  retrySubmit: string
+  errorMessage: string
+  serverError: string
+  hearAboutOptions: HearAboutOptions
 }
+
 
 export interface LoginTranslations {
   title: string
@@ -453,47 +480,73 @@ export const translations: Record<Language, Translations> = {
       title: "Rejoindre la liste d'attente - Pavillon 46",
       description: "Rejoignez la liste d'attente pour Pavillon 46",
       heading: "Quelque chose d'unique se profile",
-      firstNamePlaceholder: 'Votre prénom',
-      lastNamePlaceholder: 'Votre nom de famille',
-      phonePlaceholder: 'Votre numéro de téléphone',
-      emailPlaceholder: 'Votre adresse e-mail',
-      postalCodePlaceholder: 'Votre code postal',
-      referralCodePlaceholder: 'Code de parrainage (optionnel)',
-      submitButton: "Rejoindre la liste d'attente",
-      continueButton: 'Continuer',
-      backButton: 'Retour',
-      submitting: 'Inscription en cours...',
-      errorMessage: "Une erreur s'est produite. Veuillez réessayer.",
-      serverError: 'Erreur de connexion au serveur.',
+      nameStepDescription: 'Commençons par votre nom.',
+      emailStepDescription: 'Où pouvons-nous vous écrire\u00a0?',
+      hearAboutLabel: 'Comment avez-vous entendu parler du Pavillon 46\u00a0?',
+      phoneStepDescription: 'Nous vous enverrons un code par SMS pour vérifier votre numéro.',
+      codeSentTo: 'Code envoyé par SMS au {phone}.',
+      firstNameLabel: 'Prénom',
+      lastNameLabel: 'Nom',
+      emailLabel: 'Adresse e-mail',
+      postalCodeLabel: 'Code postal',
+      postalCodeHint: 'Pas de code postal là où vous vivez\u00a0? Indiquez votre ville.',
+      referralCodeLabel: 'Code de parrainage',
+      optionalTag: 'facultatif',
+      referralToggle: "J'ai un code de parrainage",
+      referralFromLink: "Ajouté depuis votre lien d'invitation.",
+      hearAboutOtherLabel: 'Précisez',
+      phoneLabel: 'Numéro de mobile',
+      countryCodeLabel: 'Indicatif du pays',
+      codeLabel: 'Code reçu par SMS',
       stepName: 'Nom',
       stepEmail: 'Contact',
       stepSource: 'Source',
-      stepPhone: 'Téléphone',
-      stepVerify: 'Vérification',
-      emailStepDescription: 'Indiquez votre adresse e-mail et votre code postal.',
-      hearAboutStepDescription: 'Comment avez-vous entendu parler de Pavillon 46 ?',
-      hearAboutLabel: 'Comment avez-vous entendu parler de Pavillon 46 ?',
-      hearAboutPlaceholder: 'Choisissez une option',
-      hearAboutValidationSelect: 'Veuillez indiquer comment vous avez entendu parler de nous.',
-      hearAboutOtherPlaceholder: 'Précisez (optionnel)…',
+      stepPhone: 'Mobile',
+      stepVerify: 'Code',
+      progressLabel: "Progression de l'inscription",
+      stepDone: 'étape terminée',
+      stepCounter: 'Étape {current} sur {total}',
+      continueButton: 'Continuer',
+      backButton: 'Retour',
+      backToHome: "Retour à l'accueil",
+      sendCodeButton: 'Envoyer le code',
+      sendingCode: 'Envoi du code…',
+      verifyCode: 'Confirmer',
+      verifying: 'Vérification…',
+      submitting: 'Inscription…',
+      submitSuccess: 'Demande envoyée',
+      retrySubmit: 'Réessayer',
+      resendCode: 'Renvoyer le code',
+      resendIn: '(dans {seconds}\u00a0s)',
+      changeNumber: 'Modifier le numéro',
+      codeResent: 'Un nouveau code vous a été envoyé.',
+      resendAvailable: 'Vous pouvez demander un nouveau code.',
+      phoneVerifiedRetry: "Votre numéro est vérifié\u00a0: il ne reste qu'à envoyer votre demande.",
+      firstNameRequired: 'Indiquez votre prénom.',
+      lastNameRequired: 'Indiquez votre nom.',
+      emailRequired: 'Indiquez votre adresse e-mail.',
+      emailInvalid: 'Cette adresse e-mail semble incomplète (ex.\u00a0: nom@exemple.ch).',
+      postalCodeRequired: 'Indiquez votre code postal.',
+      postalCodeInvalid: 'Ce code postal ne semble pas valide.',
+      hearAboutValidationSelect: 'Choisissez une réponse pour continuer.',
+      phoneRequired: 'Indiquez votre numéro de mobile.',
+      phoneInvalid: "Ce numéro ne semble pas valide. Vérifiez l'indicatif et le numéro.",
+      codeRequired: 'Saisissez le code reçu par SMS.',
+      codeIncomplete: 'Saisissez le code complet reçu par SMS.',
+      invalidCode: 'Ce code ne correspond pas. Vérifiez le SMS et réessayez.',
+      codeExpired: 'Ce code a expiré. Demandez-en un nouveau ci-dessous.',
+      codeTooManyAttempts: "Trop d'essais pour ce code. Demandez-en un nouveau ci-dessous.",
+      rateLimited: 'Trop de tentatives. Patientez quelques minutes, puis réessayez.',
+      verifyUnavailable: 'La vérification est momentanément indisponible. Réessayez dans un instant.',
+      verifyError: "Le SMS n'a pas pu être envoyé. Vérifiez le numéro, puis réessayez dans quelques minutes.",
+      errorMessage: "Votre demande n'a pas pu être envoyée. Réessayez dans un instant.",
+      serverError: 'Impossible de joindre le serveur. Vérifiez votre connexion internet, puis réessayez.',
       hearAboutOptions: {
         social: 'Réseaux sociaux',
         friends: 'Famille et amis',
         press: 'Dans la presse',
         other: 'Autre',
       },
-      phoneStepDescription: 'Entrez votre numéro de téléphone pour recevoir un code de vérification.',
-      sendingCode: 'Envoi...',
-      codeSentTo: 'Un code a été envoyé au',
-      codePlaceholder: 'Entrez le code',
-      verifyCode: 'Confirmer',
-      resendCode: 'Renvoyer le code',
-      resendIn: 'Renvoyer dans',
-      invalidCode: 'Le code est incorrect. Veuillez réessayer.',
-      codeExpired: 'Le code a expiré. Veuillez en demander un nouveau.',
-      verifyError: "Impossible d'envoyer le code. Veuillez réessayer.",
-      phoneVerifiedRetry: 'Votre téléphone est vérifié. Cliquez ci-dessous pour réessayer.',
-      retrySubmit: 'Réessayer',
     },
     login: {
       title: 'Connexion membre - Pavillon 46',
@@ -835,47 +888,73 @@ export const translations: Record<Language, Translations> = {
       title: 'Join the Waitlist - Pavillon 46',
       description: 'Join the waitlist for Pavillon 46',
       heading: 'Something unique is coming',
-      firstNamePlaceholder: 'Your First Name',
-      lastNamePlaceholder: 'Your Last Name',
-      phonePlaceholder: 'Your Phone Number',
-      emailPlaceholder: 'Your Email Address',
-      postalCodePlaceholder: 'Your Postal Code',
-      referralCodePlaceholder: 'Referral code (optional)',
-      submitButton: 'Join the Waitlist',
-      continueButton: 'Continue',
-      backButton: 'Back',
-      submitting: 'Joining...',
-      errorMessage: 'Something went wrong. Please try again.',
-      serverError: 'Error connecting to the server.',
+      nameStepDescription: "Let's start with your name.",
+      emailStepDescription: 'Where can we write to you?',
+      hearAboutLabel: 'How did you hear about Pavillon 46?',
+      phoneStepDescription: "We'll text you a code to verify your number.",
+      codeSentTo: "We've texted a code to {phone}.",
+      firstNameLabel: 'First name',
+      lastNameLabel: 'Last name',
+      emailLabel: 'Email address',
+      postalCodeLabel: 'Postal code',
+      postalCodeHint: 'No postal code where you live? Enter your city.',
+      referralCodeLabel: 'Referral code',
+      optionalTag: 'optional',
+      referralToggle: 'I have a referral code',
+      referralFromLink: 'Added from your invitation link.',
+      hearAboutOtherLabel: 'Tell us more',
+      phoneLabel: 'Mobile number',
+      countryCodeLabel: 'Country code',
+      codeLabel: 'Code from the text message',
       stepName: 'Name',
       stepEmail: 'Contact',
       stepSource: 'Source',
-      stepPhone: 'Phone',
-      stepVerify: 'Verify',
-      emailStepDescription: 'Enter your email address and postal code.',
-      hearAboutStepDescription: 'Tell us how you heard about Pavillon 46.',
-      hearAboutLabel: 'How did you hear about Pavillon 46?',
-      hearAboutPlaceholder: 'Select an option',
-      hearAboutValidationSelect: 'Please tell us how you heard about us.',
-      hearAboutOtherPlaceholder: 'Tell us more (optional)…',
+      stepPhone: 'Mobile',
+      stepVerify: 'Code',
+      progressLabel: 'Sign-up progress',
+      stepDone: 'completed',
+      stepCounter: 'Step {current} of {total}',
+      continueButton: 'Continue',
+      backButton: 'Back',
+      backToHome: 'Back to home',
+      sendCodeButton: 'Send code',
+      sendingCode: 'Sending code…',
+      verifyCode: 'Confirm',
+      verifying: 'Checking…',
+      submitting: 'Joining…',
+      submitSuccess: 'Request sent',
+      retrySubmit: 'Try again',
+      resendCode: 'Resend code',
+      resendIn: '(in {seconds}s)',
+      changeNumber: 'Change number',
+      codeResent: "We've sent you a new code.",
+      resendAvailable: 'You can now request a new code.',
+      phoneVerifiedRetry: "Your number is verified. All that's left is to send your request.",
+      firstNameRequired: 'Please enter your first name.',
+      lastNameRequired: 'Please enter your last name.',
+      emailRequired: 'Please enter your email address.',
+      emailInvalid: 'This email address looks incomplete (e.g. name@example.com).',
+      postalCodeRequired: 'Please enter your postal code.',
+      postalCodeInvalid: "This postal code doesn't look right.",
+      hearAboutValidationSelect: 'Please choose an answer to continue.',
+      phoneRequired: 'Please enter your mobile number.',
+      phoneInvalid: "This number doesn't look right. Please check the country code and the number.",
+      codeRequired: 'Please enter the code from the text message.',
+      codeIncomplete: 'Please enter the full code from the text message.',
+      invalidCode: "That code doesn't match. Check the text message and try again.",
+      codeExpired: 'This code has expired. Request a new one below.',
+      codeTooManyAttempts: 'Too many attempts for this code. Request a new one below.',
+      rateLimited: 'Too many attempts. Please wait a few minutes, then try again.',
+      verifyUnavailable: 'Verification is temporarily unavailable. Please try again in a moment.',
+      verifyError: "We couldn't send the text. Check the number, then try again in a few minutes.",
+      errorMessage: "We couldn't send your request. Please try again in a moment.",
+      serverError: "We couldn't reach the server. Check your internet connection, then try again.",
       hearAboutOptions: {
         social: 'Social media',
         friends: 'Friends and family',
         press: 'Press',
         other: 'Other',
       },
-      phoneStepDescription: 'Enter your phone number to receive a verification code.',
-      sendingCode: 'Sending...',
-      codeSentTo: 'A code has been sent to',
-      codePlaceholder: 'Enter code',
-      verifyCode: 'Confirm',
-      resendCode: 'Resend code',
-      resendIn: 'Resend in',
-      invalidCode: 'The code is wrong. Please try again.',
-      codeExpired: 'The code has expired. Please request a new one.',
-      verifyError: 'Could not send code. Please try again.',
-      phoneVerifiedRetry: 'Your phone is verified. Click below to retry.',
-      retrySubmit: 'Retry',
     },
     login: {
       title: 'Member Login - Pavillon 46',
