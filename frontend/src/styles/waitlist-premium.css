@@ -4,21 +4,18 @@
    .wl-* classes so it never affects the member login and
    set-password cards (which share the .form-container /
    .form-input class names).
-   Authoritative layer — loaded last in main.tsx.
    ============================================================ */
 
 :root {
   --wl-green: var(--color-green, #265640);
   --wl-green-rgb: 38, 86, 64;
   --wl-green-soft: #3a6f58;
-  --wl-coral: var(--color-coral, #ff6e50);
   --wl-ink: #25342d;
   --wl-muted: #56665f;                              /* 6.1:1 on white */
   --wl-line: rgba(var(--wl-green-rgb), 0.62);       /* 3.2:1 against the white field */
   --wl-line-soft: rgba(var(--wl-green-rgb), 0.18);  /* unfilled stepper connectors */
   --wl-field-bg: #ffffff;
   --wl-error: #b23a23;                              /* 6:1 on white */
-  --wl-error-rgb: 178, 58, 35;
   --wl-ease: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -37,7 +34,6 @@
 }
 
 @media (max-width: 767px) {
-  /* The overlay is the scroller on phones: keep the tallest state clear of the footer. */
   /* The overlay is the scroller on phones and the footer is a bar pinned to
      the bottom of the screen. End the scroll area at the footer's top edge, so
      a tall step scrolls above the bar instead of sliding under its links
@@ -50,10 +46,21 @@
     scroll-padding-top: 16px;
     scroll-padding-bottom: 16px;
   }
+
+  /* Fill exactly the space the overlay leaves for it, so no strip of photo
+     shows between the clipped card and the bar. */
+  .wl-shell .page-footer {
+    box-sizing: border-box;
+    min-height: calc(47px + max(10px, env(safe-area-inset-bottom, 10px)));
+  }
 }
 
-/* Short desktop screens scroll the body: keep focused fields off the footer. */
+/* Wider screens: the shared rules make <body> a 100vh scroll box, so the
+   absolute header stayed put over the card while the content scrolled under
+   it. Let the page itself scroll on the waitlist, and keep focused fields
+   clear of the header and the footer. */
 @media (min-width: 768px) {
+  body:has(.wl-page) { height: auto; overflow: visible; }
   html:has(.wl-page) { scroll-padding: 72px 0 96px; }
 }
 
@@ -106,6 +113,14 @@
 /* Negative margins + matching padding give focus rings and shadows room
    inside the clipping box that animates its height. */
 .waitlist-form-container .wl-body { margin: -12px -24px -18px; align-self: stretch; }
+
+/* Clip, but without being a scroll container: scrollIntoView must scroll the
+   page, never this box. Safari 15 and older ignore `clip` and keep `hidden`. */
+.waitlist-form-container .wl-body,
+.waitlist-form-container .wl-home {
+  overflow: hidden;
+  overflow: clip;
+}
 .waitlist-form-container .wl-body-measure { padding: 12px 24px 18px; }
 .waitlist-form-container .wl-step-viewport { position: relative; }
 
@@ -137,7 +152,6 @@
   margin: 0 0 14px;
 }
 
-.waitlist-form-container .step-description strong { font-weight: 500; white-space: nowrap; }
 
 .wl-sr-only,
 .waitlist-form-container .wl-sr-only {
@@ -202,17 +216,18 @@
   min-height: 17px;
 }
 
-.waitlist-form-container .wl-link-inline {
+.waitlist-form-container .wl-link-button.wl-link-inline {
   min-height: 0;
   padding: 0 2px;
   font-size: 12.5px;
 }
 
 @media (pointer: coarse) {
-  .waitlist-form-container .wl-link-inline { min-height: 24px; padding: 2px 4px; margin: -2px -4px; }
+  .waitlist-form-container .wl-link-button.wl-link-inline { min-height: 24px; padding: 2px 4px; margin: -2px -4px; }
 }
 
 .waitlist-form-container .wl-hint.is-sent { color: var(--wl-green); }
+.waitlist-form-container .wl-hint.is-preview { color: var(--wl-ink); }
 
 .waitlist-form-container .wl-code-block {
   display: flex;
@@ -242,7 +257,8 @@
 }
 
 .waitlist-form-container .form-input:focus {
-  outline: none;
+  outline: 2px solid transparent;
+  outline-offset: 2px;
   border-color: var(--wl-green);
   background: var(--wl-field-bg);
   box-shadow: 0 0 0 3px rgba(var(--wl-green-rgb), 0.35), 0 4px 14px rgba(20, 49, 38, 0.08);
@@ -280,7 +296,7 @@
 
 /* An empty alert region must not add a gap of its own. */
 .waitlist-form-container .wl-live { position: relative; }
-.waitlist-form-container .wl-live:empty { margin-top: -14px; }
+.waitlist-form-container .wl-live.is-empty { margin-top: -14px; }
 
 .waitlist-form-container .verification-code-input {
   padding-left: calc(16px + 0.4em);
@@ -297,7 +313,7 @@
   .waitlist-form-container .form-input { font-size: 16px; }
 }
 
-/* ---- Step 3: radio cards ---- */
+/* ---- Step 2: radio cards ---- */
 .waitlist-form-container .wl-choices {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -385,7 +401,7 @@
   .waitlist-form-container .wl-choices { grid-template-columns: 1fr; }
 }
 
-/* ---- Step 4: phone row, country chip over a native select ---- */
+/* ---- Step 3: phone row, country chip over a native select ---- */
 .waitlist-form-container .phone-row {
   display: flex;
   align-items: stretch;
@@ -436,8 +452,13 @@
 .waitlist-form-container .phone-row.is-locked .form-input,
 .waitlist-form-container .phone-row.is-locked .country-selector {
   background-color: rgba(var(--wl-green-rgb), 0.04);
-  border-color: rgba(var(--wl-green-rgb), 0.3);
+  border-color: var(--wl-line);
   box-shadow: none;
+}
+
+.waitlist-form-container .phone-row.is-locked .form-input:focus {
+  border-color: var(--wl-green);
+  box-shadow: 0 0 0 3px rgba(var(--wl-green-rgb), 0.35);
 }
 
 .waitlist-form-container .phone-row.is-locked .wl-chevron { opacity: 0; }
@@ -449,6 +470,8 @@
 }
 
 .waitlist-form-container .wl-country:focus-within .country-selector {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
   border-color: var(--wl-green);
   box-shadow: 0 0 0 3px rgba(var(--wl-green-rgb), 0.35);
 }
@@ -635,6 +658,7 @@
 }
 
 .waitlist-form-container .wl-btn-label { display: inline-flex; align-items: center; gap: 10px; }
+.waitlist-form-container .wl-btn-label-in { animation: wl-fade-in 0.15s var(--wl-ease) both; }
 
 .waitlist-form-container .wl-spinner {
   width: 14px;
@@ -813,7 +837,7 @@
   .wl-step:not(:first-child)::after { top: 14px; right: calc(50% + 21px); width: calc(100% - 42px); }
 
   /* Long FR labels don't fit: keep them for screen readers, and show a
-     caption ("ÉTAPE 2 SUR 5 · CONTACT") under the dots instead. */
+     caption ("ÉTAPE 2 SUR 3 · SOURCE") under the dots instead. */
   .wl-step-label {
     position: absolute;
     width: 1px;
@@ -851,7 +875,7 @@
   .waitlist-form-container .submit-button,
   .waitlist-form-container .back-button { transition: none; }
 
-  .wl-step::after,
+  .wl-step:not(:first-child)::after,
   .waitlist-form-container .form-actions,
   .waitlist-form-container .wl-choice,
   .waitlist-form-container .wl-choice-mark::after { transition: none; }
@@ -860,9 +884,17 @@
 
   .wl-step-dot path,
   .waitlist-form-container .wl-btn-check path,
+  .waitlist-form-container .wl-btn-label-in,
   .waitlist-form-container .back-button { animation: none; }
 
   .waitlist-form-container .wl-choice:active { transform: none; }
   .waitlist-form-container .wl-spinner { animation: wl-pulse 1.6s ease-in-out infinite; }
   .waitlist-page .background-image { animation: none; }
+}
+
+/* Windows High Contrast and other forced-colour modes drop backgrounds and
+   shadows: draw the selected answer and its dot with system colours. */
+@media (forced-colors: active) {
+  .waitlist-form-container .wl-choice-mark::after { background-color: CanvasText; }
+  .waitlist-form-container .wl-choice.is-selected { border: 2px solid Highlight; }
 }

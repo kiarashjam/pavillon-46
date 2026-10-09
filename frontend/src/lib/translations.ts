@@ -73,6 +73,8 @@ export interface WaitlistTranslations {
   codeLabel: string
   phoneHint: string
   codeSentHint: string
+  phoneWillSendTo: string
+  codeSentAnnouncement: string
   stepDetails: string
   stepSource: string
   stepPhone: string
@@ -495,7 +497,9 @@ export const translations: Record<Language, Translations> = {
       countryCodeLabel: 'Indicatif du pays',
       codeLabel: 'Code reçu par SMS',
       phoneHint: 'Nous vous enverrons un code par SMS.',
-      codeSentHint: 'Code envoyé. Il arrive en général en quelques secondes.',
+      codeSentHint: 'Code envoyé au {number}. Il arrive en général en quelques secondes.',
+      codeSentAnnouncement: 'Code envoyé. Saisissez le code reçu par SMS.',
+      phoneWillSendTo: 'Le code sera envoyé au {number} ({country}).',
       stepDetails: 'Coordonnées',
       stepSource: 'Source',
       stepPhone: 'Mobile',
@@ -901,7 +905,9 @@ export const translations: Record<Language, Translations> = {
       countryCodeLabel: 'Country code',
       codeLabel: 'Code from the text message',
       phoneHint: "We'll text you a code.",
-      codeSentHint: 'Code sent. It usually arrives within seconds.',
+      codeSentHint: 'Code sent to {number}. It usually arrives within seconds.',
+      codeSentAnnouncement: 'Code sent. Enter the code from the text message.',
+      phoneWillSendTo: "We'll text the code to {number} ({country}).",
       stepDetails: 'Details',
       stepSource: 'Source',
       stepPhone: 'Mobile',
@@ -924,17 +930,17 @@ export const translations: Record<Language, Translations> = {
       codeResent: "We've sent you a new code.",
       resendAvailable: 'You can now request a new code.',
       phoneVerifiedRetry: "Your number is verified. All that's left is to send your request.",
-      firstNameRequired: 'Please enter your first name.',
-      lastNameRequired: 'Please enter your last name.',
-      emailRequired: 'Please enter your email address.',
+      firstNameRequired: 'Enter your first name.',
+      lastNameRequired: 'Enter your last name.',
+      emailRequired: 'Enter your email address.',
       emailInvalid: 'This email address looks incomplete (e.g. name@example.com).',
-      postalCodeRequired: 'Please enter your postal code.',
+      postalCodeRequired: 'Enter your postal code.',
       postalCodeInvalid: "This postal code doesn't look right.",
       hearAboutValidationSelect: 'Please choose an answer to continue.',
-      phoneRequired: 'Please enter your mobile number.',
+      phoneRequired: 'Enter your mobile number.',
       phoneInvalid: "This number doesn't look right. Please check the country code and the number.",
-      codeRequired: 'Please enter the code from the text message.',
-      codeIncomplete: 'Please enter the full code from the text message.',
+      codeRequired: 'Enter the code from the text message.',
+      codeIncomplete: 'Enter the full code from the text message.',
       invalidCode: "That code doesn't match. Check the text message and try again.",
       codeExpired: 'This code has expired. Request a new one below.',
       codeTooManyAttempts: 'Too many attempts for this code. Request a new one below.',

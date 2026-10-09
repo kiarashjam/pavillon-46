@@ -1,7 +1,8 @@
-import { forwardRef, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import type { ChangeEvent, FormEvent, KeyboardEvent } from 'react'
+import { createContext, forwardRef, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
+import type { ChangeEvent, FormEvent, KeyboardEvent, ReactNode } from 'react'
+import { flushSync } from 'react-dom'
 import { Link, useNavigate } from 'react-router-dom'
-import { AnimatePresence, animate, motion, useIsPresent, useReducedMotion } from 'framer-motion'
+import { AnimatePresence, animate, motion, useIsPresent } from 'framer-motion'
 import type { HTMLMotionProps, Variants } from 'framer-motion'
 import PageLayout from '../components/PageLayout'
 import Footer from '../components/Footer'
@@ -42,12 +43,45 @@ const countryCodes: CountryCode[] = [
 // Longest dial code first, so a pasted "+352…" matches Luxembourg, not "+35".
 const DIAL_CODES_LONGEST_FIRST = [...countryCodes].sort((a, b) => b.code.length - a.code.length)
 
+// The shape of a MOBILE number in each country (national significant number,
+// after the trunk 0). The code goes by SMS, so a landline can never be
+// verified — and checking the shape catches a number typed under the wrong
+// country, such as a French 06… left under the default +41.
+const MOBILE_RULES: Record<string, { lengths: number[]; prefix: RegExp }> = {
+  CH: { lengths: [9], prefix: /^7[5-9]/ },
+  FR: { lengths: [9], prefix: /^[67]/ },
+  DE: { lengths: [10, 11], prefix: /^1[5-7]/ },
+  IT: { lengths: [9, 10], prefix: /^3/ },
+  GB: { lengths: [10], prefix: /^7/ },
+  US: { lengths: [10], prefix: /^[2-9]/ },
+  CA: { lengths: [10], prefix: /^[2-9]/ },
+  ES: { lengths: [9], prefix: /^[67]/ },
+  PT: { lengths: [9], prefix: /^9/ },
+  BE: { lengths: [9], prefix: /^4/ },
+  NL: { lengths: [9], prefix: /^6/ },
+  LU: { lengths: [9], prefix: /^6/ },
+  MC: { lengths: [8, 9], prefix: /^[46]/ },
+  JP: { lengths: [10], prefix: /^[789]0/ },
+  CN: { lengths: [11], prefix: /^1/ },
+  AE: { lengths: [9], prefix: /^5/ },
+  SA: { lengths: [9], prefix: /^5/ },
+  QA: { lengths: [8], prefix: /^[3567]/ },
+}
+
+const isMobileNumber = (country: CountryCode, national: string) => {
+  const rule = MOBILE_RULES[country.country]
+  return !!rule && rule.lengths.includes(national.length) && rule.prefix.test(national)
+}
+
 type HearAboutKey = 'social' | 'friends' | 'press' | 'other'
 const HEAR_ABOUT_OPTION_KEYS: HearAboutKey[] = ['social', 'friends', 'press', 'other']
 const HEAR_ABOUT_OTHER_MAX = 500
 // 1: details (name, email, postcode) · 2: how they heard of us · 3: mobile + SMS code
 const TOTAL_STEPS = 3
 const RESEND_COOLDOWN_S = 60
+// A second Continue/Back inside this window lands on a step that is still
+// arriving: ignore it, or a double press skips a step or sends the SMS.
+const STEP_SETTLE_MS = 450
 
 interface FormData {
   firstName: string
@@ -71,10 +105,34 @@ type WaitlistStringKey = {
 
 type FieldErrors = Partial<Record<FieldName, WaitlistStringKey>>
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
-// Lenient on purpose: it must accept 1095, 75008, SW1A 1AA, 1012 AB, K1A 0B1
-// and, where there is no postcode, a city name such as "Ras Al Khaimah".
-const POSTAL_RE = /^[\p{L}\p{N}][\p{L}\p{N} .'’-]{1,39}$/u
+/** Full-width (IME) and Arabic-Indic digits become ASCII; invisible format
+ *  marks (left-to-right marks pasted from iOS Contacts) are removed. */
+function toAscii(s: string): string {
+  return s
+    .normalize('NFKC')
+    .replace(/\p{Cf}/gu, '')
+    .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x660))
+    .replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x6f0))
+}
+
+/** What people paste around an address: "mailto:", <…>, a trailing comma or dot. */
+function cleanEmail(v: string): string {
+  return v
+    .normalize('NFC')
+    .replace(/\p{Cf}/gu, '')
+    .trim()
+    .replace(/^mailto:/i, '')
+    .replace(/^<|>$/g, '')
+    .replace(/[.,;]+$/, '')
+}
+
+const cleanPostal = (v: string) => toAscii(v).replace(/^〒\s*/, '').trim()
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.(?:[\p{L}]{2,}|xn--[a-z0-9-]+)$/iu
+const EMAIL_BROKEN = /\.\.|^\.|\.@|@[.-]|[<>(),;:"\\\s]/
+// Lenient on purpose: it must accept 1095, 75008, SW1A 1AA, 1012 AB, K1A 0B1,
+// 1234-567 and, where there is no postcode, a city such as "Doha, Qatar".
+const POSTAL_RE = /^[\p{L}\p{N}][\p{L}\p{M}\p{N} .,'’()–-]{1,39}$/u
 
 interface NormalisedPhone {
   country: CountryCode
@@ -89,12 +147,12 @@ interface NormalisedPhone {
  * backend expects. The API builds the E.164 number by concatenating the dial
  * code and this value, so a Swiss "079 123 45 67" must arrive as "791234567":
  * sent as typed it became +410791234567, which Twilio rejects.
- * Returns null when the number can't be valid for the resulting country.
+ * Returns null unless the result is a mobile number for its country.
  */
 function normalisePhone(raw: string, current: CountryCode): NormalisedPhone | null {
-  let s = raw.trim().replace(/\(0\)/g, '')
+  let s = toAscii(raw).trim().replace(/\(0\)/g, '')
   let country = current
-  const intl = /^(\+|00)\s*/.exec(s)
+  const intl = /^\(?\s*(\+|00)\s*/.exec(s)
   if (intl) {
     const rest = s.slice(intl[0].length)
     const digits = rest.replace(/\D/g, '')
@@ -111,34 +169,86 @@ function normalisePhone(raw: string, current: CountryCode): NormalisedPhone | nu
     s = rest.slice(i).replace(/^[\s\-.()]+/, '')
   }
   let national = s.replace(/\D/g, '')
+  const dropTrunk = (n: string) => (country.country !== 'IT' && n.startsWith('0') ? n.slice(1) : n)
+  // The dial code typed again without "+" ("33 6 12 34 56 78" under France):
+  // strip it only when the rest is a valid mobile and the whole is not.
+  const dial = country.code.slice(1)
+  if (!intl && national.startsWith(dial)
+      && !isMobileNumber(country, dropTrunk(national))
+      && isMobileNumber(country, dropTrunk(national.slice(dial.length)))) {
+    national = national.slice(dial.length)
+    s = national
+  }
   // Drop the trunk 0 everywhere except Italy, where it is part of the number.
-  if (country.country !== 'IT' && national.startsWith('0')) {
-    national = national.slice(1)
+  if (national !== dropTrunk(national)) {
+    national = dropTrunk(national)
     s = s.replace(/^0[\s\-.]*/, '')
   }
   if (country.code === '+1' && national.length === 11 && national.startsWith('1')) {
     national = national.slice(1)
     s = s.replace(/^1[\s\-.]*/, '')
   }
-  const valid = country.country === 'CH'
-    ? national.length === 9
-    : national.length >= 6 && national.length <= 14 && country.code.length - 1 + national.length <= 15
-  if (!valid) return null
+  if (!isMobileNumber(country, national)) return null
   let display = s.replace(/\s+/g, ' ').trim()
   if (display.replace(/\D/g, '') !== national) display = national
+  // Swiss numbers are shown the Swiss way (78 123 45 67), so a French 07 8…
+  // left under the Swiss chip reads plainly as a Swiss number.
+  if (country.country === 'CH') display = national.replace(/^(\d{2})(\d{3})(\d{2})(\d{2})$/, '$1 $2 $3 $4')
   return { country, national, display }
 }
 
 /**
- * Focus without the browser's own scroll (which jolts the card sideways on
- * phones), then bring the element into view only if it is actually off-screen
- * — at 400% zoom or on a landscape phone the first field can start below the fold.
+ * Brings a focused field — label included — into the part of the page that is
+ * actually visible: the scrolling overlay on phones, the window (minus the
+ * header and footer padding) elsewhere.
  */
+function revealInScroller(el: HTMLElement) {
+  const target = (el.closest('.wl-field') as HTMLElement | null) ?? el
+  const scroller = el.closest('.form-overlay') as HTMLElement | null
+  let top = 0
+  let bottom = window.innerHeight
+  if (scroller && getComputedStyle(scroller).overflowY !== 'visible') {
+    const r = scroller.getBoundingClientRect()
+    top = r.top
+    bottom = r.bottom
+  } else {
+    const html = getComputedStyle(document.documentElement)
+    top = parseFloat(html.scrollPaddingTop) || 0
+    bottom = window.innerHeight - (parseFloat(html.scrollPaddingBottom) || 0)
+  }
+  const r = target.getBoundingClientRect()
+  if (r.top < top || r.bottom > bottom) target.scrollIntoView({ block: 'nearest' })
+}
+
+/** Focus without the browser's own scroll (which jolts the card sideways on
+ *  phones), then reveal the field only if it is out of view. */
 function focusInView(el: HTMLElement | null | undefined) {
   if (!el) return
   el.focus({ preventScroll: true })
-  const r = el.getBoundingClientRect()
-  if (r.top < 0 || r.bottom > window.innerHeight) el.scrollIntoView({ block: 'nearest' })
+  revealInScroller(el)
+}
+
+// Follow the OS reduced-motion setting live, including a change made while
+// the page is open.
+const REDUCE_QUERY = '(prefers-reduced-motion: reduce)'
+const subscribeReducedMotion = (cb: () => void) => {
+  const m = window.matchMedia(REDUCE_QUERY)
+  m.addEventListener('change', cb)
+  return () => m.removeEventListener('change', cb)
+}
+const getReducedMotion = () => window.matchMedia(REDUCE_QUERY).matches
+
+/**
+ * Step content is read from this context instead of being passed as children.
+ * When the old step finishes leaving, AnimatePresence re-commits children it
+ * captured at an earlier render; children built from props would write an old
+ * `value` back into the field being typed in. Reading the render function from
+ * context always renders the current values.
+ */
+const StepRenderContext = createContext<(step: number) => ReactNode>(() => null)
+
+function StepContent({ step }: { step: number }) {
+  return <>{useContext(StepRenderContext)(step)}</>
 }
 
 /**
@@ -184,7 +294,7 @@ export default function Waitlist() {
   const navigate = useNavigate()
   const { language } = useLanguage()
   const t = useTranslations(language, 'waitlist')
-  const reduce = useReducedMotion() ?? false
+  const reduce = useSyncExternalStore(subscribeReducedMotion, getReducedMotion, () => false)
 
   const [currentStep, setCurrentStep] = useState(1)
   const [direction, setDirection] = useState(1)
@@ -214,15 +324,19 @@ export default function Waitlist() {
   // "+41|791234567" once that exact number is verified. Changing the number or
   // the country therefore invalidates the verification by itself.
   const [verifiedPhone, setVerifiedPhone] = useState<string | null>(null)
+  // Verified, but the request itself failed: keep the retry state (no code
+  // field) through every retry.
+  const [submitFailed, setSubmitFailed] = useState(false)
   const [cooldown, setCooldown] = useState(0)
   const [attempted, setAttempted] = useState(false)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [asyncError, setAsyncError] = useState<WaitlistStringKey | null>(null)
-  // Bumped with every async error, so a repeat of the same message is a new
-  // node in the alert region and is announced again.
+  // Bumped with every async error and every announcement, so a repeat of the
+  // same message is a new node in its live region and is read again.
   const [asyncSeq, setAsyncSeq] = useState(0)
   const [asyncInfo, setAsyncInfo] = useState<WaitlistStringKey | null>(null)
   const [statusKey, setStatusKey] = useState<WaitlistStringKey | null>(null)
+  const [statusSeq, setStatusSeq] = useState(0)
   const [bodyHeight, setBodyHeight] = useState<number | 'auto'>('auto')
 
   const formRef = useRef<HTMLFormElement>(null)
@@ -236,9 +350,13 @@ export default function Waitlist() {
   const lastTriedCodeRef = useRef('')
   const successTimerRef = useRef<number | undefined>(undefined)
   const aliveRef = useRef(true)
-  const focusReferralOnMount = useRef(false)
   const pendingFocusRef = useRef<'code' | 'phone' | 'submit' | null>(null)
   const prevCooldownRef = useRef(0)
+  const stepChangedAtRef = useRef(-Infinity)
+  // verify() → submitWaitlistForm() runs from the closure of the render in which
+  // the code was typed; read the language at send time, not from that closure.
+  const languageRef = useRef(language)
+  languageRef.current = language
 
   const phoneKey = `${formData.countryCode}|${formData.phoneNumber}`
   const phoneVerified = verifiedPhone === phoneKey
@@ -248,7 +366,8 @@ export default function Waitlist() {
   // Spinner and aria-busy only when the button's own label says it is working
   // (a resend is shown on the resend link, not on the main button).
   const labelBusy = verifyingCode || status === 'loading' || (sendingCode && !codeSent)
-  const verifiedAwaiting = currentStep === 3 && codeSent && phoneVerified && (status === 'idle' || status === 'error')
+  const verifiedAwaiting = currentStep === 3 && codeSent && phoneVerified
+    && (status === 'idle' || status === 'error' || submitFailed)
   const stepCounter = t.stepCounter.replace('{current}', String(currentStep)).replace('{total}', String(TOTAL_STEPS))
 
   const regionNames = useMemo(() => {
@@ -280,12 +399,20 @@ export default function Waitlist() {
     return () => window.clearTimeout(id)
   }, [cooldown])
 
+  const announce = (key: WaitlistStringKey | null) => {
+    setStatusKey(key)
+    setStatusSeq((n) => n + 1)
+  }
+
   // Tell screen-reader users when Resend becomes usable; the ticking countdown
   // itself is deliberately not announced.
   useEffect(() => {
     const prev = prevCooldownRef.current
     prevCooldownRef.current = cooldown
-    if (prev > 0 && cooldown === 0 && codeSent && !phoneVerified) setStatusKey('resendAvailable')
+    if (prev > 0 && cooldown === 0 && codeSent && !phoneVerified) {
+      setStatusKey('resendAvailable')
+      setStatusSeq((n) => n + 1)
+    }
   }, [cooldown, codeSent, phoneVerified])
 
   // Animate the card body between heights instead of snapping.
@@ -356,14 +483,14 @@ export default function Waitlist() {
       case 'lastName':
         return data.lastName.trim() ? null : 'lastNameRequired'
       case 'emailAddress': {
-        const v = data.emailAddress.trim()
+        const v = cleanEmail(data.emailAddress)
         if (!v) return 'emailRequired'
-        return EMAIL_RE.test(v) ? null : 'emailInvalid'
+        return EMAIL_RE.test(v) && !EMAIL_BROKEN.test(v) ? null : 'emailInvalid'
       }
       case 'postalCode': {
-        const v = data.postalCode.trim()
+        const v = cleanPostal(data.postalCode)
         if (!v) return 'postalCodeRequired'
-        return POSTAL_RE.test(v) ? null : 'postalCodeInvalid'
+        return POSTAL_RE.test(v.normalize('NFC')) ? null : 'postalCodeInvalid'
       }
       case 'hearAboutKey':
         return (HEAR_ABOUT_OPTION_KEYS as string[]).includes(data.hearAboutKey) ? null : 'hearAboutValidationSelect'
@@ -413,14 +540,18 @@ export default function Waitlist() {
     setStatusKey(null)
   }
 
+  const settling = () => performance.now() - stepChangedAtRef.current < STEP_SETTLE_MS
+
   const advance = (next: number) => {
+    stepChangedAtRef.current = performance.now()
     setDirection(1)
     resetMessages()
     setCurrentStep(next)
   }
 
   const goBack = () => {
-    if (busy || currentStep <= 1) return
+    if (busy || currentStep <= 1 || settling()) return
+    stepChangedAtRef.current = performance.now()
     resetMessages()
     if (status === 'error') setStatus('idle')
     setDirection(-1)
@@ -433,6 +564,7 @@ export default function Waitlist() {
     resetMessages()
     setVerificationCode('')
     lastTriedCodeRef.current = ''
+    setSubmitFailed(false)
     if (status === 'error') setStatus('idle')
     pendingFocusRef.current = 'phone'
     setCodeSent(false)
@@ -467,8 +599,8 @@ export default function Waitlist() {
   // A pasted or autofilled international number picks its own country.
   const onPhoneBlur = () => {
     if (codeSent) return
-    const raw = phoneInput.trim()
-    if (/^(\+|00)/.test(raw)) {
+    const raw = toAscii(phoneInput).trim()
+    if (/^\(?\s*(\+|00)/.test(raw)) {
       const n = normalisePhone(raw, selectedCountry)
       if (n) {
         setSelectedCountry(n.country)
@@ -493,16 +625,12 @@ export default function Waitlist() {
 
   const onCodeChange = (e: ChangeEvent<HTMLInputElement>) => {
     // Autofill can insert "123 456": strip before limiting, never maxLength.
-    const next = e.target.value.replace(/\D/g, '').slice(0, 6)
+    const next = toAscii(e.target.value).replace(/\D/g, '').slice(0, 6)
     setVerificationCode(next)
-    if (asyncError) setAsyncError(null)
+    // A code the server already rejected keeps its message when retyped.
+    if (asyncError && !(next.length === 6 && next === lastTriedCodeRef.current)) setAsyncError(null)
     if (fieldErrors.code && next.length >= 4) clearFieldError('code')
     if (next.length === 6 && next !== lastTriedCodeRef.current && !busy) void verify(next)
-  }
-
-  const openReferral = () => {
-    focusReferralOnMount.current = true
-    setShowReferral(true)
   }
 
   // ----- Server calls ----------------------------------------------------
@@ -514,13 +642,19 @@ export default function Waitlist() {
     setFormData((p) => ({ ...p, countryCode: n.country.code, phoneNumber: n.national }))
     setPhoneInput(n.display)
     const key = `${n.country.code}|${n.national}`
+    if (verifiedPhone !== key) setSubmitFailed(false)
     // Verified earlier and only the submission failed: no second SMS.
     if (verifiedPhone === key) { pendingFocusRef.current = 'submit'; setCodeSent(true); return }
     // Same number, still inside the cooldown: reuse the code already sent.
-    if (lastSentToRef.current === key && cooldown > 0) { pendingFocusRef.current = 'code'; setCodeSent(true); return }
+    if (lastSentToRef.current === key && cooldown > 0) {
+      stepChangedAtRef.current = performance.now()
+      pendingFocusRef.current = 'code'
+      setCodeSent(true)
+      return
+    }
     setSendingCode(true)
     setAsyncError(null)
-    setStatusKey('sendingCode')
+    announce('sendingCode')
     try {
       const res = await sendVerification(n.country.code, n.national)
       if (res.ok) {
@@ -530,9 +664,10 @@ export default function Waitlist() {
         setCooldown(RESEND_COOLDOWN_S)
         setAttempted(false)
         setFieldErrors({})
+        stepChangedAtRef.current = performance.now()
         pendingFocusRef.current = 'code'
         setCodeSent(true)
-        setStatusKey('codeSentHint')
+        announce('codeSentAnnouncement')
       } else {
         // Never show the server's own wording: it can be a raw exception.
         showAsyncError(res.status === 429 ? 'rateLimited' : 'verifyError')
@@ -561,7 +696,7 @@ export default function Waitlist() {
         setVerificationCode('')
         lastTriedCodeRef.current = ''
         setAsyncInfo('codeResent')
-        setStatusKey('codeResent')
+        announce('codeResent')
         focusById('wl-code')
       } else {
         showAsyncError(res.status === 429 ? 'rateLimited' : 'verifyError')
@@ -576,41 +711,44 @@ export default function Waitlist() {
   const submitWaitlistForm = async () => {
     setStatus('loading')
     setAsyncError(null)
-    setStatusKey('submitting')
+    announce('submitting')
     try {
       const res = await submitWaitlist({
         firstName: formData.firstName.trim(),
         lastName: formData.lastName.trim(),
         countryCode: formData.countryCode,
         phoneNumber: formData.phoneNumber,
-        emailAddress: formData.emailAddress.trim(),
-        postalCode: formData.postalCode.trim(),
+        emailAddress: cleanEmail(formData.emailAddress),
+        postalCode: cleanPostal(formData.postalCode).normalize('NFC'),
         hearAboutKey: formData.hearAboutKey,
         hearAboutOther: formData.hearAboutKey === 'other' ? formData.hearAboutOther.trim() : '',
         referralCode: formData.referralCode.trim().toUpperCase(),
-        language,
+        language: languageRef.current,
       })
       if (res.ok) {
         setStatus('success')
-        setStatusKey('submitSuccess')
+        announce('submitSuccess')
         // A short beat on "Request sent" before the thank-you page.
         successTimerRef.current = window.setTimeout(async () => {
           if (cardRef.current) {
-            await animate(cardRef.current, { opacity: 0, y: reduce ? 0 : -8 }, { duration: 0.2, ease: EASE_QUICK_OUT })
+            await animate(cardRef.current, { opacity: 0, y: getReducedMotion() ? 0 : -8 }, { duration: 0.2, ease: EASE_QUICK_OUT })
           }
           if (aliveRef.current) navigate('/thank-you')
-        }, reduce ? 300 : 600)
+        }, getReducedMotion() ? 300 : 600)
         return
       }
       showAsyncError('errorMessage')
     } catch {
       showAsyncError('serverError')
     }
-    // Move focus to "Try again" before the code field unmounts, so it never
-    // drops to <body> in between.
+    // Commit the retry state first, so the button is already named "Try again"
+    // when focus lands on it, then move focus before the code field leaves.
+    flushSync(() => {
+      setStatus('error')
+      setSubmitFailed(true)
+      setStatusKey(null)
+    })
     submitRef.current?.focus({ preventScroll: true })
-    setStatus('error')
-    setStatusKey(null)
   }
 
   const verify = async (code: string) => {
@@ -620,7 +758,7 @@ export default function Waitlist() {
     setVerifyingCode(true)
     setAsyncError(null)
     setAsyncInfo(null)
-    setStatusKey('verifying')
+    announce('verifying')
     try {
       const res = await verifyCode(formData.countryCode, formData.phoneNumber, code)
       const data: { verified?: boolean; errorType?: string } = await res.json().catch(() => ({}))
@@ -628,6 +766,9 @@ export default function Waitlist() {
         verifyingRef.current = false
         setVerifiedPhone(phoneKey)
         setVerifyingCode(false)
+        // On a small phone the button can sit below the fold: show it, so the
+        // "Request sent" moment is seen.
+        if (submitRef.current) revealInScroller(submitRef.current)
         void submitWaitlistForm()
         return
       }
@@ -643,14 +784,17 @@ export default function Waitlist() {
         // Keep the code and select it: a one-digit typo stays visible, and the
         // next keystroke or autofill replaces the whole thing.
         showAsyncError('invalidCode')
-        if (!reduce && codeInputRef.current) {
+        if (!getReducedMotion() && codeInputRef.current) {
           animate(codeInputRef.current, { x: [0, -6, 6, -4, 4, 0] }, { duration: 0.36, ease: 'easeOut' })
         }
         focusById('wl-code', true)
       } else {
+        // The server couldn't check it: retyping the same code must try again.
+        lastTriedCodeRef.current = ''
         showAsyncError('verifyUnavailable')
       }
     } catch {
+      lastTriedCodeRef.current = ''
       showAsyncError('serverError')
     }
     verifyingRef.current = false
@@ -660,15 +804,16 @@ export default function Waitlist() {
 
   const onSubmit = (e: FormEvent) => {
     e.preventDefault()
-    if (busy) return
+    if (busy || settling()) return
     const errors = validateStep(currentStep)
     const invalid = stepFields(currentStep).filter((f) => errors[f])
     if (invalid.length) {
       setAttempted(true)
       setFieldErrors(errors)
       const el = document.getElementById(focusIdFor(invalid[0]))
-      // Focus can't move to where it already is, so announce the error instead.
-      if (el && document.activeElement === el) setStatusKey(errors[invalid[0]] ?? null)
+      // Focus can't move to where it already is: announce the error instead,
+      // every time, even when it is the same message as before.
+      if (el && document.activeElement === el) announce(errors[invalid[0]] ?? null)
       if (el) window.requestAnimationFrame(() => focusInView(el))
       return
     }
@@ -682,15 +827,13 @@ export default function Waitlist() {
 
   const describedBy = (...ids: Array<string | false | null | undefined>) => ids.filter(Boolean).join(' ') || undefined
 
-  const fieldError = (field: FieldName) => (
-    <AnimatePresence initial={false}>
-      {fieldErrors[field] && (
-        <motion.p key="error" id={`wl-${field}-error`} className="wl-field-error" {...messageMotion}>
-          <ErrorIcon />
-          <span>{t[fieldErrors[field] as WaitlistStringKey]}</span>
-        </motion.p>
-      )}
-    </AnimatePresence>
+  // No exit animation: a cleared error leaves the layout in the same commit,
+  // so the card resizes once instead of twice.
+  const fieldError = (field: FieldName) => fieldErrors[field] && (
+    <motion.p key="error" id={`wl-${field}-error`} className="wl-field-error" initial={messageMotion.initial} animate={messageMotion.animate}>
+      <ErrorIcon />
+      <span>{t[fieldErrors[field] as WaitlistStringKey]}</span>
+    </motion.p>
   )
 
   const textField = (
@@ -718,7 +861,7 @@ export default function Waitlist() {
     </div>
   )
 
-  const legend = (prompt: React.ReactNode) => (
+  const legend = (prompt: ReactNode) => (
     <legend className="step-description">
       <span className="wl-sr-only">{stepCounter}. </span>
       {prompt}
@@ -786,11 +929,14 @@ export default function Waitlist() {
                 : phoneVerified ? t.retrySubmit
                   : t.verifyCode
 
+  // The screen-reader text is plain and keyed per error, so a repeat is read
+  // again; the visible box animates separately and is hidden from it.
   const asyncRegion = (
-    <div id="wl-async" className="wl-live" role="alert" aria-atomic="true">
+    <div id="wl-async" className={`wl-live${asyncError ? '' : ' is-empty'}`} role="alert" aria-atomic="true">
+      <span key={asyncSeq} className="wl-sr-only">{asyncError ? t[asyncError] : ''}</span>
       <AnimatePresence initial={false} mode="popLayout">
         {asyncError && (
-          <motion.p key={asyncSeq} className="form-error" {...messageMotion}>
+          <motion.p key={asyncSeq} className="form-error" aria-hidden="true" {...messageMotion}>
             <ErrorIcon />
             <span>{t[asyncError]}</span>
           </motion.p>
@@ -801,8 +947,8 @@ export default function Waitlist() {
 
   // ----- Steps -----------------------------------------------------------
 
-  const renderStep = () => {
-    switch (currentStep) {
+  const renderStep = (step: number): ReactNode => {
+    switch (step) {
       case 1: {
         const fromLink = !!refFromLink && formData.referralCode.trim().toUpperCase() === refFromLink.toUpperCase()
         return (
@@ -829,36 +975,33 @@ export default function Waitlist() {
                 spellCheck: false, enterKeyHint: 'next', maxLength: 40,
                 'data-next': showReferral ? 'wl-referralCode' : undefined,
               }, { id: 'wl-postalCode-hint', text: t.postalCodeHint })}
-              <AnimatePresence initial={false} mode="popLayout">
-                {showReferral ? (
-                  <motion.div key="referral" className="wl-field" {...messageMotion}>
-                    <label className="wl-label" htmlFor="wl-referralCode">
-                      {t.referralCodeLabel} <span className="wl-label-optional">({t.optionalTag})</span>
-                    </label>
-                    <input
-                      ref={(el) => {
-                        if (el && focusReferralOnMount.current) {
-                          focusReferralOnMount.current = false
-                          focusInView(el)
-                        }
-                      }}
-                      id="wl-referralCode" name="referralCode" type="text" className="form-input"
-                      value={formData.referralCode} onChange={handleChange}
-                      autoComplete="off" autoCapitalize="characters" autoCorrect="off" spellCheck={false}
-                      enterKeyHint="next" maxLength={32}
-                      aria-describedby={fromLink ? 'wl-referral-hint' : undefined}
-                    />
-                    {fromLink && <p id="wl-referral-hint" className="wl-hint">{t.referralFromLink}</p>}
-                  </motion.div>
-                ) : (
-                  <motion.button
-                    key="toggle" type="button" className="wl-link-button wl-referral-toggle"
-                    onClick={openReferral} {...messageMotion}
-                  >
-                    {t.referralToggle}
-                  </motion.button>
-                )}
-              </AnimatePresence>
+              {/* No AnimatePresence here: an exiting sibling would make it re-commit
+                  the field with an older value while the visitor types in it. */}
+              {showReferral ? (
+                <motion.div key="referral" className="wl-field" initial={messageMotion.initial} animate={messageMotion.animate}>
+                  <label className="wl-label" htmlFor="wl-referralCode">
+                    {t.referralCodeLabel} <span className="wl-label-optional">({t.optionalTag})</span>
+                  </label>
+                  <input
+                    id="wl-referralCode" name="referralCode" type="text" className="form-input"
+                    value={formData.referralCode} onChange={handleChange}
+                    autoComplete="off" autoCapitalize="characters" autoCorrect="off" spellCheck={false}
+                    enterKeyHint="next" maxLength={32}
+                    aria-describedby={fromLink ? 'wl-referral-hint' : undefined}
+                  />
+                  {fromLink && <p id="wl-referral-hint" className="wl-hint">{t.referralFromLink}</p>}
+                </motion.div>
+              ) : (
+                <button
+                  type="button" className="wl-link-button wl-referral-toggle"
+                  onClick={() => {
+                    flushSync(() => setShowReferral(true))
+                    focusInView(document.getElementById('wl-referralCode'))
+                  }}
+                >
+                  {t.referralToggle}
+                </button>
+              )}
             </div>
           </>
         )
@@ -914,7 +1057,20 @@ export default function Waitlist() {
       default: {
         const phoneErr = fieldErrors.phoneNumber
         const resendDisabled = cooldown > 0 || busy
-        const hintId = 'wl-phone-hint'
+        // Always show where the SMS will go, with the country spelled out: a
+        // French 07 8… left under the Swiss chip is a valid Swiss mobile.
+        const preview = !codeSent ? normalisePhone(phoneInput, selectedCountry) : null
+        const sentTo = `${formData.countryCode} ${phoneInput}`
+        const hintText = !codeSent
+          ? preview
+            ? t.phoneWillSendTo
+              .replace('{number}', `${preview.country.code} ${preview.display}`)
+              .replace('{country}', countryName(preview.country))
+            : t.phoneHint
+          : !phoneVerified
+            ? t.codeSentHint.replace('{number}', sentTo)
+            : null
+        const hintId = hintText ? 'wl-phone-hint' : undefined
         return (
           <>
             {legend(t.verifyStepDescription)}
@@ -964,9 +1120,9 @@ export default function Waitlist() {
                     aria-describedby={describedBy(hintId, phoneErr && 'wl-phoneNumber-error', !codeSent && asyncError && 'wl-async')}
                   />
                 </div>
-                <p id={hintId} className={`wl-hint${codeSent ? ' is-sent' : ''}`}>
-                  {codeSent ? t.codeSentHint : t.phoneHint}
-                </p>
+                {hintText && (
+                  <p id={hintId} className={`wl-hint${codeSent ? ' is-sent' : preview ? ' is-preview' : ''}`}>{hintText}</p>
+                )}
                 {fieldError('phoneNumber')}
               </div>
 
@@ -986,6 +1142,8 @@ export default function Waitlist() {
                       />
                       {fieldError('code')}
                     </div>
+                    {/* The alert sits between the code and "Resend", which it points to. */}
+                    {asyncRegion}
                     <div className="resend-row">
                       <button
                         type="button" className="wl-link-button" onClick={handleResendCode}
@@ -1004,7 +1162,7 @@ export default function Waitlist() {
                 )}
               </AnimatePresence>
 
-              {asyncRegion}
+              {(!codeSent || verifiedAwaiting) && asyncRegion}
               <AnimatePresence initial={false}>
                 {asyncInfo && !verifiedAwaiting && (
                   <motion.p key="info" className="form-info" {...messageMotion}>{t[asyncInfo]}</motion.p>
@@ -1046,30 +1204,39 @@ export default function Waitlist() {
                   onKeyDown={onFormKeyDown}
                 >
                   {/* The body tweens between heights; the action row below it moves
-                      with the tween instead of jumping. */}
+                      with the tween instead of jumping. Under reduced motion it just
+                      takes its natural height, in one layout pass. */}
                   <motion.div
                     className="wl-body"
                     initial={false}
-                    animate={{ height: bodyHeight }}
-                    transition={{ duration: reduce ? 0 : 0.32, ease: EASE_SMOOTH_OUT }}
-                    style={{ overflow: 'hidden' }}
+                    animate={reduce ? undefined : { height: bodyHeight }}
+                    style={reduce ? { height: 'auto' } : undefined}
+                    transition={{ duration: 0.32, ease: EASE_SMOOTH_OUT }}
+                    onAnimationComplete={() => {
+                      // Re-check once the height has settled: a field that just
+                      // opened may only now be measurable.
+                      const active = document.activeElement as HTMLElement | null
+                      if (active && measureRef.current?.contains(active)) revealInScroller(active)
+                    }}
                   >
                     <div className="wl-body-measure" ref={measureRef}>
                       <div className="wl-step-viewport">
-                        <AnimatePresence mode="popLayout" initial={false} custom={direction}>
-                          <StepPanel
-                            key={currentStep}
-                            data-step={currentStep}
-                            custom={direction}
-                            variants={stepVariants}
-                            initial="enter"
-                            animate="center"
-                            exit="exit"
-                            aria-describedby={currentStep === 2 && fieldErrors.hearAboutKey ? 'wl-hearAboutKey-error' : undefined}
-                          >
-                            {renderStep()}
-                          </StepPanel>
-                        </AnimatePresence>
+                        <StepRenderContext.Provider value={renderStep}>
+                          <AnimatePresence mode="popLayout" initial={false} custom={direction}>
+                            <StepPanel
+                              key={currentStep}
+                              data-step={currentStep}
+                              custom={direction}
+                              variants={stepVariants}
+                              initial="enter"
+                              animate="center"
+                              exit="exit"
+                              aria-describedby={currentStep === 2 && fieldErrors.hearAboutKey ? 'wl-hearAboutKey-error' : undefined}
+                            >
+                              <StepContent step={currentStep} />
+                            </StepPanel>
+                          </AnimatePresence>
+                        </StepRenderContext.Provider>
                       </div>
                     </div>
                   </motion.div>
@@ -1093,49 +1260,49 @@ export default function Waitlist() {
                       aria-describedby={verifiedAwaiting ? 'wl-verified-info' : undefined}
                     >
                       {/* The accessible name comes from this stable span, so it is
-                          right the instant focus lands, even mid label-animation. */}
+                          right the instant focus lands. The visible label remounts
+                          per state and fades in with CSS, so it can never get stuck. */}
                       <span className="wl-sr-only">{ctaLabel}</span>
-                      <AnimatePresence mode="wait" initial={false}>
-                        <motion.span
-                          key={ctaLabel}
-                          className="wl-btn-label"
-                          aria-hidden="true"
-                          initial={{ opacity: 0, y: reduce ? 0 : 4 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: reduce ? 0 : -4 }}
-                          transition={{ duration: 0.15, ease: EASE_SMOOTH_OUT }}
-                        >
-                          {labelBusy && <span className="wl-spinner" />}
-                          {status === 'success' && <CheckIcon className="wl-btn-check" />}
-                          {ctaLabel}
-                        </motion.span>
-                      </AnimatePresence>
+                      <span key={ctaLabel} className="wl-btn-label wl-btn-label-in" aria-hidden="true">
+                        {labelBusy && <span className="wl-spinner" />}
+                        {status === 'success' && <CheckIcon className="wl-btn-check" />}
+                        {ctaLabel}
+                      </span>
                     </button>
                   </div>
                 </form>
 
-                {/* Collapses in step with the body tween instead of fading out in place. */}
-                <motion.div
-                  className="wl-home"
-                  initial={false}
-                  animate={{ height: currentStep === 1 ? 'auto' : 0, opacity: currentStep === 1 ? 1 : 0 }}
-                  transition={{ duration: reduce ? 0 : 0.32, ease: EASE_SMOOTH_OUT }}
-                  style={{ overflow: 'hidden' }}
-                  aria-hidden={currentStep === 1 ? undefined : true}
-                >
-                  <p className="form-link-row">
-                    <Link to="/" className="form-link" tabIndex={currentStep === 1 ? undefined : -1}>
-                      <span aria-hidden="true">{'← '}</span>
-                      {t.backToHome}
-                    </Link>
-                  </p>
-                </motion.div>
+                {reduce ? (
+                  currentStep === 1 && (
+                    <div className="wl-home">
+                      <p className="form-link-row">
+                        <Link to="/" className="form-link"><span aria-hidden="true">{'← '}</span>{t.backToHome}</Link>
+                      </p>
+                    </div>
+                  )
+                ) : (
+                  // Collapses in step with the body tween instead of fading out in place.
+                  <motion.div
+                    className="wl-home"
+                    initial={false}
+                    animate={{ height: currentStep === 1 ? 'auto' : 0, opacity: currentStep === 1 ? 1 : 0 }}
+                    transition={{ duration: 0.32, ease: EASE_SMOOTH_OUT }}
+                    aria-hidden={currentStep === 1 ? undefined : true}
+                  >
+                    <p className="form-link-row">
+                      <Link to="/" className="form-link" tabIndex={currentStep === 1 ? undefined : -1}>
+                        <span aria-hidden="true">{'← '}</span>
+                        {t.backToHome}
+                      </Link>
+                    </p>
+                  </motion.div>
+                )}
               </div>
             </motion.div>
           </div>
 
           <p className="wl-sr-only" role="status" aria-live="polite" aria-atomic="true">
-            {statusKey ? t[statusKey] : ''}
+            <span key={statusSeq}>{statusKey ? t[statusKey] : ''}</span>
           </p>
         </main>
         <Footer />

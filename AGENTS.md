@@ -28,7 +28,8 @@ La Croix-sur-Lutry, above Lake Geneva near Lausanne (Switzerland), opening in
 
 Three product areas:
 
-- **Public site** — landing page, a 5-step waitlist with SMS verification,
+- **Public site** — landing page, a 3-step waitlist (details; how you heard of
+  us; mobile number + SMS code),
   legal and privacy pages.
 - **Member portal** (`/dashboard`) — profile, referrals, newsletters.
 - **Admin console** (`/admin`) — people (admins, members, waitlist
@@ -240,7 +241,7 @@ fixed yet. Check an item against the current code before starting it.
 
 ### Maintenance
 
-15. **Main JS bundle is 651 kB** (Vite warns above 500 kB). Lazy-load the
+15. **Main JS bundle is 676 kB** (Vite warns above 500 kB). Lazy-load the
     `/admin` and `/dashboard` route trees with `React.lazy`.
 16. **Four ESLint warnings:** `react-refresh/only-export-components` in
     `contexts/AdminAuthContext.tsx`, `contexts/AuthContext.tsx` and

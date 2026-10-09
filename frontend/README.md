@@ -12,7 +12,7 @@ All routes are declared in `src/App.tsx`.
 | Path | Component | Purpose |
 | --- | --- | --- |
 | `/` | `Home` | Landing page |
-| `/waitlist` | `Waitlist` | 5-step waitlist form with Twilio SMS verification |
+| `/waitlist` | `Waitlist` | 3-step waitlist: details, how you heard of us, mobile number + SMS code (Twilio) |
 | `/thank-you` | `ThankYou` | Confirmation after joining the waitlist |
 | `/login` | `Login` | Member sign-in |
 | `/set-password` | `SetPassword` | Member chooses a password at first sign-in (the portal sends them here) |
