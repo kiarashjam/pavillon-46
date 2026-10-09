@@ -26,6 +26,12 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     isInitialMount.current = false
   }, [])
 
+  // Screen readers pick their voice from <html lang>; index.html ships "fr",
+  // so without this the English site is read with a French voice.
+  useEffect(() => {
+    document.documentElement.lang = language
+  }, [language])
+
   const changeLanguage = (lang: Language) => {
     if (lang !== 'fr' && lang !== 'en') return
     const previous = language
