@@ -16,6 +16,7 @@ public class AuthController : ControllerBase
     private readonly ITokenService _tokens;
     private readonly IPasswordResetTokenStore _resetTokens;
     private readonly IEmailService _email;
+    private readonly ICadenceReporter _cadence;
     private readonly KeyedRateLimiter _rateLimiter;
     private readonly AuthOptions _auth;
     private readonly SiteOptions _site;
@@ -38,6 +39,7 @@ public class AuthController : ControllerBase
         ITokenService tokens,
         IPasswordResetTokenStore resetTokens,
         IEmailService email,
+        ICadenceReporter cadence,
         KeyedRateLimiter rateLimiter,
         IOptions<AuthOptions> auth,
         IOptions<SiteOptions> site,
@@ -48,6 +50,7 @@ public class AuthController : ControllerBase
         _tokens = tokens;
         _resetTokens = resetTokens;
         _email = email;
+        _cadence = cadence;
         _rateLimiter = rateLimiter;
         _auth = auth.Value;
         _site = site.Value;
@@ -292,7 +295,18 @@ public class AuthController : ControllerBase
         // Invalidate every session issued before this reset.
         member.PasswordVersion = unchecked(member.PasswordVersion + 1);
         member.UpdatedAt = DateTime.UtcNow.ToString("o");
+        // A member handed over by the CadenceE CRM has now chosen a password:
+        // the CRM hears it once per handoff, so its timeline shows them in.
+        var reportPasswordSet = !member.CrmPasswordSetReported
+            && !string.IsNullOrEmpty(member.CrmCallbackUrl)
+            && !string.IsNullOrEmpty(member.CrmCallbackToken);
+        if (reportPasswordSet) member.CrmPasswordSetReported = true;
         await _members.UpsertAsync(member, ct);
+        if (reportPasswordSet)
+        {
+            _cadence.Enqueue(member.CrmCallbackUrl, member.CrmCallbackToken,
+                new[] { new CadenceReport("password_set", member.Id, null, DateTime.UtcNow) });
+        }
 
         // Cascade: invalidate every other outstanding token for this member.
         // Guarantees the "at most one live token per member" invariant.

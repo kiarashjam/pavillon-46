@@ -64,7 +64,17 @@ pavillon-46/
    Publishing makes it visible in the member portal. Sending emails it, through SendGrid, to
    every active member who hasn't opted out, each with a signed one-click unsubscribe link
    (`GET /api/newsletters/unsubscribe`).
-7. **Daily report.** `.github/workflows/activity-daily-report.yml` calls
+7. **CadenceE onboarding.** When a deal is won in the CadenceE CRM, the CRM posts a signed
+   `deal.onboarding` event to `POST /api/integrations/cadence/onboarding`
+   (`CadenceIntegrationController`, HMAC with `CADENCE_ONBOARDING_SECRET` over timestamp and raw
+   body). `CadenceOnboardingService` opens or finds the member, records the membership start (a
+   date or "to be confirmed"), issues a week-long set-password link through the reset-token store,
+   and emails it — in the organisation's own design, sanitised, or Pavillon's. `CadenceReporter`
+   then posts the progress back to the CRM's callback (`account_created`, `email_sent`, and
+   `password_set` once the member chooses their password on `/reset-password?welcome=1`). The
+   member sees their start on the portal's overview; admins see it, with a "via CadenceE" tag, in
+   the members list.
+8. **Daily report.** `.github/workflows/activity-daily-report.yml` calls
    `POST /api/activity/daily-report` once a day, which emails an activity summary.
 
 ## Data
@@ -79,6 +89,7 @@ Every record is stored as JSON in Azure Table Storage, one table per kind:
 | `Admins` | Admin accounts |
 | `PasswordResetTokens` | Hashed, single-use reset tokens |
 | `Newsletters` | Newsletters, their send history and failed recipients |
+| `CadenceEvents` | CadenceE handoff events already processed (kept 30 days), so a retry acts once |
 
 Without `AZURE_STORAGE_CONNECTION_STRING` each store falls back to a JSONL file, then to memory —
 for development only.

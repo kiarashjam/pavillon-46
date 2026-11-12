@@ -17,7 +17,7 @@ All routes are declared in `src/App.tsx`.
 | `/login` | `Login` | Member sign-in |
 | `/set-password` | `SetPassword` | Member chooses a password at first sign-in (the portal sends them here) |
 | `/forgot-password` | `ForgotPassword` | Member requests a reset link |
-| `/reset-password` | `ResetPassword` | Member sets a new password from the emailed link |
+| `/reset-password` | `ResetPassword` | Member sets a new password from the emailed link. With `&welcome=1` (the CadenceE welcome email) it shows welcome copy for a first password |
 | `/legal` | `LegalOrPrivacy` | Legal notices |
 | `/privacy` | `LegalOrPrivacy` | Privacy policy |
 

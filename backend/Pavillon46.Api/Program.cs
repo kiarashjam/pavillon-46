@@ -25,6 +25,7 @@ builder.Services.Configure<AzureStorageOptions>(builder.Configuration.GetSection
 builder.Services.Configure<SiteOptions>(builder.Configuration.GetSection("Site"));
 builder.Services.Configure<AuthOptions>(builder.Configuration.GetSection("Auth"));
 builder.Services.Configure<NewsletterOptions>(builder.Configuration.GetSection("Newsletter"));
+builder.Services.Configure<CadenceOptions>(builder.Configuration.GetSection("Cadence"));
 
 builder.Services.AddSingleton<IActivityStore, ActivityStore>();
 builder.Services.AddSingleton<IEmailService, EmailService>();
@@ -46,6 +47,14 @@ builder.Services.AddSingleton<RateLimiter>(_ => new RateLimiter { MaxEvents = 30
 builder.Services.AddSingleton<KeyedRateLimiter>();
 builder.Services.AddHttpClient<ILeadsWebhookService, LeadsWebhookService>();
 builder.Services.AddHttpClient<INewsletterAiService, NewsletterAiService>();
+// CadenceE CRM onboarding: the handoff endpoint's service, the processed-event
+// record, and the background queue that reports progress back to the CRM.
+builder.Services.AddSingleton<ICadenceEventStore, CadenceEventStore>();
+builder.Services.AddHttpClient("cadence-reports", client => client.Timeout = TimeSpan.FromSeconds(15));
+builder.Services.AddSingleton<CadenceReporter>();
+builder.Services.AddSingleton<ICadenceReporter>(sp => sp.GetRequiredService<CadenceReporter>());
+builder.Services.AddHostedService(sp => sp.GetRequiredService<CadenceReporter>());
+builder.Services.AddSingleton<ICadenceOnboardingService, CadenceOnboardingService>();
 
 builder.Services.AddControllers()
     .AddJsonOptions(opts =>
@@ -117,6 +126,14 @@ if (!sendgridOpts.IsConfigured())
 else
 {
     app.Logger.LogInformation("SendGrid is configured (from {FromEmail}).", sendgridOpts.ResolvedFromEmail());
+}
+
+var cadenceOpts = app.Services.GetRequiredService<IOptions<CadenceOptions>>().Value;
+if (!cadenceOpts.IsConfigured())
+{
+    app.Logger.LogWarning(
+        "CADENCE_ONBOARDING_SECRET is not set (or shorter than {Min} characters). The CadenceE onboarding endpoint is off.",
+        CadenceOptions.MinimumSecretLength);
 }
 
 await SeedInitialAdminAsync(app);
@@ -291,4 +308,12 @@ static void MapLegacyEnvVars(IConfigurationManager config)
     if (int.TryParse(bonus, out var bonusPoints)) config["Auth:ReferralBonusPoints"] = bonusPoints.ToString();
     var resetTtl = Environment.GetEnvironmentVariable("PASSWORD_RESET_TTL_MINUTES");
     if (int.TryParse(resetTtl, out var resetTtlMinutes)) config["Auth:PasswordResetTtlMinutes"] = resetTtlMinutes.ToString();
+
+    // CadenceE CRM onboarding handoff (CadenceIntegrationController).
+    Map("CADENCE_ONBOARDING_SECRET", "Cadence:OnboardingSecret");
+    var cadenceTolerance = Environment.GetEnvironmentVariable("CADENCE_SIGNATURE_TOLERANCE_SECONDS");
+    if (int.TryParse(cadenceTolerance, out var toleranceSeconds)) config["Cadence:SignatureToleranceSeconds"] = toleranceSeconds.ToString();
+    var welcomeTtl = Environment.GetEnvironmentVariable("CADENCE_WELCOME_LINK_TTL_HOURS");
+    if (int.TryParse(welcomeTtl, out var welcomeTtlHours)) config["Cadence:WelcomeLinkTtlHours"] = welcomeTtlHours.ToString();
+    Map("AZURE_STORAGE_CADENCE_EVENTS_TABLE", "AzureStorage:CadenceEventsTableName");
 }

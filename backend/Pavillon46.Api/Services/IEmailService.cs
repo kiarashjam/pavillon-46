@@ -13,4 +13,5 @@ public interface IEmailService
     Task SendAdminPasswordResetEmailAsync(Admin admin, string resetUrl, DateTime expiresAtUtc, int ttlMinutes, CancellationToken ct = default);
     Task SendAdminPasswordChangedAsync(Admin admin, CancellationToken ct = default);
     Task SendAdminCredentialsAsync(Admin admin, string plainPassword, CancellationToken ct = default);
+    Task SendCadenceWelcomeAsync(Member member, CadenceWelcome welcome, CancellationToken ct = default);
 }

@@ -66,6 +66,37 @@ public class AzureStorageOptions
     public string AdminsTableName { get; set; } = "Admins";
     public string PasswordResetTokensTableName { get; set; } = "PasswordResetTokens";
     public string NewslettersTableName { get; set; } = "Newsletters";
+    public string CadenceEventsTableName { get; set; } = "CadenceEvents";
+}
+
+/// <summary>
+/// The CadenceE CRM's onboarding handoff (CadenceIntegrationController): when a
+/// deal is won there, the CRM posts the new member here, signed with a secret
+/// both sides share. Populated from <c>CADENCE_ONBOARDING_SECRET</c>,
+/// <c>CADENCE_SIGNATURE_TOLERANCE_SECONDS</c> and
+/// <c>CADENCE_WELCOME_LINK_TTL_HOURS</c> in <c>Program.MapLegacyEnvVars</c>.
+/// </summary>
+public class CadenceOptions
+{
+    // The signing secret the CRM shows once, in Settings → Welcome & portal.
+    // No default on purpose: empty means the endpoint is off, in every
+    // environment, since anyone holding the secret can open member accounts.
+    public string OnboardingSecret { get; set; } = "";
+
+    // How far a handoff's signed timestamp may be from now. A captured post
+    // replayed later than this is refused.
+    public int SignatureToleranceSeconds { get; set; } = 300;
+
+    // Lifetime of the set-password link in the welcome email. Longer than a
+    // reset link (PasswordResetTtlMinutes): a new member may not open the
+    // email the day it arrives. Clamped to 1 hour … 30 days.
+    public int WelcomeLinkTtlHours { get; set; } = 168;
+
+    // Shorter than this, a secret is treated as not configured: the CRM makes
+    // 64-character ones, and a short one can be guessed.
+    public const int MinimumSecretLength = 32;
+
+    public bool IsConfigured() => (OnboardingSecret ?? "").Trim().Length >= MinimumSecretLength;
 }
 
 /// <summary>

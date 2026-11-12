@@ -74,6 +74,59 @@ Conventions for adding endpoints are in [`AGENTS.md`](./AGENTS.md).
 | `PATCH` | `/api/admin/applicants/{id}` | admin | Edit a submitter's details or status |
 | `DELETE` | `/api/admin/applicants/{id}` | admin | Delete a submitter |
 
+### CadenceE CRM
+
+| Verb | Route | Auth | Purpose |
+| --- | --- | --- | --- |
+| `POST` | `/api/integrations/cadence/onboarding` | HMAC signature | The CRM hands over a member when a deal is won: opens (or finds) the account, emails a set-password link, reports back. `503 not_configured` without `CADENCE_ONBOARDING_SECRET` |
+
+**The handoff contract.** The CRM posts `{ eventName, payload, sentAtUtc, id, organizationId,
+occurredAtUtc }` with these headers:
+
+- `X-Cadence-Timestamp` — Unix seconds.
+- `X-Cadence-Signature-256: sha256=<hex>` — HMAC-SHA256, with `CADENCE_ONBOARDING_SECRET`, of
+  `"{timestamp}.{raw body}"`. Checked over the raw bytes, in constant time, before anything is
+  parsed. A missing or wrong signature, or a timestamp more than
+  `CADENCE_SIGNATURE_TOLERANCE_SECONDS` from now, answers `401` with no detail. (The CRM also sends
+  a legacy `X-Cadence-Signature` over the body alone; it is ignored here.)
+
+Events:
+
+- `onboarding.ping` — the CRM's "Test connection". Answers `200 { ok: true }` and does nothing.
+- `deal.onboarding` — `payload` is `{ version: 1, onboardingId, deal { id, name, … }, contact {
+  name, firstName, lastName, email, phone, … }, membership { startsOn: "yyyy-MM-dd" | null,
+  startUndetermined }, language: "fr" | "en", welcomeMessage, email { subject, html } | null,
+  callback { url, token }, … }`.
+- Anything else answers `200 { ok: true, ignored: true }`, so the CRM does not retry it.
+
+What a `deal.onboarding` does (`CadenceOnboardingService`):
+
+1. **Once per event id.** The envelope's `id` is the same on every retry. A repeat answers the
+   recorded result and sends nothing (`CadenceEvents` table, kept 30 days).
+2. **The account.** Found by email, or created with `source: "cadence"`, the payload's language,
+   and a random password nobody knows — no password is made up for the member or emailed. An
+   existing account keeps its password and language; a suspended or inactive one is left alone
+   and reported as `failed`. Either way the membership start (a date, or "to be confirmed") and
+   the CRM's ids are stored on the member.
+3. **The link.** A set-password link through the reset-token store (single-use, hash-only, older
+   links burned), valid `CADENCE_WELCOME_LINK_TTL_HOURS`, to `/reset-password?token=…&welcome=1`.
+4. **The email**, through SendGrid. With `email.html`, the organisation's own design: the portal
+   fills `{{setPasswordUrl}}`, `{{portalUrl}}` and `{{loginEmail}}` (HTML-encoded; `{{key|fallback}}`
+   works), then the whole of it goes through an allow-list sanitiser (`CadenceEmailTemplate`: no
+   script, iframe, form or event handler, links only http/https/mailto, images only https, no
+   `<style>` block). Without it, Pavillon's own bilingual welcome email. The plain-text part is
+   always ours.
+5. **The answer:** `200 { accountId, status: "created" | "existing" }`. A handoff that can never be
+   valid (no email, an unknown version) answers `200 { status: "rejected", message }` and is
+   reported as `failed`, so the CRM stops retrying it; without a callback it answers `400`.
+6. **Reports back** (`CadenceReporter`, in the background, after the answer): `POST callback.url`
+   with `Authorization: Bearer <callback.token>` and `{ event, accountId, message, occurredAtUtc }`
+   — `account_created` or `account_existing`, then `email_sent` or `email_failed`; and later, once,
+   `password_set` when the member sets their password through the link (or any reset). Retried 4
+   times with backoff on network errors, `408`, `429` and `5xx`. The callback must be `https`
+   (plain `http` is accepted in Development only); the token is stored on the member, never
+   returned by any endpoint and never logged.
+
 ### Admin newsletters
 
 | Verb | Route | Auth | Purpose |
@@ -107,6 +160,15 @@ Optional:
 - `ACTIVITY_REPORT_KEY`, `ACTIVITY_IP_SALT`, `ACTIVITY_DAILY_REPORT_TO`
 - `AZURE_STORAGE_CONNECTION_STRING`, `AZURE_STORAGE_TABLE_NAME`
 - `SITE_URL` (used in email logo links)
+
+### CadenceE onboarding
+
+| Variable | Required | Notes |
+| --- | --- | --- |
+| `CADENCE_ONBOARDING_SECRET` | To turn it on | The signing secret the CRM shows once (Settings → Welcome & portal). Empty or shorter than 32 characters: the endpoint answers `503` in every environment |
+| `CADENCE_SIGNATURE_TOLERANCE_SECONDS` | No | How old a signed timestamp may be. Default `300`, clamped to 30…3600 |
+| `CADENCE_WELCOME_LINK_TTL_HOURS` | No | Lifetime of the welcome set-password link. Default `168` (7 days), clamped to 1…720 |
+| `AZURE_STORAGE_CADENCE_EVENTS_TABLE` | No | Defaults to `CadenceEvents` |
 
 ### Newsletters
 

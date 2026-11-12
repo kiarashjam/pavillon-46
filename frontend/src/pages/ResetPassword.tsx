@@ -15,6 +15,10 @@ export default function ResetPassword() {
 
   const [params] = useSearchParams()
   const token = (params.get('token') ?? '').trim()
+  // A member's first password, from the CadenceE welcome email: the same flow
+  // as a reset, with welcome copy. Read once, because the token (and with it
+  // the query string) is stripped from the URL after a successful save.
+  const [welcome] = useState(() => params.get('welcome') === '1')
 
   const [pw, setPw] = useState('')
   const [confirm, setConfirm] = useState('')
@@ -25,8 +29,12 @@ export default function ResetPassword() {
   const [success, setSuccess] = useState(false)
 
   useEffect(() => {
-    document.title = t.resetPwPageTitle
-  }, [t.resetPwPageTitle])
+    document.title = welcome ? t.welcomePwPageTitle : t.resetPwPageTitle
+  }, [welcome, t.welcomePwPageTitle, t.resetPwPageTitle])
+
+  const copy = welcome
+    ? { eyebrow: t.welcomePwEyebrow, title: t.welcomePwTitle, subtitle: t.welcomePwSubtitle, submit: t.welcomePwSubmit, success: t.welcomePwSuccess, invalid: t.welcomePwInvalidToken }
+    : { eyebrow: t.resetPwEyebrow, title: t.resetPwTitle, subtitle: t.resetPwSubtitle, submit: t.resetPwSubmit, success: t.resetPwSuccess, invalid: t.resetPwInvalidToken }
 
   const missingToken = !token
 
@@ -94,10 +102,10 @@ export default function ResetPassword() {
           initial="hidden"
           animate="visible"
         >
-          <span className="auth-form-eyebrow">{t.resetPwEyebrow}</span>
-          <h1 className="form-heading login-heading">{t.resetPwTitle}</h1>
+          <span className="auth-form-eyebrow">{copy.eyebrow}</span>
+          <h1 className="form-heading login-heading">{copy.title}</h1>
           <p className="form-error login-error">
-            {missingToken ? t.resetPwMissingToken : t.resetPwInvalidToken}
+            {missingToken ? t.resetPwMissingToken : copy.invalid}
           </p>
           <p className="form-link-row login-form-links">
             <Link to="/forgot-password" className="form-link">
@@ -117,13 +125,13 @@ export default function ResetPassword() {
         initial="hidden"
         animate="visible"
       >
-        <span className="auth-form-eyebrow">{t.resetPwEyebrow}</span>
-        <h1 className="form-heading login-heading">{t.resetPwTitle}</h1>
-        <p className="form-subtitle login-subtitle">{t.resetPwSubtitle}</p>
+        <span className="auth-form-eyebrow">{copy.eyebrow}</span>
+        <h1 className="form-heading login-heading">{copy.title}</h1>
+        <p className="form-subtitle login-subtitle">{copy.subtitle}</p>
 
         {success ? (
           <>
-            <p className="form-success login-success">{t.resetPwSuccess}</p>
+            <p className="form-success login-success">{copy.success}</p>
             <p className="form-link-row login-form-links">
               <Link to="/login" className="form-link">{t.resetPwGoToLogin}</Link>
             </p>
@@ -173,7 +181,7 @@ export default function ResetPassword() {
                 className="submit-button login-submit-button"
                 disabled={submitting}
               >
-                {submitting ? t.resetPwSaving : t.resetPwSubmit}
+                {submitting ? t.resetPwSaving : copy.submit}
               </button>
             </form>
 

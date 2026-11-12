@@ -16,6 +16,19 @@ import type { AdminCtx } from '../../components/admin/AdminLayout'
 import AdminModal from '../../components/admin/AdminModal'
 import { AdminEmpty, AdminSkeletonRows } from '../../components/admin/adminUi'
 
+/** The membership start as the console shows it: a date, "To be confirmed", or nothing recorded. */
+function startLabel(m: MemberDto): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(m.membershipStartDate ?? '')
+  if (match) {
+    // From its parts, so the day does not shift with the admin's time zone.
+    return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
+      .toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+  }
+  return m.membershipStartUndetermined ? 'To be confirmed' : '—'
+}
+
+const fromCadence = (m: MemberDto) => m.source === 'cadence'
+
 const emptyForm: CreateMemberBody = {
   title: '', firstName: '', lastName: '', email: '', phone: '', city: '', country: '',
   contractRef: '', notes: '', language: 'fr', sendEmail: true,
@@ -94,6 +107,8 @@ export default function AdminMembersSection({ embedded = false }: { embedded?: b
       title: m.title, firstName: m.firstName, lastName: m.lastName, email: m.email,
       phone: m.phone, city: m.city, country: m.country,
       language: m.preferredLanguage, status: m.status,
+      membershipStartDate: m.membershipStartDate ?? '',
+      membershipStartUndetermined: !!m.membershipStartUndetermined,
     })
     setEditing(m)
   }
@@ -172,7 +187,7 @@ export default function AdminMembersSection({ embedded = false }: { embedded?: b
         ) : (
           <div className="adash-table-wrap">
             <table className="adash-table">
-              <thead><tr><th>Member</th><th>Referral code</th><th>Referrals</th><th>Free months</th><th>Status</th><th /></tr></thead>
+              <thead><tr><th>Member</th><th>Starts</th><th>Referral code</th><th>Referrals</th><th>Free months</th><th>Status</th><th /></tr></thead>
               <tbody>
                 {filtered.map((m) => (
                   <tr
@@ -188,11 +203,15 @@ export default function AdminMembersSection({ embedded = false }: { embedded?: b
                       <div className="adash-person">
                         <span className="adash-ava">{initials(m)}</span>
                         <span className="adash-person-info">
-                          <span className="adash-person-name">{[m.title, m.firstName, m.lastName].filter(Boolean).join(' ')}</span>
+                          <span className="adash-person-name">
+                            {[m.title, m.firstName, m.lastName].filter(Boolean).join(' ')}
+                            {fromCadence(m) && <> <span className="adash-pill is-tag" title="Opened by the CadenceE CRM when a deal was won">via CadenceE</span></>}
+                          </span>
                           <span className="adash-person-sub">{m.email}</span>
                         </span>
                       </div>
                     </td>
+                    <td>{startLabel(m)}</td>
                     <td className="adash-mono">{m.referralCode}</td>
                     <td>{m.successfulReferrals}/{m.referralCount}</td>
                     <td className="adash-strong">{m.successfulReferrals}</td>
@@ -201,7 +220,7 @@ export default function AdminMembersSection({ embedded = false }: { embedded?: b
                   </tr>
                 ))}
                 {filtered.length === 0 && (
-                  <tr><td colSpan={6}>
+                  <tr><td colSpan={7}>
                     <AdminEmpty
                       title={search ? 'No members match that search' : 'No members yet'}
                       hint={search ? 'Try another name, email or referral code.' : 'Create the first contracted account to begin.'}
@@ -233,6 +252,8 @@ export default function AdminMembersSection({ embedded = false }: { embedded?: b
             <div><div className="adash-dt">Country</div><div className="adash-dd">{selected.country || '—'}</div></div>
             <div><div className="adash-dt">Status</div><div className="adash-dd"><span className={`adash-pill is-${selected.status}`}>{selected.status}</span></div></div>
             <div><div className="adash-dt">Role</div><div className="adash-dd">{selected.role}</div></div>
+            <div><div className="adash-dt">Membership starts</div><div className="adash-dd">{startLabel(selected)}</div></div>
+            <div><div className="adash-dt">Source</div><div className="adash-dd">{fromCadence(selected) ? <span className="adash-pill is-tag">via CadenceE</span> : 'Added here'}</div></div>
             <div><div className="adash-dt">Preferred language</div><div className="adash-dd">{selected.preferredLanguage === 'en' ? 'English' : 'Français'}</div></div>
             <div><div className="adash-dt">Referral code</div><div className="adash-dd adash-mono">{selected.referralCode}</div></div>
             <div><div className="adash-dt">Referrals</div><div className="adash-dd">{selected.successfulReferrals} accepted / {selected.referralCount} sent</div></div>
@@ -317,6 +338,31 @@ export default function AdminMembersSection({ embedded = false }: { embedded?: b
               <div className="adash-field">
                 <label>Language</label>
                 <select className="adash-select" value={editForm.language ?? 'fr'} onChange={editSet('language')}><option value="fr">Français</option><option value="en">English</option></select>
+              </div>
+              <div className="adash-field">
+                <label htmlFor="adm-edit-start">Membership starts</label>
+                <input
+                  id="adm-edit-start"
+                  className="adash-input"
+                  type="date"
+                  value={editForm.membershipStartDate ?? ''}
+                  disabled={!!editForm.membershipStartUndetermined}
+                  onChange={(e) => setEditForm((f) => ({ ...f, membershipStartDate: e.target.value, membershipStartUndetermined: false }))}
+                />
+              </div>
+              <div className="adash-field full">
+              <label className="adash-check">
+                <input
+                  type="checkbox"
+                  checked={!!editForm.membershipStartUndetermined}
+                  onChange={(e) => setEditForm((f) => ({
+                    ...f,
+                    membershipStartUndetermined: e.target.checked,
+                    membershipStartDate: e.target.checked ? '' : f.membershipStartDate,
+                  }))}
+                />
+                <span>Start to be confirmed (the member sees “to be confirmed”)</span>
+              </label>
               </div>
             </div>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
