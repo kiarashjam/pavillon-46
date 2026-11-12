@@ -34,17 +34,20 @@ public class CadenceIntegrationController : ControllerBase
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
     private readonly ICadenceOnboardingService _onboarding;
+    private readonly IEmailService _email;
     private readonly KeyedRateLimiter _rateLimiter;
     private readonly CadenceOptions _options;
     private readonly ILogger<CadenceIntegrationController> _logger;
 
     public CadenceIntegrationController(
         ICadenceOnboardingService onboarding,
+        IEmailService email,
         KeyedRateLimiter rateLimiter,
         IOptions<CadenceOptions> options,
         ILogger<CadenceIntegrationController> logger)
     {
         _onboarding = onboarding;
+        _email = email;
         _rateLimiter = rateLimiter;
         _options = options.Value;
         _logger = logger;
@@ -96,7 +99,14 @@ public class CadenceIntegrationController : ControllerBase
         switch (envelope.EventName)
         {
             case "onboarding.ping":
-                return Ok(new { ok = true });
+                // Who welcomes go out from by default, so the CRM can show it. Only to
+                // a caller holding the secret: the signature was checked above.
+                var (fromName, fromEmail) = _email.DefaultSender;
+                return Ok(new
+                {
+                    ok = true,
+                    from = string.IsNullOrWhiteSpace(fromEmail) ? null : new { name = fromName, email = fromEmail },
+                });
 
             case "deal.onboarding":
                 CadenceOnboardingPayload? payload;

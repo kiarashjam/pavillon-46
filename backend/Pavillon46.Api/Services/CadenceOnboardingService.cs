@@ -198,7 +198,7 @@ public sealed class CadenceOnboardingService : ICadenceOnboardingService
         try
         {
             var (link, expiresAt) = await IssueWelcomeLinkAsync(member, ct);
-            await _email.SendCadenceWelcomeAsync(member, new CadenceWelcome(
+            var sender = await _email.SendCadenceWelcomeAsync(member, new CadenceWelcome(
                 language,
                 Clip(p.Email?.Subject, MaxSubject),
                 p.Email?.Html,
@@ -206,8 +206,9 @@ public sealed class CadenceOnboardingService : ICadenceOnboardingService
                 member.MembershipStartDate,
                 member.MembershipStartUndetermined,
                 link,
-                expiresAt), CancellationToken.None);
-            reports.Add(new CadenceReport("email_sent", member.Id, null, DateTime.UtcNow));
+                expiresAt,
+                p.From), CancellationToken.None);
+            reports.Add(new CadenceReport("email_sent", member.Id, SentFrom(sender), DateTime.UtcNow));
             _logger.LogInformation("cadence.onboarding.email_sent event={EventId} memberId={MemberId}", eventId, member.Id);
         }
         catch (Exception ex)
@@ -251,6 +252,17 @@ public sealed class CadenceOnboardingService : ICadenceOnboardingService
     }
 
     /// <summary>Why the handoff cannot be processed, or null.</summary>
+    // What the CRM's team reads on the deal: who it went out from, and why not
+    // from the address they asked for, when it was not.
+    private static string SentFrom(CadenceSender s)
+    {
+        var line = $"Sent from {s.Name} <{s.Email}>";
+        if (s.ReplyTo is not null) line += $", replies to {s.ReplyTo}";
+        if (s.RequestedEmail is not null)
+            line += $". {s.RequestedEmail} is not on the portal's sending domain, so it went from the portal's own address";
+        return line + ".";
+    }
+
     private static string? Problem(string eventId, string onboardingId, CadenceOnboardingPayload p)
     {
         if (eventId.Length is 0 or > 100) return "The event has no usable id.";
