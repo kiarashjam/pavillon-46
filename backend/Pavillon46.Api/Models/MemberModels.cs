@@ -38,6 +38,29 @@ public class Member
     // expect newsletters. Flipped true by the public unsubscribe link, back to
     // false by the dashboard resubscribe button.
     public bool NewsletterOptOut { get; set; }
+
+    // When the membership starts, as "yyyy-MM-dd", or "" when nobody said.
+    // MembershipStartUndetermined marks a start that is known to be still
+    // undecided ("to be confirmed"), as opposed to simply never recorded.
+    public string MembershipStartDate { get; set; } = "";
+    public bool MembershipStartUndetermined { get; set; }
+
+    // Where the account came from: "" for an account an admin created (and
+    // every account made before this field existed), "cadence" for one opened
+    // by the CadenceE CRM when a deal was won (CadenceIntegrationController).
+    public string Source { get; set; } = "";
+
+    // The CadenceE handoff that last touched this account, and where to report
+    // on it. The callback token is a credential for that one handoff: it is
+    // never returned by any endpoint and never logged.
+    public string CrmOnboardingId { get; set; } = "";
+    public string CrmDealId { get; set; } = "";
+    public string CrmCallbackUrl { get; set; } = "";
+    public string CrmCallbackToken { get; set; } = "";
+    // Set once "password_set" has been queued for the current handoff, so a
+    // later password reset does not report it again.
+    public bool CrmPasswordSetReported { get; set; }
+
     public string CreatedAt { get; set; } = "";
     public string UpdatedAt { get; set; } = "";
     public string LastLoginAt { get; set; } = "";
@@ -157,7 +180,10 @@ public record UpdateMemberRequest(
     string? ContractRef,
     string? Notes,
     string? Language,
-    string? Status
+    string? Status,
+    // "yyyy-MM-dd", or "" to clear it. Setting a date clears "undetermined".
+    string? MembershipStartDate = null,
+    bool? MembershipStartUndetermined = null
 );
 
 public record UpdateApplicantRequest(
@@ -224,6 +250,9 @@ public class MemberDto
     public int BonusPoints { get; set; }
     public bool MustChangePassword { get; set; }
     public bool NewsletterOptOut { get; set; }
+    public string MembershipStartDate { get; set; } = "";
+    public bool MembershipStartUndetermined { get; set; }
+    public string Source { get; set; } = "";
     public string CreatedAt { get; set; } = "";
     public string LastLoginAt { get; set; } = "";
 
@@ -246,6 +275,9 @@ public class MemberDto
         BonusPoints = m.BonusPoints,
         MustChangePassword = m.MustChangePassword,
         NewsletterOptOut = m.NewsletterOptOut,
+        MembershipStartDate = m.MembershipStartDate,
+        MembershipStartUndetermined = m.MembershipStartUndetermined,
+        Source = m.Source,
         CreatedAt = m.CreatedAt,
         LastLoginAt = m.LastLoginAt,
     };

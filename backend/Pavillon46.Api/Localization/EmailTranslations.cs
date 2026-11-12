@@ -159,6 +159,61 @@ public static class EmailTranslations
             ExpiryLine: when => $"Ce lien expire à {when} (heure suisse).",
             Cta: "Choisir un nouveau mot de passe");
 
+    // -----------------------------------------------------------------------
+    // Welcome — sent when the CadenceE CRM hands over a new member
+    // (CadenceOnboardingService), unless the organisation sent its own design.
+    // Same frame as the reset email: the member's first step is the same, choose
+    // a password, so the button says so.
+    // -----------------------------------------------------------------------
+    public record WelcomeStrings(
+        string Subject,
+        string Heading,
+        Func<string, string> Greeting,
+        string Intro,
+        Func<string, string> LoginLine,
+        string StartLabel,
+        string StartUndetermined,
+        string Cta,
+        Func<string, string> ExpiryLine,
+        string Fallback
+    );
+
+    public static WelcomeStrings Welcome(string lang) => lang == "en"
+        ? new WelcomeStrings(
+            Subject: "Welcome to Pavillon 46 — your member area",
+            Heading: "Welcome to Pavillon 46",
+            Greeting: name => $"Hello {name},",
+            Intro: "Your member area is ready. Choose your password to open it.",
+            LoginLine: email => $"You sign in with: {email}",
+            StartLabel: "Your membership starts",
+            StartUndetermined: "to be confirmed",
+            Cta: "Set my password",
+            ExpiryLine: when => $"This link is valid until {when} (Swiss time). After that, use “Forgot password” on the sign-in page.",
+            Fallback: "If the button does not work, paste this link into your browser:")
+        : new WelcomeStrings(
+            Subject: "Bienvenue au Pavillon 46 — votre espace membre",
+            Heading: "Bienvenue au Pavillon 46",
+            Greeting: name => $"Bonjour {name},",
+            Intro: "Votre espace membre est prêt. Choisissez votre mot de passe pour y accéder.",
+            LoginLine: email => $"Votre identifiant : {email}",
+            StartLabel: "Début de votre adhésion",
+            StartUndetermined: "à confirmer",
+            Cta: "Choisir mon mot de passe",
+            ExpiryLine: when => $"Ce lien est valable jusqu'au {when} (heure suisse). Passé ce délai, utilisez « Mot de passe oublié » sur la page de connexion.",
+            Fallback: "Si le bouton ne fonctionne pas, collez ce lien dans votre navigateur :");
+
+    /// <summary>"15 janvier 2027" / "15 January 2027", or the undetermined wording.</summary>
+    public static string MembershipStart(string startDate, bool undetermined, string lang)
+    {
+        if (DateTime.TryParseExact(startDate, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.None, out var date))
+        {
+            var culture = new System.Globalization.CultureInfo(lang == "en" ? "en-GB" : "fr-CH");
+            return date.ToString("d MMMM yyyy", culture);
+        }
+        return Welcome(lang).StartUndetermined;
+    }
+
     private static string FormatTtl(int minutes, string lang)
     {
         var safe = Math.Max(1, minutes);

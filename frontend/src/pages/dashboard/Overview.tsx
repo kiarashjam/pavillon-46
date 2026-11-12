@@ -82,6 +82,17 @@ export default function Overview() {
 
   const recent = applicants.slice(0, 5)
 
+  // The membership start, when one was recorded (by the CRM's handoff or an
+  // admin): a date, or "to be confirmed". Older accounts have neither.
+  const hasStart = !!member.membershipStartDate || member.membershipStartUndetermined
+  const startDate = (() => {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(member.membershipStartDate ?? '')
+    if (!m) return null
+    // Built from its parts, so the day does not shift with the viewer's time zone.
+    const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
+    return d.toLocaleDateString(language === 'fr' ? 'fr-CH' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+  })()
+
   return (
     <motion.div variants={animationVariants.container} initial="hidden" animate="visible" className="dash-stack">
       {/* Welcome hero */}
@@ -97,6 +108,22 @@ export default function Overview() {
           <span className="dash-hero-meta">{t.openingTitle}</span>
         </div>
       </motion.section>
+
+      {/* Membership start */}
+      {hasStart && (
+        <motion.section variants={animationVariants.item} className="dash-panel dash-membership" aria-labelledby="dash-membership-h">
+          <span className="dash-card-eyebrow">{t.membershipEyebrow}</span>
+          <div className="dash-membership-row">
+            <h2 id="dash-membership-h" className="dash-membership-label">{t.membershipStartLabel}</h2>
+            <strong className={`dash-membership-date${startDate ? '' : ' is-pending'}`}>
+              {startDate ?? t.membershipStartUndetermined}
+            </strong>
+          </div>
+          <p className="dash-membership-note">
+            {startDate ? t.membershipStartNote : t.membershipStartUndeterminedNote}
+          </p>
+        </motion.section>
+      )}
 
       {/* Stats */}
       <motion.div variants={animationVariants.item} className="dash-stat-grid">

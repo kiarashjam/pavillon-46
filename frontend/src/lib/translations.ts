@@ -197,6 +197,13 @@ export interface DashboardTranslations {
   resetPwFailed: string
   resetPwPageTitle: string
   resetPwPageDescription: string
+  welcomePwEyebrow: string
+  welcomePwTitle: string
+  welcomePwSubtitle: string
+  welcomePwSubmit: string
+  welcomePwSuccess: string
+  welcomePwInvalidToken: string
+  welcomePwPageTitle: string
   // Overview
   overviewTitle: string
   overviewSubtitle: string
@@ -208,6 +215,11 @@ export interface DashboardTranslations {
   referralCardText: string
   referralCardButton: string
   openingTitle: string
+  membershipEyebrow: string
+  membershipStartLabel: string
+  membershipStartUndetermined: string
+  membershipStartUndeterminedNote: string
+  membershipStartNote: string
   openingText: string
   // Referral form
   referralTitle: string
@@ -620,6 +632,13 @@ export const translations: Record<Language, Translations> = {
       resetPwFailed: "Impossible d'enregistrer le mot de passe. Réessayez.",
       resetPwPageTitle: 'Réinitialiser le mot de passe — Pavillon 46',
       resetPwPageDescription: 'Choisissez un nouveau mot de passe pour votre compte Pavillon 46.',
+      welcomePwEyebrow: 'Bienvenue',
+      welcomePwTitle: 'Bienvenue au Pavillon 46',
+      welcomePwSubtitle: 'Choisissez votre mot de passe pour ouvrir votre espace membre.',
+      welcomePwSubmit: 'Choisir ce mot de passe',
+      welcomePwSuccess: 'Votre mot de passe est enregistré. Bienvenue ! Vous pouvez maintenant vous connecter.',
+      welcomePwInvalidToken: 'Ce lien de bienvenue a expiré ou a déjà servi. Demandez un nouveau lien avec « Mot de passe oublié ».',
+      welcomePwPageTitle: 'Bienvenue — Pavillon 46',
       overviewTitle: 'Votre espace membre',
       overviewSubtitle: 'Bienvenue dans le cercle privé du Pavillon 46.',
       statReferrals: 'Parrainages',
@@ -630,6 +649,11 @@ export const translations: Record<Language, Translations> = {
       referralCardText: "L'accès au Pavillon 46 se fait sur invitation. Parrainez une personne — à la signature de son contrat, vous recevez chacun un mois offert.",
       referralCardButton: 'Parrainer maintenant',
       openingTitle: `Ouverture ${OPENING_YEAR}`,
+      membershipEyebrow: 'Votre adhésion',
+      membershipStartLabel: 'Début de votre adhésion',
+      membershipStartUndetermined: 'À confirmer',
+      membershipStartUndeterminedNote: 'Nous vous confirmerons la date très prochainement.',
+      membershipStartNote: 'Nous nous réjouissons de vous accueillir.',
       openingText: `Le Pavillon 46 ouvrira ses portes en ${OPENING_YEAR} à La Croix-sur-Lutry. Les membres bénéficient d'un accès prioritaire.`,
       referralTitle: 'Parrainer un membre fondateur',
       referralSubtitle: 'Recommandez une personne pour devenir membre fondateur. Vous recevrez un code de parrainage.',
@@ -1028,6 +1052,13 @@ export const translations: Record<Language, Translations> = {
       resetPwFailed: 'Could not save the password. Please try again.',
       resetPwPageTitle: 'Reset password — Pavillon 46',
       resetPwPageDescription: 'Choose a new password for your Pavillon 46 account.',
+      welcomePwEyebrow: 'Welcome',
+      welcomePwTitle: 'Welcome to Pavillon 46',
+      welcomePwSubtitle: 'Choose your password to open your member area.',
+      welcomePwSubmit: 'Set this password',
+      welcomePwSuccess: 'Your password is set. Welcome! You can now sign in.',
+      welcomePwInvalidToken: 'This welcome link has expired or was already used. Request a new one with “Forgot password”.',
+      welcomePwPageTitle: 'Welcome — Pavillon 46',
       overviewTitle: 'Your member area',
       overviewSubtitle: 'Welcome to the private circle of Pavillon 46.',
       statReferrals: 'Referrals',
@@ -1038,6 +1069,11 @@ export const translations: Record<Language, Translations> = {
       referralCardText: 'Access to Pavillon 46 is by invitation. Refer someone — when they sign their contract, you each get a month free.',
       referralCardButton: 'Refer now',
       openingTitle: `Opening ${OPENING_YEAR}`,
+      membershipEyebrow: 'Your membership',
+      membershipStartLabel: 'Your membership starts',
+      membershipStartUndetermined: 'To be confirmed',
+      membershipStartUndeterminedNote: 'We will confirm the date with you very soon.',
+      membershipStartNote: 'We look forward to welcoming you.',
       openingText: `Pavillon 46 will open in ${OPENING_YEAR} in La Croix-sur-Lutry. Members enjoy priority access.`,
       referralTitle: 'Refer a founding member',
       referralSubtitle: 'Recommend someone to become a founding member. You will receive a referral code.',

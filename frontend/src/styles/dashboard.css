@@ -456,6 +456,20 @@
 .dash-stat-label { font-size: 13px; letter-spacing: 0.03em; color: var(--dash-muted); }
 .dash-stat-value { font-size: 40px; line-height: 1; font-weight: 500; color: var(--dash-green); }
 
+/* ---- Membership start (Overview) ---- */
+.dash-membership { display: flex; flex-direction: column; gap: 8px; }
+.dash-membership-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px 18px;
+}
+.dash-membership-label { margin: 0; font-size: 18px; font-weight: 500; color: var(--dash-ink); }
+.dash-membership-date { font-size: 26px; font-weight: 500; color: var(--dash-green); }
+.dash-membership-date.is-pending { color: var(--dash-coral); font-size: 20px; }
+.dash-membership-note { margin: 0; font-size: 14px; color: var(--dash-muted); }
+
 /* ---- Code card ---- */
 .dash-code-card,
 .dash-feature-card {

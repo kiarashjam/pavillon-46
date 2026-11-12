@@ -235,6 +235,23 @@ public class AdminMembersController : ControllerBase
                 return BadRequest(new { message = "Status must be one of: active, inactive, suspended." });
             member.Status = status;
         }
+        // The membership start: a date, or "to be confirmed". Either replaces the other.
+        if (body.MembershipStartDate is not null)
+        {
+            var start = body.MembershipStartDate.Trim();
+            if (start.Length > 0
+                && (!DateTime.TryParseExact(start, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture,
+                        System.Globalization.DateTimeStyles.None, out var date)
+                    || date.Year is < 2000 or > 2100))
+                return BadRequest(new { message = "The start date must be a date (yyyy-MM-dd)." });
+            member.MembershipStartDate = start;
+            if (start.Length > 0) member.MembershipStartUndetermined = false;
+        }
+        if (body.MembershipStartUndetermined is bool undetermined && string.IsNullOrEmpty(body.MembershipStartDate?.Trim()))
+        {
+            member.MembershipStartUndetermined = undetermined;
+            if (undetermined) member.MembershipStartDate = "";
+        }
 
         member.UpdatedAt = DateTime.UtcNow.ToString("o");
         await _members.UpsertAsync(member, ct);

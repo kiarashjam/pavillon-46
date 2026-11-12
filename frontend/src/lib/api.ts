@@ -141,6 +141,12 @@ export interface MemberDto {
    *  always present in the payload). True once the member used the unsubscribe
    *  link; the dashboard resubscribe button flips it back to false. */
   newsletterOptOut: boolean
+  /** "yyyy-MM-dd", or "" when no start date was recorded. */
+  membershipStartDate: string
+  /** The start is known to be still undecided ("to be confirmed"). */
+  membershipStartUndetermined: boolean
+  /** "" for accounts an admin created, "cadence" for ones the CadenceE CRM opened. */
+  source: string
   createdAt: string
   lastLoginAt: string
 }
@@ -265,6 +271,9 @@ export interface UpdateMemberBody {
   notes?: string
   language?: 'fr' | 'en'
   status?: string
+  /** "yyyy-MM-dd", or "" to clear it. A date clears "to be confirmed". */
+  membershipStartDate?: string
+  membershipStartUndetermined?: boolean
 }
 
 /** Reads a JSON error body from a failed response, extracting both the

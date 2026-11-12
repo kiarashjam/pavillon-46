@@ -267,6 +267,94 @@ public class EmailService : IEmailService
         await SendRawEmailAsync(admin.Email, subject, plain, html, ct);
     }
 
+    // The welcome email of a member handed over by the CadenceE CRM. With the
+    // organisation's own design, that HTML is filled and sanitised
+    // (CadenceEmailTemplate); without it, Pavillon's own frame is used. Either
+    // way the plain-text part is ours, built from the same facts.
+    public async Task SendCadenceWelcomeAsync(Member member, CadenceWelcome welcome, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(_sendgrid.ResolvedApiKey())) throw new InvalidOperationException("SENDGRID_API_KEY is missing.");
+        if (string.IsNullOrWhiteSpace(_sendgrid.ResolvedFromEmail())) throw new InvalidOperationException("FROM_EMAIL is missing.");
+        if (string.IsNullOrWhiteSpace(member.Email)) throw new ArgumentException("Member email is required");
+        if (string.IsNullOrWhiteSpace(welcome.SetPasswordUrl)) throw new ArgumentException("Set-password URL is required");
+
+        var lang = EmailTranslations.NormalizeLang(welcome.Language);
+        var t = EmailTranslations.Welcome(lang);
+        var greetingName = string.IsNullOrWhiteSpace(member.FirstName) ? member.Email : member.FirstName;
+        var start = EmailTranslations.MembershipStart(welcome.MembershipStartDate, welcome.MembershipStartUndetermined, lang);
+        var expiry = t.ExpiryLine(FormatSwissExpiry(welcome.ExpiresAtUtc, lang));
+        var message = (welcome.WelcomeMessage ?? "").Trim();
+
+        var plain = string.Join("\n\n", new[]
+        {
+            t.Heading,
+            t.Greeting(greetingName),
+            message,
+            $"{t.Intro}\n{t.LoginLine(member.Email)}\n{t.StartLabel} : {start}",
+            $"{t.Cta}: {welcome.SetPasswordUrl}",
+            expiry,
+        }.Where(s => !string.IsNullOrEmpty(s)));
+
+        var portal = new CadenceEmailTemplate.PortalValues(welcome.SetPasswordUrl, _site.Page("login"), member.Email);
+        var html = "";
+        if (!string.IsNullOrWhiteSpace(welcome.CustomHtml))
+        {
+            html = CadenceEmailTemplate.Sanitize(CadenceEmailTemplate.Fill(welcome.CustomHtml, portal, html: true));
+        }
+        // A design the sanitiser emptied (all script, say) is no email: use ours.
+        if (string.IsNullOrWhiteSpace(System.Text.RegularExpressions.Regex.Replace(html, "<[^>]*>", "")))
+        {
+            html = BuildWelcomeHtml(lang, t, greetingName, message, member.Email, start, expiry, welcome.SetPasswordUrl);
+        }
+        var subject = string.IsNullOrWhiteSpace(welcome.CustomSubject)
+            ? t.Subject
+            : CadenceEmailTemplate.Subject(welcome.CustomSubject, portal);
+        if (string.IsNullOrWhiteSpace(subject)) subject = t.Subject;
+
+        await SendRawEmailAsync(member.Email, subject, plain, html, ct);
+    }
+
+    private string BuildWelcomeHtml(string lang, EmailTranslations.WelcomeStrings t, string greetingName, string message,
+        string loginEmail, string start, string expiryLine, string ctaUrl)
+    {
+        var logo = _site.Page("images/logo.png");
+        var year = DateTime.UtcNow.Year;
+        var safeUrl = WebUtility.HtmlEncode(ctaUrl);
+        // Encoded first, then its line breaks become <br/>: the message is text.
+        var messageHtml = WebUtility.HtmlEncode(message).Replace("\r\n", "\n").Replace("\n", "<br/>");
+        var messageBlock = string.IsNullOrEmpty(message)
+            ? ""
+            : $@"<p style=""margin:0 0 22px 0;padding:16px 18px;font-size:16px;color:#3a4a42;line-height:1.7;background:#f0ece9;border-left:3px solid #ff6e50;border-radius:6px;"">{messageHtml}</p>";
+        return $@"<!DOCTYPE html>
+<html lang=""{lang}"">
+<head><meta charset=""UTF-8""><meta name=""viewport"" content=""width=device-width,initial-scale=1.0""><title>{WebUtility.HtmlEncode(t.Heading)}</title></head>
+<body style=""font-family:Jost,sans-serif;color:#1d2b24;background:#0f261d;margin:0;padding:0;"">
+  <table role=""presentation"" cellspacing=""0"" cellpadding=""0"" border=""0"" width=""100%"" style=""background:#0f261d;padding:24px 0;""><tr><td align=""center"">
+    <table role=""presentation"" cellspacing=""0"" cellpadding=""0"" border=""0"" width=""600"" style=""max-width:600px;margin:0 auto;background:#fcf8f7;border-radius:14px;overflow:hidden;box-shadow:0 18px 48px rgba(0,0,0,0.3);"">
+      <tr><td style=""background:linear-gradient(135deg,#265640 0%,#3a6f58 100%);padding:42px 32px;text-align:center;color:#fff;"">
+        <div style=""text-align:center;margin-bottom:16px;""><img src=""{logo}"" alt=""Pavillon 46"" width=""150"" style=""display:inline-block;max-width:150px;width:100%;height:auto;filter:brightness(0) invert(1);""/></div>
+        <h1 style=""margin:0;font-size:28px;font-weight:500;color:#fff;"">{WebUtility.HtmlEncode(t.Heading)}</h1>
+      </td></tr>
+      <tr><td style=""padding:36px 32px;"">
+        <p style=""margin:0 0 18px 0;font-size:16px;color:#3a4a42;line-height:1.7;"">{WebUtility.HtmlEncode(t.Greeting(greetingName))}</p>
+        {messageBlock}
+        <p style=""margin:0 0 10px 0;font-size:16px;color:#3a4a42;line-height:1.7;"">{WebUtility.HtmlEncode(t.Intro)}</p>
+        <p style=""margin:0 0 6px 0;font-size:15px;color:#6f8079;line-height:1.7;"">{WebUtility.HtmlEncode(t.LoginLine(loginEmail))}</p>
+        <p style=""margin:0 0 26px 0;font-size:15px;color:#6f8079;line-height:1.7;"">{WebUtility.HtmlEncode(t.StartLabel)} : <strong style=""color:#265640;"">{WebUtility.HtmlEncode(start)}</strong></p>
+        <div style=""text-align:center;margin:8px 0;"">
+          <a href=""{safeUrl}"" style=""display:inline-block;background:#ff6e50;color:#fff;text-decoration:none;font-size:16px;font-weight:500;padding:14px 34px;border-radius:8px;"">{WebUtility.HtmlEncode(t.Cta)}</a>
+        </div>
+        <p style=""margin:18px 0 0 0;font-size:12.5px;color:#8a9a92;text-align:center;line-height:1.6;word-break:break-all;"">{WebUtility.HtmlEncode(t.Fallback)}<br/><a href=""{safeUrl}"" style=""color:#265640;"">{safeUrl}</a></p>
+        <p style=""margin:22px 0 0 0;font-size:13px;color:#8a9a92;text-align:center;line-height:1.6;"">{WebUtility.HtmlEncode(expiryLine)}</p>
+      </td></tr>
+      <tr><td style=""padding:24px 32px;background:#f0ece9;border-top:1px solid rgba(38,86,64,0.1);font-size:12px;color:#8a9a92;text-align:center;line-height:1.7;"">
+        <p style=""margin:0;"">© {year} Pavillon 46 — La Croix-sur-Lutry, Suisse</p>
+      </td></tr>
+    </table>
+  </td></tr></table>
+</body></html>";
+    }
+
     private static string FormatSwissExpiry(DateTime expiresAtUtc, string lang)
     {
         try
