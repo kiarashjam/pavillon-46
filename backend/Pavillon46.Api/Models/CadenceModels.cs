@@ -32,6 +32,16 @@ public class CadenceOnboardingPayload
     // Null: send Pavillon's own welcome email.
     public CadenceEmail? Email { get; set; }
     public CadenceCallback? Callback { get; set; }
+    // Who the welcome is from: the organisation that won the deal. See
+    // EmailService.WelcomeSender for what is honoured.
+    public CadenceFrom? From { get; set; }
+}
+
+public class CadenceFrom
+{
+    public string? Name { get; set; }
+    public string? Email { get; set; }
+    public string? ReplyTo { get; set; }
 }
 
 public class CadenceDeal
@@ -90,7 +100,13 @@ public sealed record CadenceWelcome(
     string MembershipStartDate,
     bool MembershipStartUndetermined,
     string SetPasswordUrl,
-    DateTime ExpiresAtUtc);
+    DateTime ExpiresAtUtc,
+    CadenceFrom? From = null);
+
+// Who a welcome email actually went out from, for the report to the CRM.
+// RequestedEmail is set when the CRM asked for an address this portal may not
+// send from, and so was not used.
+public sealed record CadenceSender(string Name, string Email, string? ReplyTo, string? RequestedEmail);
 
 // What the handoff endpoint answers.
 public class CadenceHandoffResponse

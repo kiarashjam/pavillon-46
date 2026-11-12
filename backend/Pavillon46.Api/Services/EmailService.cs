@@ -76,18 +76,25 @@ public class EmailService : IEmailService
         }
     }
 
-    public async Task SendRawEmailAsync(string toEmail, string subject, string plainText, string html, CancellationToken ct = default)
+    public Task SendRawEmailAsync(string toEmail, string subject, string plainText, string html, CancellationToken ct = default) =>
+        SendRawEmailAsync(toEmail, subject, plainText, html, ct, sender: null);
+
+    // With a sender, from it (see WelcomeSender, which decides what may be used).
+    private async Task SendRawEmailAsync(string toEmail, string subject, string plainText, string html, CancellationToken ct, CadenceSender? sender)
     {
         if (string.IsNullOrWhiteSpace(_sendgrid.ResolvedApiKey())) throw new InvalidOperationException("SENDGRID_API_KEY is missing.");
         if (string.IsNullOrWhiteSpace(_sendgrid.ResolvedFromEmail())) throw new InvalidOperationException("FROM_EMAIL is missing.");
 
         var client = new SendGridClient(_sendgrid.ResolvedApiKey());
         var msg = MailHelper.CreateSingleEmail(
-            new EmailAddress(_sendgrid.ResolvedFromEmail(), _sendgrid.ResolvedFromName()),
+            sender is null
+                ? new EmailAddress(_sendgrid.ResolvedFromEmail(), _sendgrid.ResolvedFromName())
+                : new EmailAddress(sender.Email, sender.Name),
             new EmailAddress(toEmail.Trim()),
             subject,
             plainText,
             html);
+        if (sender?.ReplyTo is { } replyTo) msg.SetReplyTo(new EmailAddress(replyTo));
 
         var response = await client.SendEmailAsync(msg, ct);
         if ((int)response.StatusCode >= 400)
@@ -271,7 +278,54 @@ public class EmailService : IEmailService
     // organisation's own design, that HTML is filled and sanitised
     // (CadenceEmailTemplate); without it, Pavillon's own frame is used. Either
     // way the plain-text part is ours, built from the same facts.
-    public async Task SendCadenceWelcomeAsync(Member member, CadenceWelcome welcome, CancellationToken ct = default)
+    public (string Name, string Email) DefaultSender => (_sendgrid.ResolvedFromName(), _sendgrid.ResolvedFromEmail());
+
+    /// <summary>
+    /// Who a welcome goes out from. The organisation's name, one line and short, and
+    /// its reply-to address. Its from address only on the domain FROM_EMAIL is on:
+    /// SendGrid sends only for verified senders and domains, and an address on any
+    /// other domain would be refused, or fail the recipient's DMARC check and land in
+    /// spam. Otherwise FROM_EMAIL, under the organisation's name, replying to it.
+    /// </summary>
+    internal CadenceSender WelcomeSender(CadenceFrom? from)
+    {
+        var ownEmail = _sendgrid.ResolvedFromEmail();
+        var name = OneLine(from?.Name, 100);
+        if (string.IsNullOrEmpty(name)) name = _sendgrid.ResolvedFromName();
+
+        var requested = Address(from?.Email);
+        string? notUsed = null;
+        var email = ownEmail;
+        if (requested is not null)
+        {
+            if (string.Equals(DomainOf(requested), DomainOf(ownEmail), StringComparison.OrdinalIgnoreCase)) email = requested;
+            else notUsed = requested;
+        }
+        var replyTo = Address(from?.ReplyTo) ?? notUsed;
+        if (replyTo is not null && string.Equals(replyTo, email, StringComparison.OrdinalIgnoreCase)) replyTo = null;
+        return new CadenceSender(name, email, replyTo, notUsed);
+    }
+
+    private static string OneLine(string? value, int max)
+    {
+        var text = new string((value ?? "").Where(c => !char.IsControl(c)).ToArray()).Trim();
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"\s+", " ");
+        return text.Length > max ? text[..max].Trim() : text;
+    }
+
+    private static string? Address(string? value)
+    {
+        var v = (value ?? "").Trim();
+        if (v.Length is 0 or > 254) return null;
+        if (v.Any(c => char.IsControl(c) || char.IsWhiteSpace(c) || c is ',' or ';' or '<' or '>' or '"')) return null;
+        var at = v.IndexOf('@');
+        if (at <= 0 || at != v.LastIndexOf('@') || v.IndexOf('.', at) <= at + 1 || v.EndsWith('.')) return null;
+        return v.ToLowerInvariant();
+    }
+
+    private static string DomainOf(string email) => email[(email.LastIndexOf('@') + 1)..];
+
+    public async Task<CadenceSender> SendCadenceWelcomeAsync(Member member, CadenceWelcome welcome, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(_sendgrid.ResolvedApiKey())) throw new InvalidOperationException("SENDGRID_API_KEY is missing.");
         if (string.IsNullOrWhiteSpace(_sendgrid.ResolvedFromEmail())) throw new InvalidOperationException("FROM_EMAIL is missing.");
@@ -311,7 +365,9 @@ public class EmailService : IEmailService
             : CadenceEmailTemplate.Subject(welcome.CustomSubject, portal);
         if (string.IsNullOrWhiteSpace(subject)) subject = t.Subject;
 
-        await SendRawEmailAsync(member.Email, subject, plain, html, ct);
+        var sender = WelcomeSender(welcome.From);
+        await SendRawEmailAsync(member.Email, subject, plain, html, ct, sender);
+        return sender;
     }
 
     private string BuildWelcomeHtml(string lang, EmailTranslations.WelcomeStrings t, string greetingName, string message,

@@ -92,11 +92,13 @@ occurredAtUtc }` with these headers:
 
 Events:
 
-- `onboarding.ping` — the CRM's "Test connection". Answers `200 { ok: true }` and does nothing.
+- `onboarding.ping` — the CRM's "Send a test". Answers `200 { ok: true, from: { name, email } }`
+  (who welcomes go out from by default, `FROM_NAME`/`FROM_EMAIL`; `from` is null without them) and
+  does nothing else.
 - `deal.onboarding` — `payload` is `{ version: 1, onboardingId, deal { id, name, … }, contact {
   name, firstName, lastName, email, phone, … }, membership { startsOn: "yyyy-MM-dd" | null,
   startUndetermined }, language: "fr" | "en", welcomeMessage, email { subject, html } | null,
-  callback { url, token }, … }`.
+  callback { url, token }, from { name, email, replyTo } | null, … }`.
 - Anything else answers `200 { ok: true, ignored: true }`, so the CRM does not retry it.
 
 What a `deal.onboarding` does (`CadenceOnboardingService`):
@@ -115,13 +117,18 @@ What a `deal.onboarding` does (`CadenceOnboardingService`):
    works), then the whole of it goes through an allow-list sanitiser (`CadenceEmailTemplate`: no
    script, iframe, form or event handler, links only http/https/mailto, images only https, no
    `<style>` block). Without it, Pavillon's own bilingual welcome email. The plain-text part is
-   always ours.
+   always ours. **Who it is from** (`EmailService.WelcomeSender`): the organisation's `from.name`
+   (one line, at most 100 characters; else `FROM_NAME`) and its `from.replyTo` as Reply-To. Its
+   `from.email` only when it is on the same domain as `FROM_EMAIL`, which SendGrid is set up to
+   send for; any other domain would be refused or fail the recipient's DMARC check, so the email
+   goes from `FROM_EMAIL` under the organisation's name, with that address as Reply-To instead.
 5. **The answer:** `200 { accountId, status: "created" | "existing" }`. A handoff that can never be
    valid (no email, an unknown version) answers `200 { status: "rejected", message }` and is
    reported as `failed`, so the CRM stops retrying it; without a callback it answers `400`.
 6. **Reports back** (`CadenceReporter`, in the background, after the answer): `POST callback.url`
    with `Authorization: Bearer <callback.token>` and `{ event, accountId, message, occurredAtUtc }`
-   — `account_created` or `account_existing`, then `email_sent` or `email_failed`; and later, once,
+   — `account_created` or `account_existing`, then `email_sent` (its `message` says who it went
+   from: "Sent from Name <address>, replies to …") or `email_failed`; and later, once,
    `password_set` when the member sets their password through the link (or any reset). Retried 4
    times with backoff on network errors, `408`, `429` and `5xx`. The callback must be `https`
    (plain `http` is accepted in Development only); the token is stored on the member, never
