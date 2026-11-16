@@ -7,7 +7,7 @@ namespace Pavillon46.Api.Services;
 /// <summary>
 /// The organisation's own welcome email, as the CadenceE CRM sends it: HTML
 /// that a person pasted into the CRM, with the CRM's placeholders already
-/// filled and three left for the portal, which alone knows them.
+/// filled and four left for the portal, which alone knows them.
 /// </summary>
 /// <remarks>
 /// That HTML did not come from this code base, so it never reaches an email as
@@ -18,29 +18,45 @@ namespace Pavillon46.Api.Services;
 /// </remarks>
 public static partial class CadenceEmailTemplate
 {
-    [GeneratedRegex(@"\{\{\s*(?<key>setPasswordUrl|portalUrl|loginEmail)\s*(?:\|(?<fallback>[^{}]*))?\}\}",
+    [GeneratedRegex(@"\{\{\s*(?<key>setPasswordUrl|portalUrl|loginEmail|referralCode)\s*(?:\|(?<fallback>[^{}]*))?\}\}",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex PortalPlaceholder();
 
+    [GeneratedRegex(@"\{\{\s*[A-Za-z][A-Za-z0-9_]*\s*(?:\|(?<fallback>[^{}]*))?\}\}", RegexOptions.CultureInvariant)]
+    private static partial Regex AnyPlaceholder();
+
     /// <summary>The values only the portal knows.</summary>
-    public sealed record PortalValues(string SetPasswordUrl, string PortalUrl, string LoginEmail);
+    public sealed record PortalValues(string SetPasswordUrl, string PortalUrl, string LoginEmail, string ReferralCode);
 
     /// <summary>
-    /// Fills <c>{{setPasswordUrl}}</c>, <c>{{portalUrl}}</c> and
-    /// <c>{{loginEmail}}</c>, HTML-encoded when <paramref name="html"/> is set.
+    /// Fills <c>{{setPasswordUrl}}</c>, <c>{{portalUrl}}</c>, <c>{{loginEmail}}</c>
+    /// and <c>{{referralCode}}</c>, HTML-encoded when <paramref name="html"/> is set.
     /// </summary>
-    public static string Fill(string template, PortalValues values, bool html) =>
-        PortalPlaceholder().Replace(template, match =>
+    /// <remarks>
+    /// Any other placeholder still in the text (one a newer CRM sends before this
+    /// portal knows it) becomes its fallback, or nothing: a member never reads
+    /// "{{something}}" in their welcome.
+    /// </remarks>
+    public static string Fill(string template, PortalValues values, bool html)
+    {
+        var filled = PortalPlaceholder().Replace(template, match =>
         {
             var value = match.Groups["key"].Value.ToLowerInvariant() switch
             {
                 "setpasswordurl" => values.SetPasswordUrl,
                 "portalurl" => values.PortalUrl,
+                "referralcode" => values.ReferralCode,
                 _ => values.LoginEmail,
             };
             if (string.IsNullOrEmpty(value) && match.Groups["fallback"].Success) value = match.Groups["fallback"].Value.Trim();
             return html ? WebUtility.HtmlEncode(value) : value;
         });
+        return AnyPlaceholder().Replace(filled, match =>
+        {
+            var fallback = match.Groups["fallback"].Success ? match.Groups["fallback"].Value.Trim() : "";
+            return html ? WebUtility.HtmlEncode(fallback) : fallback;
+        });
+    }
 
     /// <summary>A subject line: placeholders filled, one line, at most 200 characters.</summary>
     public static string Subject(string template, PortalValues values)
