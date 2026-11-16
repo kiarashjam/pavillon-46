@@ -113,8 +113,9 @@ What a `deal.onboarding` does (`CadenceOnboardingService`):
 3. **The link.** A set-password link through the reset-token store (single-use, hash-only, older
    links burned), valid `CADENCE_WELCOME_LINK_TTL_HOURS`, to `/reset-password?token=…&welcome=1`.
 4. **The email**, through SendGrid. With `email.html`, the organisation's own design: the portal
-   fills `{{setPasswordUrl}}`, `{{portalUrl}}` and `{{loginEmail}}` (HTML-encoded; `{{key|fallback}}`
-   works), then the whole of it goes through an allow-list sanitiser (`CadenceEmailTemplate`: no
+   fills `{{setPasswordUrl}}`, `{{portalUrl}}`, `{{loginEmail}}` and the member's `{{referralCode}}`
+   (HTML-encoded; `{{key|fallback}}` works, and any placeholder it does not know becomes its fallback
+   or nothing), then the whole of it goes through an allow-list sanitiser (`CadenceEmailTemplate`: no
    script, iframe, form or event handler, links only http/https/mailto, images only https, no
    `<style>` block). Without it, Pavillon's own bilingual welcome email. The plain-text part is
    always ours. **Who it is from** (`EmailService.WelcomeSender`): the organisation's `from.name`
@@ -122,6 +123,8 @@ What a `deal.onboarding` does (`CadenceOnboardingService`):
    `from.email` only when it is on the same domain as `FROM_EMAIL`, which SendGrid is set up to
    send for; any other domain would be refused or fail the recipient's DMARC check, so the email
    goes from `FROM_EMAIL` under the organisation's name, with that address as Reply-To instead.
+   A ready design for Founding Members, built on these placeholders and on inline styles only, is in
+   `docs/cadence/founders-letter.en.html`: paste it into CadenceE's Settings › Welcome & portal.
 5. **The answer:** `200 { accountId, status: "created" | "existing" }`. A handoff that can never be
    valid (no email, an unknown version) answers `200 { status: "rejected", message }` and is
    reported as `failed`, so the CRM stops retrying it; without a callback it answers `400`.

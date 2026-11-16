@@ -349,7 +349,7 @@ public class EmailService : IEmailService
             expiry,
         }.Where(s => !string.IsNullOrEmpty(s)));
 
-        var portal = new CadenceEmailTemplate.PortalValues(welcome.SetPasswordUrl, _site.Page("login"), member.Email);
+        var portal = new CadenceEmailTemplate.PortalValues(welcome.SetPasswordUrl, _site.Page("login"), member.Email, member.ReferralCode ?? "");
         var html = "";
         if (!string.IsNullOrWhiteSpace(welcome.CustomHtml))
         {
