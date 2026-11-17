@@ -240,7 +240,8 @@ public class MembersController : ControllerBase
                 CompanyName: "",
                 Source: "Referral from pavillon46.ch",
                 ReferredBy: referrerName,
-                ReferrerEmail: member.Email);
+                ReferrerEmail: member.Email,
+                ReferralCode: member.ReferralCode);
             await _webhook.PostLeadAsync(lead, ct);
         }
         catch (Exception ex)

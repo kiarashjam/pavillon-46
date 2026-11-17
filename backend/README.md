@@ -98,8 +98,22 @@ Events:
 - `deal.onboarding` — `payload` is `{ version: 1, onboardingId, deal { id, name, … }, contact {
   name, firstName, lastName, email, phone, … }, membership { startsOn: "yyyy-MM-dd" | null,
   startUndetermined }, language: "fr" | "en", welcomeMessage, email { subject, html } | null,
-  callback { url, token }, from { name, email, replyTo } | null, … }`.
+  callback { url, token }, from { name, email, replyTo } | null, referrer { name, email } | null, … }`.
+  `referrer` is who referred the new member, as the CRM records it.
+- `member.referrer` — `payload` is `{ version: 1, onboardingId, contact { name, email }, referrer {
+  name, email } }`: the CRM recorded who referred someone it handed over already. Their referral is
+  credited as on a handoff (below); someone not a member here yet answers `200 { ok: true,
+  credited: false }`, since their handoff will carry it.
 - Anything else answers `200 { ok: true, ignored: true }`, so the CRM does not retry it.
+
+**Referrals** (`ReferralLedger`). A referral is an `Applicant` naming the referring member: made from
+the member portal, by an admin, or now from the public form when a member's code is entered (pending,
+once per person and referrer). When the CRM welcomes someone (`deal.onboarding`) or names their
+referrer later (`member.referrer`), their referral is accepted and its referrer gets a successful
+referral and `REFERRAL_BONUS_POINTS`, once, however often the event is delivered. A referral
+recorded here first keeps its referrer; one only the CRM knows is made for the referrer it names
+(found by code, then email). The leads sent to the CRM carry `referredBy`, `referrerEmail` and
+`referralCode`.
 
 What a `deal.onboarding` does (`CadenceOnboardingService`):
 

@@ -12,13 +12,15 @@ public class EmailController : ControllerBase
     private readonly IEmailService _email;
     private readonly ILeadsWebhookService _webhook;
     private readonly IMemberStore _members;
+    private readonly IReferralLedger _referrals;
     private readonly ILogger<EmailController> _logger;
 
-    public EmailController(IEmailService email, ILeadsWebhookService webhook, IMemberStore members, ILogger<EmailController> logger)
+    public EmailController(IEmailService email, ILeadsWebhookService webhook, IMemberStore members, IReferralLedger referrals, ILogger<EmailController> logger)
     {
         _email = email;
         _webhook = webhook;
         _members = members;
+        _referrals = referrals;
         _logger = logger;
     }
 
@@ -64,6 +66,7 @@ public class EmailController : ControllerBase
         var source = "website-form";
         string? referredBy = null;
         string? referrerEmail = null;
+        string? referrerCode = null;
         var referralCode = body.ReferralCode?.Trim();
         if (!string.IsNullOrEmpty(referralCode))
         {
@@ -72,7 +75,17 @@ public class EmailController : ControllerBase
             {
                 referredBy = $"{referrer.FirstName} {referrer.LastName}".Trim();
                 referrerEmail = referrer.Email;
+                referrerCode = referrer.ReferralCode;
                 source = "Referral from pavillon46.ch";
+                // The member's referral, here too: in their portal and the admin's referrals, counted.
+                try
+                {
+                    await _referrals.RecordPendingAsync(referrer, body.FirstName ?? "", body.LastName ?? "", body.EmailAddress ?? "", fullPhone, body.Language ?? "fr", ct);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "The referral from the public form could not be recorded");
+                }
             }
         }
 
@@ -83,7 +96,8 @@ public class EmailController : ControllerBase
             CompanyName: "",
             Source: source,
             ReferredBy: referredBy,
-            ReferrerEmail: referrerEmail);
+            ReferrerEmail: referrerEmail,
+            ReferralCode: referrerCode);
 
         var webhookResult = await _webhook.PostLeadAsync(lead, ct);
 
