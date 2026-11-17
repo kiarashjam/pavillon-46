@@ -924,3 +924,217 @@ export async function adminDraftNewsletterWithAi(
     body: JSON.stringify(body),
   })
 }
+
+// ---------------------------------------------------------------------------
+// Meetings: the public booking page (/rendez-vous, /en/meeting) and the admin
+// Meetings section. Dates are "YYYY-MM-DD" and times "HH:mm", both wall-clock
+// Europe/Zurich, whatever the visitor's own time zone.
+// ---------------------------------------------------------------------------
+
+export type MeetingDayStatus = 'open' | 'full' | 'closed'
+
+export interface MeetingAvailabilityDay {
+  date: string
+  status: MeetingDayStatus
+  /** Free start times, only for an "open" day. */
+  slots: string[]
+}
+
+export interface MeetingAvailabilityDto {
+  timeZone: string
+  slotMinutes: number
+  /** Today in Zurich. */
+  today: string
+  /** The last bookable day (today + the booking horizon). */
+  lastDate: string
+  days: MeetingAvailabilityDay[]
+}
+
+export interface MeetingInviteDto {
+  valid: boolean
+  firstName?: string
+  lastName?: string
+  email?: string
+  code?: string
+}
+
+export interface MeetingBookingBody {
+  date: string
+  time: string
+  firstName: string
+  lastName: string
+  email: string
+  phone: string
+  message: string
+  language: 'fr' | 'en'
+  /** The `?invite=` token from a CadenceE invitation, when there is one. */
+  invite?: string
+}
+
+export interface MeetingBookingResponse {
+  id: string
+  date: string
+  time: string
+  durationMinutes: number
+  /** ISO 8601 with the Zurich offset, e.g. "2026-11-20T10:00:00+01:00". */
+  startsAt: string
+}
+
+/** At most 92 days per call (`errorType: "invalid_range"` beyond). */
+export async function getMeetingAvailability(from: string, to: string): Promise<MeetingAvailabilityDto> {
+  const search = new URLSearchParams({ from, to })
+  return jsonRequest<MeetingAvailabilityDto>(`/api/meetings/availability?${search.toString()}`, {})
+}
+
+/** Always resolves `{ valid: false }` for a forged, expired or unknown token. */
+export async function getMeetingInvite(token: string): Promise<MeetingInviteDto> {
+  const search = new URLSearchParams({ token })
+  return jsonRequest<MeetingInviteDto>(`/api/meetings/invite?${search.toString()}`, {})
+}
+
+/** Rejects with {@link ApiError}: 409 `slot_unavailable` when the time was
+ *  just taken (or is no longer bookable), 400 `invalid_booking` with the
+ *  message for a field, 429 `rate_limited`. */
+export async function bookMeeting(body: MeetingBookingBody): Promise<MeetingBookingResponse> {
+  return jsonRequest<MeetingBookingResponse>('/api/meetings/bookings', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  })
+}
+
+export interface MeetingWeekdayDto {
+  /** ISO weekday: 1 = Monday … 7 = Sunday. */
+  day: number
+  open: boolean
+  from: string
+  to: string
+}
+
+export interface MeetingSettingsDto {
+  timeZone: string
+  slotMinutes: number
+  weekdays: MeetingWeekdayDto[]
+  minNoticeHours: number
+  horizonDays: number
+  notifyEmails: string[]
+  updatedAt?: string
+}
+
+export type UpdateMeetingSettingsBody = Partial<
+  Pick<MeetingSettingsDto, 'slotMinutes' | 'weekdays' | 'minNoticeHours' | 'horizonDays' | 'notifyEmails'>
+>
+
+export interface AdminMeetingDayDto {
+  date: string
+  /** What the public sees now. */
+  status: MeetingDayStatus
+  /** What the team set: the date's override, else its weekday rule. */
+  configured: MeetingDayStatus
+  source: 'weekday' | 'override'
+  weekdayOpen: boolean
+  from: string
+  to: string
+  slots: number
+  free: number
+  bookings: number
+}
+
+export interface AdminMeetingDaysResponse {
+  timeZone: string
+  today: string
+  /** The last bookable day (today + the booking horizon). */
+  lastDate: string
+  days: AdminMeetingDayDto[]
+}
+
+export interface MeetingBookingDto {
+  id: string
+  date: string
+  time: string
+  durationMinutes: number
+  startsAt: string
+  firstName: string
+  lastName: string
+  email: string
+  phone: string
+  message: string
+  language: 'fr' | 'en'
+  crmLeadId: string
+  crmOrganizationId: string
+  code: string
+  status: 'booked' | 'cancelled'
+  createdAt: string
+  cancelledAt?: string
+}
+
+export interface AdminMeetingBookingsResponse {
+  /** Upcoming first (soonest at the top), then past ones, most recent first. */
+  bookings: MeetingBookingDto[]
+  total: number
+  upcoming: number
+}
+
+export async function adminGetMeetingSettings(token: string): Promise<MeetingSettingsDto> {
+  return jsonRequest<MeetingSettingsDto>('/api/admin/meetings/settings', { headers: bearer(token) })
+}
+
+export async function adminUpdateMeetingSettings(
+  token: string,
+  body: UpdateMeetingSettingsBody,
+): Promise<MeetingSettingsDto> {
+  return jsonRequest<MeetingSettingsDto>('/api/admin/meetings/settings', {
+    method: 'PUT',
+    headers: bearer(token),
+    body: JSON.stringify(body),
+  })
+}
+
+export async function adminListMeetingDays(
+  token: string,
+  from: string,
+  to: string,
+): Promise<AdminMeetingDaysResponse> {
+  const search = new URLSearchParams({ from, to })
+  return jsonRequest<AdminMeetingDaysResponse>(`/api/admin/meetings/days?${search.toString()}`, {
+    headers: bearer(token),
+  })
+}
+
+/** `default` removes the date's override, so it follows its weekday again. */
+export async function adminSetMeetingDay(
+  token: string,
+  date: string,
+  status: MeetingDayStatus | 'default',
+): Promise<AdminMeetingDayDto> {
+  return jsonRequest<AdminMeetingDayDto>(`/api/admin/meetings/days/${encodeURIComponent(date)}`, {
+    method: 'PUT',
+    headers: bearer(token),
+    body: JSON.stringify({ status }),
+  })
+}
+
+export async function adminListMeetingBookings(
+  token: string,
+  params: { from?: string; to?: string; status?: 'all' | 'booked' | 'cancelled' } = {},
+): Promise<AdminMeetingBookingsResponse> {
+  const search = new URLSearchParams()
+  if (params.from) search.set('from', params.from)
+  if (params.to) search.set('to', params.to)
+  if (params.status) search.set('status', params.status)
+  const qs = search.toString()
+  return jsonRequest<AdminMeetingBookingsResponse>(`/api/admin/meetings/bookings${qs ? `?${qs}` : ''}`, {
+    headers: bearer(token),
+  })
+}
+
+/** Frees the slot and emails the person a short note (`emailed` says whether
+ *  it went). Rejects with 409 `already_cancelled` or 404 `not_found`. */
+export async function adminCancelMeetingBooking(
+  token: string,
+  id: string,
+): Promise<{ booking: MeetingBookingDto; emailed: boolean }> {
+  return jsonRequest(`/api/admin/meetings/bookings/${encodeURIComponent(id)}/cancel`, {
+    method: 'POST',
+    headers: bearer(token),
+  })
+}

@@ -453,6 +453,80 @@ export interface LegalOrPrivacyTranslations {
   location: string
 }
 
+export interface BookingTranslations {
+  title: string
+  description: string
+  eyebrow: string
+  headingStart: string
+  headingAccent: string
+  lede: string
+  inviteGreeting: string
+  inviteInvalid: string
+  durationLabel: string
+  durationValue: string
+  placeLabel: string
+  placeValue: string
+  codeLabel: string
+  timeZoneNote: string
+  stepsLabel: string
+  stepDay: string
+  stepTime: string
+  stepDetails: string
+  chooseDay: string
+  prevMonth: string
+  nextMonth: string
+  legendAvailable: string
+  legendFull: string
+  legendClosed: string
+  dayAvailable: string
+  dayAvailableOne: string
+  dayFull: string
+  dayClosed: string
+  today: string
+  calendarHelp: string
+  chooseTime: string
+  chooseDayFirst: string
+  morning: string
+  afternoon: string
+  noSlots: string
+  noAvailability: string
+  nextAvailable: string
+  loading: string
+  loadError: string
+  retry: string
+  yourDetails: string
+  selectedSlot: string
+  change: string
+  firstName: string
+  lastName: string
+  email: string
+  phone: string
+  phoneHint: string
+  message: string
+  optional: string
+  messagePlaceholder: string
+  lockedHint: string
+  confirm: string
+  confirming: string
+  errFirstName: string
+  errLastName: string
+  errEmail: string
+  errPhone: string
+  errMessage: string
+  errTaken: string
+  errRateLimited: string
+  errGeneric: string
+  doneEyebrow: string
+  doneHeading: string
+  doneHeadingNoName: string
+  doneBody: string
+  addToCalendar: string
+  backHome: string
+  contactLine: string
+  icsTitle: string
+  icsDescription: string
+}
+
 export interface Translations {
   common: CommonTranslations
   home: HomeTranslations
@@ -460,6 +534,7 @@ export interface Translations {
   login: LoginTranslations
   dashboard: DashboardTranslations
   thankYou: ThankYouTranslations
+  booking: BookingTranslations
   privacy: LegalOrPrivacyTranslations
   legal: LegalOrPrivacyTranslations
 }
@@ -830,6 +905,79 @@ export const translations: Record<Language, Translations> = {
       heading: 'Merci pour votre demande',
       message1: 'Vous recevrez un e-mail de confirmation.',
       message2: 'Nous vous contacterons sous peu.',
+    },
+    booking: {
+      title: 'Réservez votre rencontre — Pavillon 46',
+      description: "Choisissez le jour et l'heure de votre rencontre avec l'équipe du Pavillon 46.",
+      eyebrow: 'Rendez-vous privé',
+      headingStart: 'Réservez votre',
+      headingAccent: 'rencontre',
+      lede: "Choisissez un jour, puis l'heure qui vous convient. Quelques secondes suffisent.",
+      inviteGreeting: 'Bonjour {name}, nous serions ravis de vous accueillir.',
+      inviteInvalid: "Ce lien d'invitation n'est plus valable. Vous pouvez tout de même réserver ci-dessous.",
+      durationLabel: 'Durée',
+      durationValue: '{minutes} minutes',
+      placeLabel: 'Lieu',
+      placeValue: 'Pavillon 46 · La Croix-sur-Lutry · Vaud, Suisse',
+      codeLabel: 'Votre code',
+      timeZoneNote: 'Heures de Suisse',
+      stepsLabel: 'Étapes de la réservation',
+      stepDay: 'Jour',
+      stepTime: 'Heure',
+      stepDetails: 'Coordonnées',
+      chooseDay: 'Choisissez un jour',
+      prevMonth: 'Mois précédent',
+      nextMonth: 'Mois suivant',
+      legendAvailable: 'Disponible',
+      legendFull: 'Complet',
+      legendClosed: 'Indisponible',
+      dayAvailable: '{count} heures libres',
+      dayAvailableOne: '1 heure libre',
+      dayFull: 'complet',
+      dayClosed: 'indisponible',
+      today: "aujourd'hui",
+      calendarHelp: 'Flèches pour changer de jour, Entrée pour le choisir.',
+      chooseTime: 'Choisissez une heure',
+      chooseDayFirst: 'Sélectionnez un jour pour voir les heures libres.',
+      morning: 'Matin',
+      afternoon: 'Après-midi',
+      noSlots: 'Plus aucune heure libre ce jour-là. Choisissez un autre jour.',
+      noAvailability: "Aucune date n'est ouverte pour le moment. Écrivez-nous à info@pavillon46.ch : nous trouverons un moment ensemble.",
+      nextAvailable: 'Prochaine disponibilité',
+      loading: 'Chargement des disponibilités…',
+      loadError: 'Impossible de charger les disponibilités.',
+      retry: 'Réessayer',
+      yourDetails: 'Vos coordonnées',
+      selectedSlot: 'Votre rendez-vous',
+      change: 'Modifier',
+      firstName: 'Prénom',
+      lastName: 'Nom',
+      email: 'Adresse e-mail',
+      phone: 'Téléphone',
+      phoneHint: 'Pour vous joindre si besoin.',
+      message: 'Message',
+      optional: 'facultatif',
+      messagePlaceholder: 'Une question, une précision ?',
+      lockedHint: 'Repris de votre invitation.',
+      confirm: 'Confirmer le rendez-vous',
+      confirming: 'Réservation…',
+      errFirstName: 'Indiquez votre prénom.',
+      errLastName: 'Indiquez votre nom.',
+      errEmail: 'Indiquez une adresse e-mail valide.',
+      errPhone: 'Indiquez un numéro de téléphone valide.',
+      errMessage: 'Votre message est trop long (1000 caractères au plus).',
+      errTaken: "Cette heure vient d'être réservée. Choisissez-en une autre.",
+      errRateLimited: 'Trop de tentatives. Réessayez dans quelques minutes.',
+      errGeneric: "La réservation n'a pas abouti. Réessayez, ou écrivez-nous à info@pavillon46.ch.",
+      doneEyebrow: 'Rendez-vous confirmé',
+      doneHeading: "C'est noté, {name}.",
+      doneHeadingNoName: "C'est noté.",
+      doneBody: 'Une confirmation vient de partir à {email}. Nous nous réjouissons de vous rencontrer.',
+      addToCalendar: 'Ajouter à mon calendrier',
+      backHome: "Retour à l'accueil",
+      contactLine: 'Un empêchement ? Écrivez-nous à',
+      icsTitle: 'Rencontre au Pavillon 46',
+      icsDescription: "Votre rendez-vous avec l'équipe du Pavillon 46. Une question ? info@pavillon46.ch",
     },
     privacy: {
       title: 'Politique de confidentialité - Pavillon 46',
@@ -1248,6 +1396,79 @@ export const translations: Record<Language, Translations> = {
       heading: 'Thank you for your inquiry',
       message1: "You'll receive a confirmation email.",
       message2: 'We will contact you shortly.',
+    },
+    booking: {
+      title: 'Book your meeting — Pavillon 46',
+      description: 'Choose the day and time of your meeting with the Pavillon 46 team.',
+      eyebrow: 'Private meeting',
+      headingStart: 'Book your',
+      headingAccent: 'meeting',
+      lede: 'Pick a day, then the time that suits you. It only takes a few seconds.',
+      inviteGreeting: 'Hello {name}, we would be delighted to welcome you.',
+      inviteInvalid: 'This invitation link is no longer valid. You can still book below.',
+      durationLabel: 'Duration',
+      durationValue: '{minutes} minutes',
+      placeLabel: 'Place',
+      placeValue: 'Pavillon 46 · La Croix-sur-Lutry · Vaud, Switzerland',
+      codeLabel: 'Your code',
+      timeZoneNote: 'Swiss time',
+      stepsLabel: 'Booking steps',
+      stepDay: 'Day',
+      stepTime: 'Time',
+      stepDetails: 'Details',
+      chooseDay: 'Choose a day',
+      prevMonth: 'Previous month',
+      nextMonth: 'Next month',
+      legendAvailable: 'Available',
+      legendFull: 'Full',
+      legendClosed: 'Unavailable',
+      dayAvailable: '{count} times available',
+      dayAvailableOne: '1 time available',
+      dayFull: 'full',
+      dayClosed: 'unavailable',
+      today: 'today',
+      calendarHelp: 'Arrow keys move between days, Enter chooses one.',
+      chooseTime: 'Choose a time',
+      chooseDayFirst: 'Select a day to see the free times.',
+      morning: 'Morning',
+      afternoon: 'Afternoon',
+      noSlots: 'No time left that day. Please pick another day.',
+      noAvailability: 'No dates are open right now. Write to us at info@pavillon46.ch and we will find a time together.',
+      nextAvailable: 'Next available',
+      loading: 'Loading availability…',
+      loadError: "We couldn't load the availability.",
+      retry: 'Try again',
+      yourDetails: 'Your details',
+      selectedSlot: 'Your meeting',
+      change: 'Change',
+      firstName: 'First name',
+      lastName: 'Last name',
+      email: 'Email address',
+      phone: 'Phone',
+      phoneHint: 'So we can reach you if needed.',
+      message: 'Message',
+      optional: 'optional',
+      messagePlaceholder: 'A question, anything we should know?',
+      lockedHint: 'From your invitation.',
+      confirm: 'Confirm the meeting',
+      confirming: 'Booking…',
+      errFirstName: 'Please enter your first name.',
+      errLastName: 'Please enter your last name.',
+      errEmail: 'Please enter a valid email address.',
+      errPhone: 'Please enter a valid phone number.',
+      errMessage: 'Your message is too long (1,000 characters at most).',
+      errTaken: 'This time was just taken. Please pick another.',
+      errRateLimited: 'Too many attempts. Please try again in a few minutes.',
+      errGeneric: "The booking didn't go through. Please try again, or write to us at info@pavillon46.ch.",
+      doneEyebrow: 'Meeting confirmed',
+      doneHeading: 'All set, {name}.',
+      doneHeadingNoName: 'All set.',
+      doneBody: 'A confirmation is on its way to {email}. We look forward to meeting you.',
+      addToCalendar: 'Add to my calendar',
+      backHome: 'Back to the home page',
+      contactLine: 'Something came up? Write to us at',
+      icsTitle: 'Meeting at Pavillon 46',
+      icsDescription: 'Your meeting with the Pavillon 46 team. Any question? info@pavillon46.ch',
     },
     privacy: {
       title: 'Privacy Policy - Pavillon 46',

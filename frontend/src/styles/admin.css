@@ -872,6 +872,99 @@
   .adash-seg { overflow-x: auto; }
 }
 
+/* ---------- Meetings (calendar, bookings, hours & rules) ---------- */
+.adash-mtg-page-link { text-decoration: none; }
+.adash-kpi-value.adash-mtg-kpi-next { font-size: 19px; line-height: 1.3; font-weight: 500; }
+.adash-mtg-cal-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.adash-mtg-cal-title { text-align: center; }
+.adash-mtg-cal-title h3 { margin: 0; font-size: 20px; font-weight: 400; }
+.adash-mtg-cal-title p { margin: 3px 0 0; font-size: 12.5px; color: var(--ad-muted); }
+.adash-mtg-legend { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 0 0 10px; font-size: 12px; color: var(--ad-muted); }
+.adash-mtg-legend span { display: inline-flex; align-items: center; gap: 7px; }
+.adash-mtg-legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+.adash-mtg-legend i.is-open { background: var(--ad-success); }
+.adash-mtg-legend i.is-full { background: var(--ad-lavender); }
+.adash-mtg-legend i.is-closed { border: 1px dashed var(--ad-border-strong); }
+.adash-mtg-legend-note { margin-left: auto; }
+.adash-mtg-live { margin: 0 0 10px; min-height: 18px; font-size: 12.5px; color: var(--ad-success); }
+.adash-mtg-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; transition: opacity 0.2s var(--ad-ease); }
+.adash-mtg-grid.is-loading { opacity: 0.6; }
+.adash-mtg-dow { padding-bottom: 2px; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ad-muted); text-align: center; }
+.adash-mtg-day {
+  display: flex; flex-direction: column; gap: 8px; min-width: 0; min-height: 124px; padding: 10px;
+  border-radius: 12px; border: 1px solid var(--ad-border); background: var(--ad-surface);
+  box-shadow: inset 3px 0 0 transparent;
+}
+.adash-mtg-day.is-open { box-shadow: inset 3px 0 0 var(--ad-success); }
+.adash-mtg-day.is-full { box-shadow: inset 3px 0 0 var(--ad-lavender); background: color-mix(in srgb, var(--ad-lavender) 8%, transparent); }
+.adash-mtg-day.is-closed { background: transparent; border-style: dashed; }
+.adash-mtg-day.is-past { opacity: 0.42; min-height: 64px; }
+.adash-mtg-day.is-today { border-color: var(--ad-coral); }
+.adash-mtg-day-top { display: flex; align-items: center; justify-content: space-between; gap: 6px; min-height: 24px; }
+.adash-mtg-day-num { font-size: 17px; font-weight: 500; color: var(--ad-text); white-space: nowrap; }
+.adash-mtg-day-dow { display: none; }
+.adash-mtg-day-mark { margin-left: 5px; font-size: 8px; color: var(--ad-coral); vertical-align: 4px; }
+.adash-mtg-count {
+  border: 0; border-radius: 999px; padding: 3px 8px; cursor: pointer; white-space: nowrap;
+  background: color-mix(in srgb, var(--ad-coral) 22%, transparent); color: var(--ad-text);
+  font-family: var(--font-primary); font-size: 11px; font-weight: 600;
+}
+.adash-mtg-count:hover { background: color-mix(in srgb, var(--ad-coral) 34%, transparent); }
+.adash-mtg-count:focus-visible { outline: 2px solid var(--ad-coral); outline-offset: 2px; }
+.adash-mtg-day-sub { flex: 1; margin: 0; font-size: 11.5px; line-height: 1.35; color: var(--ad-muted); }
+.adash-mtg-seg { display: flex; width: 100%; }
+.adash-mtg-seg button { flex: 1; min-width: 0; padding: 5px 0; font-size: 11px; }
+.adash-mtg-chip {
+  display: inline-flex; align-items: center; gap: 12px; padding: 7px 14px; border-radius: 999px;
+  background: var(--ad-surface); border: 1px solid var(--ad-border); font-size: 13.5px;
+}
+.adash-mtg-ok {
+  margin: 0; padding: 11px 14px; border-radius: 11px; font-size: 13.5px; color: var(--ad-success);
+  background: color-mix(in srgb, var(--ad-success) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ad-success) 38%, transparent);
+}
+.adash-mtg-msg { max-width: 260px; }
+.adash-mtg-msg > span:first-child {
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+  white-space: pre-wrap; font-size: 13px; line-height: 1.45; color: var(--ad-text);
+}
+.adash-mtg-tel { text-decoration: none; }
+.adash-mtg-tel:hover { text-decoration: underline; }
+.adash-mtg-rules { display: flex; flex-direction: column; gap: 22px; }
+.adash-mtg-week { display: grid; gap: 8px; margin-bottom: 12px; }
+.adash-mtg-weekday {
+  display: grid; grid-template-columns: minmax(150px, 1.2fr) minmax(110px, 1fr) auto minmax(110px, 1fr) minmax(90px, 0.8fr);
+  align-items: center; gap: 12px; padding: 8px 12px; border-radius: 12px; background: var(--ad-surface);
+}
+.adash-mtg-weekday.is-off { background: transparent; border: 1px dashed var(--ad-border); }
+.adash-mtg-weekday.is-off .adash-mtg-time input { opacity: 0.55; }
+.adash-mtg-weekday-name span { font-size: 14px; font-weight: 500; }
+.adash-mtg-time input { width: 100%; color-scheme: dark; }
+.adash-mtg-weekday-count { font-size: 12.5px; color: var(--ad-muted); text-align: right; }
+.adash-mtg-weekday-count.is-bad { color: var(--ad-coral); }
+@media (max-width: 1100px) {
+  .adash-mtg-grid { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  /* As a list, past days are only noise above the dates that matter. */
+  .adash-mtg-dow, .adash-mtg-pad, .adash-mtg-day.is-past { display: none; }
+  .adash-mtg-day {
+    display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center;
+    gap: 2px 12px; min-height: 0; padding: 10px 12px;
+  }
+  .adash-mtg-day-top { justify-content: flex-start; gap: 10px; }
+  .adash-mtg-day-dow { display: inline; font-weight: 400; color: var(--ad-muted); }
+  .adash-mtg-day-num { font-size: 15px; }
+  .adash-mtg-seg { grid-column: 2; grid-row: 1 / span 2; width: auto; }
+  .adash-mtg-seg button { padding: 6px 12px; font-size: 12px; }
+  .adash-mtg-legend-note { margin-left: 0; }
+}
+@media (max-width: 640px) {
+  .adash-mtg-day { grid-template-columns: minmax(0, 1fr); }
+  .adash-mtg-seg { grid-column: 1; grid-row: auto; margin-top: 6px; }
+  .adash-mtg-seg button { flex: 1; }
+  .adash-mtg-weekday { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); }
+  .adash-mtg-weekday-name, .adash-mtg-weekday-count { grid-column: 1 / -1; text-align: left; }
+}
+
 /* ---------- Responsive ---------- */
 @media (max-width: 1080px) {
   .adash-kpi-grid { grid-template-columns: repeat(2, 1fr); }
