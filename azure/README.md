@@ -55,6 +55,9 @@ In **Azure Portal → App Service → pavillon46-api → Configuration → Appli
 - `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_VERIFY_SERVICE_SID`
 - `LEADS_WEBHOOK_URL`, `LEADS_WEBHOOK_API_KEY` (optional)
 - `ACTIVITY_REPORT_KEY`, `ACTIVITY_IP_SALT`, `ACTIVITY_DAILY_REPORT_TO`
+- `MEETINGS_NOTIFY_EMAILS` (optional) — who is told about each meeting booking until an admin
+  saves the list in the console; defaults to `info@pavillon46.ch`. Meeting invitations from
+  CadenceE need `CADENCE_ONBOARDING_SECRET`.
 
 `AZURE_STORAGE_CONNECTION_STRING` and CORS origins are set automatically by Bicep.
 

@@ -16,9 +16,9 @@ npm run build    # tsc -b && vite build — this is the typecheck, run it
 
 | Path | What lives there |
 | --- | --- |
-| `src/main.tsx` | Entry point. Imports **all eight stylesheets**, globally. |
+| `src/main.tsx` | Entry point. Imports **all nine stylesheets**, globally. |
 | `src/App.tsx` | Every route, and the providers that wrap them. |
-| `src/pages/` | Public pages: home, waitlist, thank-you, login, password flows, legal/privacy. |
+| `src/pages/` | Public pages: home, waitlist, thank-you, meeting booking, login, password flows, legal/privacy. |
 | `src/pages/dashboard/` | Member portal pages, rendered inside `components/dashboard/DashboardLayout`. |
 | `src/pages/admin/` | Admin console pages, rendered inside `components/admin/AdminLayout`. |
 | `src/components/admin/` | `adminUi.tsx` (form fields, password meter, empty and loading states), `AdminModal`, `AdminGate` (sign-in screens), `NewsletterSendConfirmModal`. Reuse these before writing new ones. |
@@ -26,6 +26,7 @@ npm run build    # tsc -b && vite build — this is the typecheck, run it
 | `src/lib/api.ts` | **Every** call to the API, as typed functions. |
 | `src/lib/translations.ts` | All French and English copy, plus `OPENING_YEAR`. |
 | `src/lib/motion.ts` | Typed easing curves for framer-motion. |
+| `src/lib/booking.ts` | Pure date, calendar-grid and `.ics` helpers for meetings (Zurich `YYYY-MM-DD` strings, no time-zone drift). |
 | `src/lib/constants.ts` | App name, default language (`fr`), image paths, shared animation variants. |
 | `public/` | Fonts, images, favicons. |
 
@@ -76,7 +77,7 @@ npm run build    # tsc -b && vite build — this is the typecheck, run it
   and the `en` objects — TypeScript fails the build if one is missing. Read
   them with `useTranslations(language, '<section>')` and `useLanguage()`.
 - Sections: `common`, `home`, `waitlist`, `login`, `dashboard`, `thankYou`,
-  `privacy`, `legal`. Member-portal strings go in `dashboard`.
+  `booking`, `privacy`, `legal`. Member-portal strings go in `dashboard`.
 - **The admin console is English-only, hard-coded** — except the newsletter
   pages (`AdminNewslettersSection`, `AdminNewsletterEditor`,
   `NewsletterSendConfirmModal`), which are bilingual and take their strings
@@ -89,7 +90,7 @@ npm run build    # tsc -b && vite build — this is the typecheck, run it
 
 ## Styling
 
-- Plain global CSS — no CSS modules, no Tailwind, no CSS-in-JS. All eight
+- Plain global CSS — no CSS modules, no Tailwind, no CSS-in-JS. All nine
   files load on every page, so **scope every new rule with its area's class
   prefix**:
 
@@ -101,6 +102,7 @@ npm run build    # tsc -b && vite build — this is the typecheck, run it
   | `auth.css` | `auth-` | Member sign-in and password pages |
   | `dashboard.css` | `dash-` | Member portal (tokens `--dash-*`) |
   | `admin.css` | `adash-` | Admin console, dark theme (tokens `--ad-*`) |
+  | `booking.css` | `book-` | Meeting booking page (tokens `--book-*`) |
 
 - Colours: use `var(--color-green)`, `var(--color-coral)`, `var(--color-cream)`,
   `var(--color-lavender)` — or the area tokens (`--dash-*`, `--ad-*`). Don't

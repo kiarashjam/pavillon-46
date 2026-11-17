@@ -18,6 +18,8 @@ All routes are declared in `src/App.tsx`.
 | `/set-password` | `SetPassword` | Member chooses a password at first sign-in (the portal sends them here) |
 | `/forgot-password` | `ForgotPassword` | Member requests a reset link |
 | `/reset-password` | `ResetPassword` | Member sets a new password from the emailed link. With `&welcome=1` (the CadenceE welcome email) it shows welcome copy for a first password |
+| `/rendez-vous` | `Booking` (`lang="fr"`) | Book a meeting: free days, times, details, confirmation with an `.ics` download. `?invite=` takes a CadenceE invitation token (prefills and locks name and email, shows the code) |
+| `/en/meeting` | `Booking` (`lang="en"`) | The same page in English. The address sets the language; its FR/EN switch moves between the two addresses and keeps the visitor's choice |
 | `/legal` | `LegalOrPrivacy` | Legal notices |
 | `/privacy` | `LegalOrPrivacy` | Privacy policy |
 
@@ -51,6 +53,9 @@ All routes are declared in `src/App.tsx`.
 | `/admin/activity` | `AdminActivitySection` | Visitor analytics |
 | `/admin/newsletters` | `AdminNewslettersSection` | Newsletter list |
 | `/admin/newsletters/:id` | `AdminNewsletterEditor` | Write, AI-draft, publish and send a newsletter |
+| `/admin/meetings` | `AdminMeetingsSection` | Meetings: a month calendar (each day open, full or closed in one click), the bookings (cancel), weekly hours and booking rules. `?tab=calendar\|bookings\|rules` |
+
+`Booking` and `AdminMeetingsSection` are lazy-loaded (`React.lazy` in `App.tsx`).
 
 There is no catch-all route: an unknown path renders an empty page.
 
