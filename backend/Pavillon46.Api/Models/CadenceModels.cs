@@ -35,6 +35,24 @@ public class CadenceOnboardingPayload
     // Who the welcome is from: the organisation that won the deal. See
     // EmailService.WelcomeSender for what is honoured.
     public CadenceFrom? From { get; set; }
+    // Who referred this person, as the CRM records it ("Referred by"), when it knows.
+    public CadenceReferrer? Referrer { get; set; }
+}
+
+public class CadenceReferrer
+{
+    public string? Name { get; set; }
+    public string? Email { get; set; }
+    public string? ReferralCode { get; set; }
+}
+
+// A "member.referrer" event: the CRM recorded who referred someone it handed over already.
+public class CadenceReferrerPayload
+{
+    public int Version { get; set; }
+    public string? OnboardingId { get; set; }
+    public CadenceContact? Contact { get; set; }
+    public CadenceReferrer? Referrer { get; set; }
 }
 
 public class CadenceFrom

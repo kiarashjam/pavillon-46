@@ -33,6 +33,7 @@ builder.Services.AddSingleton<IVerificationService, VerificationService>();
 builder.Services.AddSingleton<IDailyReportService, DailyReportService>();
 builder.Services.AddSingleton<IMemberStore, MemberStore>();
 builder.Services.AddSingleton<IApplicantStore, ApplicantStore>();
+builder.Services.AddSingleton<IReferralLedger, ReferralLedger>();
 builder.Services.AddSingleton<IAdminStore, AdminStore>();
 builder.Services.AddSingleton<IPasswordResetTokenStore, PasswordResetTokenStore>();
 builder.Services.AddSingleton<INewsletterStore, NewsletterStore>();

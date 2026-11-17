@@ -95,7 +95,9 @@ public record LeadPayload(
     [property: JsonPropertyName("companyName")] string CompanyName,
     string Source,
     [property: JsonPropertyName("referredBy")] string? ReferredBy = null,
-    [property: JsonPropertyName("referrerEmail")] string? ReferrerEmail = null
+    [property: JsonPropertyName("referrerEmail")] string? ReferrerEmail = null,
+    // The referrer's own code (PAV-7KQ), so the CRM shows which code brought the lead in.
+    [property: JsonPropertyName("referralCode")] string? ReferralCode = null
 );
 
 public class WebhookResult

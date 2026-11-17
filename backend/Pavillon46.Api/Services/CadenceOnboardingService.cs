@@ -14,6 +14,13 @@ public interface ICadenceOnboardingService
     /// checked the signature. Returns the HTTP status and body to answer.
     /// </summary>
     Task<(int Status, object Body)> HandleOnboardingAsync(string eventId, CadenceOnboardingPayload payload, CancellationToken ct = default);
+
+    /// <summary>
+    /// A <c>member.referrer</c> event: CadenceE recorded who referred a member it handed over
+    /// already. The referral is credited as it is from a handoff; someone not a member here yet
+    /// is answered without error, since their handoff will carry it.
+    /// </summary>
+    Task<object> HandleReferrerAsync(CadenceReferrerPayload payload, CancellationToken ct = default);
 }
 
 /// <summary>
@@ -49,6 +56,7 @@ public sealed class CadenceOnboardingService : ICadenceOnboardingService
     private readonly CadenceOptions _options;
     private readonly SiteOptions _site;
     private readonly ILogger<CadenceOnboardingService> _logger;
+    private readonly IReferralLedger? _referrals;
 
     public CadenceOnboardingService(
         IMemberStore members,
@@ -58,8 +66,10 @@ public sealed class CadenceOnboardingService : ICadenceOnboardingService
         IEmailService email,
         IOptions<CadenceOptions> options,
         IOptions<SiteOptions> site,
-        ILogger<CadenceOnboardingService> logger)
+        ILogger<CadenceOnboardingService> logger,
+        IReferralLedger? referrals = null)
     {
+        _referrals = referrals;
         _members = members;
         _resetTokens = resetTokens;
         _events = events;
@@ -184,6 +194,20 @@ public sealed class CadenceOnboardingService : ICadenceOnboardingService
         member.UpdatedAt = now.ToString("o");
         await _members.UpsertAsync(member, ct);
 
+        // They joined: their referral (named by the CRM, or made here before) is accepted and its
+        // referrer rewarded, once. A referral that cannot be credited never stops the welcome.
+        if (_referrals != null)
+        {
+            try
+            {
+                await _referrals.CreditJoinAsync(member, p.Referrer, ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "cadence.onboarding.referral_not_credited event={EventId} memberId={MemberId}", eventId, member.Id);
+            }
+        }
+
         await _events.SaveAsync(new CadenceEventRecord
         {
             Id = eventId, OnboardingId = onboardingId, AccountId = member.Id, Status = status, ReceivedAtUtc = now.ToString("o"),
@@ -293,6 +317,20 @@ public sealed class CadenceOnboardingService : ICadenceOnboardingService
         // A member always has a name to greet them by.
         if (first.Length == 0) first = email[..email.IndexOf('@')];
         return (Clip(first, 100), Clip(last, 100));
+    }
+
+    public async Task<object> HandleReferrerAsync(CadenceReferrerPayload payload, CancellationToken ct = default)
+    {
+        var email = payload.Contact?.Email?.Trim() ?? "";
+        var member = email.Length == 0 ? null : await _members.GetByEmailAsync(email, ct);
+        if (member is null || _referrals is null)
+        {
+            // Not a member here (yet): their handoff will carry the referrer.
+            return new { ok = true, credited = false };
+        }
+        var credited = await _referrals.CreditJoinAsync(member, payload.Referrer, ct);
+        _logger.LogInformation("cadence.referrer memberId={MemberId} credited={Credited}", member.Id, credited);
+        return new { ok = true, credited };
     }
 
     private async Task<string> UniqueReferralCodeAsync(CancellationToken ct)

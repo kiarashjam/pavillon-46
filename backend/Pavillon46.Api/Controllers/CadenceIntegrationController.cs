@@ -127,6 +127,24 @@ public class CadenceIntegrationController : ControllerBase
                 var (status, result) = await _onboarding.HandleOnboardingAsync(envelope.Id, payload, ct);
                 return StatusCode(status, result);
 
+            case "member.referrer":
+                CadenceReferrerPayload? referrer;
+                try
+                {
+                    referrer = envelope.Payload.ValueKind == JsonValueKind.Object
+                        ? envelope.Payload.Deserialize<CadenceReferrerPayload>(Json)
+                        : null;
+                }
+                catch (JsonException)
+                {
+                    referrer = null;
+                }
+                if (referrer is null)
+                {
+                    return BadRequest(new { message = "The event has no payload.", errorType = "invalid_handoff" });
+                }
+                return Ok(await _onboarding.HandleReferrerAsync(referrer, ct));
+
             default:
                 // Answered 200 so the CRM does not retry an event this portal
                 // has no use for; it is not an error on either side.
