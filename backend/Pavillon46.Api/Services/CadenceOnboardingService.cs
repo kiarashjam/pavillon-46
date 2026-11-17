@@ -297,12 +297,14 @@ public sealed class CadenceOnboardingService : ICadenceOnboardingService
 
     private async Task<string> UniqueReferralCodeAsync(CancellationToken ct)
     {
-        for (var attempt = 0; attempt < 8; attempt++)
+        // Three characters after "PAV-" while those are plentiful; one more for each round of
+        // ten draws that all came back taken, so a crowded club still gets a code quickly.
+        for (var attempt = 0; attempt < 40; attempt++)
         {
-            var code = PasswordHasher.GenerateReferralCode();
+            var code = PasswordHasher.GenerateReferralCode(PasswordHasher.ReferralCodeLength + attempt / 10);
             if (await _members.GetByReferralCodeAsync(code, ct) is null) return code;
         }
-        return "PAV-" + Guid.NewGuid().ToString("N")[..6].ToUpperInvariant();
+        return PasswordHasher.GenerateReferralCode(8);
     }
 
     private static bool LooksLikeEmail(string s)
