@@ -64,8 +64,18 @@ public static class PasswordHasher
         }
     }
 
-    /// <summary>Generates a member referral code, e.g. "PAV-7KQM9X".</summary>
-    public static string GenerateReferralCode() => "PAV-" + RandomToken(6);
+    /// <summary>
+    /// Generates a member referral code: "PAV-" and <paramref name="length"/> characters, three
+    /// by default ("PAV-7KQ"), short enough to say aloud and type from memory. The alphabet has
+    /// no 0/O or 1/I/L to misread. Callers make it unique (see <see cref="ReferralCodeLength"/>).
+    /// </summary>
+    public static string GenerateReferralCode(int length = ReferralCodeLength) => "PAV-" + RandomToken(length);
+
+    /// <summary>
+    /// Characters after "PAV-" in a new referral code: three, about 30,000 codes. A caller that
+    /// keeps drawing codes already taken moves to one character more.
+    /// </summary>
+    public const int ReferralCodeLength = 3;
 
     /// <summary>Generates a per-application reference, e.g. "APP-3F8K2D".</summary>
     public static string GenerateApplicationCode() => "APP-" + RandomToken(6);
