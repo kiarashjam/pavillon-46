@@ -67,6 +67,8 @@ public class AzureStorageOptions
     public string PasswordResetTokensTableName { get; set; } = "PasswordResetTokens";
     public string NewslettersTableName { get; set; } = "Newsletters";
     public string CadenceEventsTableName { get; set; } = "CadenceEvents";
+    // Meeting settings, day overrides and bookings, one partition each.
+    public string MeetingsTableName { get; set; } = "Meetings";
 }
 
 /// <summary>
@@ -220,4 +222,22 @@ public class AuthOptions
     // configured. Empty => ~/.pavillon46/.
     public string FilePath { get; set; } = "";
     public bool DisableFileStorage { get; set; }
+}
+
+/// <summary>
+/// Meeting booking (MeetingsController). Populated from
+/// <c>MEETINGS_NOTIFY_EMAILS</c> in <c>Program.MapLegacyEnvVars</c>.
+/// </summary>
+public class MeetingOptions
+{
+    // Who is told about each booking until an admin saves the meeting settings,
+    // which then hold their own list. Comma- or semicolon-separated.
+    public string NotifyEmails { get; set; } = "info@pavillon46.ch";
+
+    public List<string> DefaultNotifyEmails() =>
+        (NotifyEmails ?? "")
+            .Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Where(e => e.Contains('@'))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
 }

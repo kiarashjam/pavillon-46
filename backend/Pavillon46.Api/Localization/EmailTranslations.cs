@@ -214,6 +214,129 @@ public static class EmailTranslations
         return Welcome(lang).StartUndetermined;
     }
 
+    // -----------------------------------------------------------------------
+    // Meetings — MeetingEmailService. The person who booked gets their own
+    // language; the team's notification is French, like the rest of its mail.
+    // -----------------------------------------------------------------------
+    public record MeetingConfirmationStrings(
+        Func<string, string> Subject,
+        string Eyebrow,
+        Func<string, string> Heading,
+        string Intro,
+        string DateLabel,
+        string TimeLabel,
+        string DurationLabel,
+        string PlaceLabel,
+        string CodeLabel,
+        Func<string, string, string> TimeValue,
+        Func<int, string> Duration,
+        string Address,
+        string Contact,
+        string Closing,
+        string Team
+    );
+
+    public static MeetingConfirmationStrings MeetingConfirmation(string lang) => lang == "en"
+        ? new MeetingConfirmationStrings(
+            Subject: when => $"Your meeting at Pavillon 46 is confirmed — {when}",
+            Eyebrow: "Meeting confirmed",
+            Heading: name => string.IsNullOrWhiteSpace(name) ? "We look forward to meeting you" : $"We look forward to meeting you, {name}",
+            Intro: "Your meeting with the Pavillon 46 team is booked. Here is everything you need.",
+            DateLabel: "Date",
+            TimeLabel: "Time",
+            DurationLabel: "Duration",
+            PlaceLabel: "Place",
+            CodeLabel: "Reference",
+            TimeValue: (start, end) => $"{start} – {end} (Swiss time)",
+            Duration: minutes => $"{minutes} minutes",
+            Address: "Pavillon 46 · La Croix-sur-Lutry · Vaud, Switzerland",
+            Contact: "Something came up, or a question? Write to us at",
+            Closing: "With warm regards,",
+            Team: "The Pavillon 46 team")
+        : new MeetingConfirmationStrings(
+            Subject: when => $"Votre rendez-vous au Pavillon 46 est confirmé — {when}",
+            Eyebrow: "Rendez-vous confirmé",
+            Heading: name => string.IsNullOrWhiteSpace(name) ? "À très bientôt" : $"À très bientôt, {name}",
+            Intro: "Votre rencontre avec l'équipe du Pavillon 46 est réservée. Voici l'essentiel.",
+            DateLabel: "Date",
+            TimeLabel: "Heure",
+            DurationLabel: "Durée",
+            PlaceLabel: "Lieu",
+            CodeLabel: "Référence",
+            TimeValue: (start, end) => $"{start} – {end} (heure suisse)",
+            Duration: minutes => $"{minutes} minutes",
+            Address: "Pavillon 46 · La Croix-sur-Lutry · Vaud, Suisse",
+            Contact: "Un empêchement, une question ? Écrivez-nous à",
+            Closing: "Avec nos meilleures salutations,",
+            Team: "L'équipe du Pavillon 46");
+
+    public record MeetingCancellationStrings(
+        Func<string, string> Subject,
+        string Heading,
+        Func<string, string, string> Body,
+        string Body2,
+        string Cta,
+        string Contact
+    );
+
+    public static MeetingCancellationStrings MeetingCancellation(string lang) => lang == "en"
+        ? new MeetingCancellationStrings(
+            Subject: when => $"Your meeting on {when} is cancelled — Pavillon 46",
+            Heading: "Meeting cancelled",
+            Body: (name, when) => $"Hello {name}, we are sorry to have to cancel your meeting on {when}. Please accept our apologies for the change.",
+            Body2: "Choose another time whenever it suits you — we would be delighted to meet you.",
+            Cta: "Choose another time",
+            Contact: "Any question? Write to us at")
+        : new MeetingCancellationStrings(
+            Subject: when => $"Votre rendez-vous du {when} est annulé — Pavillon 46",
+            Heading: "Rendez-vous annulé",
+            Body: (name, when) => $"Bonjour {name}, nous sommes au regret de devoir annuler votre rendez-vous du {when}. Veuillez nous excuser pour ce changement.",
+            Body2: "Choisissez un autre moment quand il vous convient : nous serons ravis de vous rencontrer.",
+            Cta: "Choisir un autre moment",
+            Contact: "Une question ? Écrivez-nous à");
+
+    public record MeetingTeamStrings(
+        Func<string, string, string> Subject,
+        string Heading,
+        string Intro,
+        string NameLabel,
+        string EmailLabel,
+        string PhoneLabel,
+        string DateLabel,
+        string TimeLabel,
+        string DurationLabel,
+        string MessageLabel,
+        string OriginLabel,
+        string LanguageLabel,
+        Func<string, string> FromInvitation,
+        string Direct,
+        string Cta
+    );
+
+    // Internal mail to the club's team: French only.
+    public static MeetingTeamStrings MeetingTeam() => new(
+        Subject: (name, when) => $"Nouveau rendez-vous : {name} — {when}",
+        Heading: "Nouveau rendez-vous",
+        Intro: "Un rendez-vous vient d'être réservé sur pavillon46.ch.",
+        NameLabel: "Nom",
+        EmailLabel: "E-mail",
+        PhoneLabel: "Téléphone",
+        DateLabel: "Date",
+        TimeLabel: "Heure",
+        DurationLabel: "Durée",
+        MessageLabel: "Message",
+        OriginLabel: "Origine",
+        LanguageLabel: "Langue",
+        FromInvitation: code => string.IsNullOrWhiteSpace(code)
+            ? "Invitation CadenceE (lead lié dans le CRM)"
+            : $"Invitation CadenceE — code {code} (lead lié dans le CRM)",
+        Direct: "Réservation directe sur le site (transmise au CRM comme nouveau lead)",
+        Cta: "Voir les rendez-vous");
+
+    /// <summary>"vendredi 20 novembre 2026" / "Friday 20 November 2026".</summary>
+    public static string MeetingDate(DateOnly date, string lang) =>
+        date.ToString("dddd d MMMM yyyy", new System.Globalization.CultureInfo(lang == "en" ? "en-GB" : "fr-CH"));
+
     private static string FormatTtl(int minutes, string lang)
     {
         var safe = Math.Max(1, minutes);
