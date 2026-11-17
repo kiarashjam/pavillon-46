@@ -3,6 +3,7 @@ import { useNavigate, useOutletContext, useSearchParams } from 'react-router-dom
 import {
   ApiError,
   adminCancelMeetingBooking,
+  adminResendMeetingBooking,
   adminGetMeetingSettings,
   adminListMeetingBookings,
   adminListMeetingDays,
@@ -375,6 +376,7 @@ function MeetingBookingsPanel({
   const [filter, setFilter] = useState<BookingFilter>('upcoming')
   const [confirming, setConfirming] = useState<MeetingBookingDto | null>(null)
   const [busy, setBusy] = useState(false)
+  const [resending, setResending] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
   const titleId = useId()
@@ -413,6 +415,26 @@ function MeetingBookingsPanel({
     }
   }
 
+  const resend = async (b: MeetingBookingDto) => {
+    setResending(b.id)
+    setActionError(null)
+    setNotice(null)
+    try {
+      const res = await adminResendMeetingBooking(token, b.id)
+      const who = `${b.firstName} ${b.lastName}`.trim()
+      setNotice(res.synced
+        ? `${who} is now in CadenceE.`
+        : `Still not in CadenceE: ${res.booking.crm.lastError ?? 'it could not be sent'}`)
+      await onReload()
+    } catch (e) {
+      setActionError(errorText(e, 'Could not send it again.'))
+    } finally {
+      setResending(null)
+    }
+  }
+
+  const pendingCount = (bookings ?? []).filter((b) => b.crm.pending).length
+
   const fmtWhen = (b: MeetingBookingDto) => capitalise(formatLongDate(b.date, 'en', true))
 
   return (
@@ -439,6 +461,13 @@ function MeetingBookingsPanel({
 
       {notice && <p className="adash-mtg-ok" role="status">{notice}</p>}
       {error && <p className="adash-error" role="alert">{error}</p>}
+      {actionError && !confirming && <p className="adash-error" role="alert">{actionError}</p>}
+      {pendingCount > 0 && (
+        <p className="adash-mtg-warn" role="status">
+          {pendingCount === 1 ? '1 booking is' : `${pendingCount} bookings are`} not yet in CadenceE.
+          They are resent automatically for 7 days unless CadenceE refused them; use “Send again” once the cause is fixed.
+        </p>
+      )}
 
       <div className="adash-panel adash-panel-flush">
         {bookings === null && !error ? (
@@ -490,6 +519,27 @@ function MeetingBookingsPanel({
                       )}
                       <br />
                       <span className="adash-person-sub">{b.language.toUpperCase()}</span>
+                      {b.crm.pending && (
+                        <span className="adash-mtg-crm">
+                          <span
+                            className={`adash-mtg-crm-flag${b.crm.halted ? ' is-halted' : ''}`}
+                            title={[b.crm.lastError, b.crm.nextAttemptAt && !b.crm.halted
+                              ? `Next automatic try: ${new Date(b.crm.nextAttemptAt).toLocaleString('en-GB')}`
+                              : null].filter(Boolean).join(' — ') || undefined}
+                          >
+                            {b.crm.halted ? 'Refused by CadenceE' : 'Not yet in CadenceE'}
+                          </span>
+                          <button
+                            type="button"
+                            className="adash-link"
+                            onClick={() => void resend(b)}
+                            disabled={resending === b.id}
+                            aria-label={`Send ${b.firstName} ${b.lastName}'s booking to CadenceE again`}
+                          >
+                            {resending === b.id ? 'Sending…' : 'Send again'}
+                          </button>
+                        </span>
+                      )}
                     </td>
                     <td>
                       <span className={`adash-pill ${b.status === 'booked' ? 'is-active' : 'is-declined'}`}>

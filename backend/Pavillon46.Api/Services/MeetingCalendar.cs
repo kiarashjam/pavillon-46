@@ -38,19 +38,45 @@ public static class MeetingCalendar
 
     /// <summary>
     /// The instant a Zurich wall-clock time names, with its offset (+01:00 in
-    /// winter, +02:00 in summer). Null for a time the spring-forward skips.
+    /// winter, +02:00 in summer). Null for a time the spring-forward skips
+    /// (02:00–02:59 on the last Sunday of March), which is never offered as a
+    /// slot. A time the autumn fall-back repeats (02:00–02:59 on the last Sunday
+    /// of October) is always read as its first occurrence, summer time (+02:00),
+    /// so the same slot always names the same instant.
     /// </summary>
     public static DateTimeOffset? ToInstant(DateOnly date, TimeOnly time)
     {
         var local = date.ToDateTime(time, DateTimeKind.Unspecified);
         if (Zurich.IsInvalidTime(local)) return null;
-        return new DateTimeOffset(local, Zurich.GetUtcOffset(local));
+        var offset = Zurich.IsAmbiguousTime(local)
+            ? Zurich.GetAmbiguousTimeOffsets(local).Max()
+            : Zurich.GetUtcOffset(local);
+        return new DateTimeOffset(local, offset);
     }
 
-    /// <summary>"2026-11-20T10:00:00+01:00", or "" for a stored value that does not parse.</summary>
+    /// <summary>
+    /// Like <see cref="ToInstant"/>, but never empty-handed: a skipped time moves
+    /// forward past the gap, as a wall clock does (02:30 → 03:30 +02:00).
+    /// </summary>
+    public static DateTimeOffset ResolveInstant(DateOnly date, TimeOnly time)
+    {
+        var local = date.ToDateTime(time, DateTimeKind.Unspecified);
+        for (var i = 0; i < 24 * 60 && Zurich.IsInvalidTime(local); i++) local = local.AddMinutes(1);
+        if (Zurich.IsInvalidTime(local)) local = date.ToDateTime(time, DateTimeKind.Unspecified);
+        var offset = Zurich.IsAmbiguousTime(local)
+            ? Zurich.GetAmbiguousTimeOffsets(local).Max()
+            : Zurich.GetUtcOffset(local);
+        return new DateTimeOffset(local, offset);
+    }
+
+    /// <summary>
+    /// "2026-11-20T10:00:00+01:00": always a full ISO 8601 date and time with its
+    /// offset (the CRM refuses anything less). "" only for a stored date or time
+    /// that does not parse, which validation never lets in.
+    /// </summary>
     public static string StartsAt(string date, string time) =>
-        TryParseDate(date, out var d) && TryParseTime(time, out var t) && ToInstant(d, t) is { } at
-            ? at.ToString("yyyy-MM-dd'T'HH:mm:sszzz", CultureInfo.InvariantCulture)
+        TryParseDate(date, out var d) && TryParseTime(time, out var t)
+            ? ResolveInstant(d, t).ToString("yyyy-MM-dd'T'HH:mm:sszzz", CultureInfo.InvariantCulture)
             : "";
 
     /// <summary>ISO weekday, 1 = Monday … 7 = Sunday.</summary>
@@ -138,13 +164,18 @@ public static class MeetingCalendar
             })
             .ToList();
 
+        // The day's slots. A start the spring-forward skips does not exist on
+        // the clock, so it is not a slot at all (ToInstant is null for it).
         var grid = new List<TimeOnly>();
         var slot = settings.SlotMinutes;
         if (TryParseTime(weekday.From, out var from) && TryParseTime(weekday.To, out var to) && slot > 0)
         {
             var end = to.Hour * 60 + to.Minute;
             for (var m = from.Hour * 60 + from.Minute; m + slot <= end; m += slot)
-                grid.Add(new TimeOnly(m / 60, m % 60));
+            {
+                var start = new TimeOnly(m / 60, m % 60);
+                if (ToInstant(date, start) is not null) grid.Add(start);
+            }
         }
 
         DayPlan Plan(string status, IReadOnlyList<string> free) => new(
@@ -157,7 +188,7 @@ public static class MeetingCalendar
             return Plan("full", Array.Empty<string>());
 
         var earliest = new DateTimeOffset(DateTime.SpecifyKind(utcNow, DateTimeKind.Utc)).AddHours(settings.MinNoticeHours);
-        var bookable = grid.Where(t => ToInstant(date, t) is { } at && at >= earliest).ToList();
+        var bookable = grid.Where(t => ToInstant(date, t)!.Value >= earliest).ToList();
         if (bookable.Count == 0)
             return Plan("closed", Array.Empty<string>());
 

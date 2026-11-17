@@ -148,9 +148,10 @@ public class MeetingService : IMeetingService
             booking.Id, booking.Date, booking.Time, booking.FromInvitation());
 
         // Saved: from here nothing may fail the booking. The CRM is told in the
-        // background; the two emails are awaited (they log, never throw) so the
-        // confirmation is on its way when the page says so.
-        _crm.Enqueue(booking);
+        // background (and later, by the sweep, if it cannot be reached now); the
+        // two emails are awaited (they log, never throw) so the confirmation is
+        // on its way when the page says so.
+        _crm.Enqueue(booking.Id);
         await Task.WhenAll(
             _emails.NotifyTeamAsync(booking, notify, CancellationToken.None),
             _emails.SendConfirmationAsync(booking, CancellationToken.None));
@@ -161,23 +162,33 @@ public class MeetingService : IMeetingService
     public async Task<(MeetingBooking Booking, bool Emailed)?> CancelAsync(string id, CancellationToken ct = default)
     {
         MeetingBooking? booking;
+        var changed = false;
         await _bookingGate.WaitAsync(ct);
         try
         {
-            booking = await _store.GetBookingAsync(id, ct);
-            if (booking is null) return null;
-            if (!booking.IsBooked()) return (booking, false);
-            booking.Status = "cancelled";
-            booking.CancelledAt = DateTime.UtcNow.ToString("o");
-            await _store.SaveBookingAsync(booking, ct);
+            booking = await _store.UpdateBookingAsync(id, b =>
+            {
+                if (!b.IsBooked()) return false;
+                b.Status = "cancelled";
+                b.CancelledAt = DateTime.UtcNow.ToString("o");
+                // A new event for the CRM: it gets its own attempts, even if an
+                // earlier post was refused.
+                b.CrmHalted = false;
+                b.CrmFailedRounds = 0;
+                b.CrmNextAttemptAt = "";
+                changed = true;
+                return true;
+            }, ct);
         }
         finally
         {
             _bookingGate.Release();
         }
+        if (booking is null) return null;
+        if (!changed) return (booking, false);
 
         _logger.LogInformation("meetings.cancelled booking={Booking}", booking.Id);
-        _crm.Enqueue(booking);
+        _crm.Enqueue(booking.Id);
         var emailed = await _emails.SendCancellationAsync(booking, CancellationToken.None);
         return (booking, emailed);
     }

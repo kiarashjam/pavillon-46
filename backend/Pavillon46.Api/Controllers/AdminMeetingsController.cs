@@ -18,14 +18,19 @@ public class AdminMeetingsController : ControllerBase
 
     private readonly IMeetingService _meetings;
     private readonly IMeetingStore _store;
+    private readonly IMeetingCrmNotifier _crm;
     private readonly ILogger<AdminMeetingsController> _logger;
 
-    public AdminMeetingsController(IMeetingService meetings, IMeetingStore store, ILogger<AdminMeetingsController> logger)
+    public AdminMeetingsController(IMeetingService meetings, IMeetingStore store, IMeetingCrmNotifier crm, ILogger<AdminMeetingsController> logger)
     {
         _meetings = meetings;
         _store = store;
+        _crm = crm;
         _logger = logger;
     }
+
+    private MeetingBookingDto BookingDto(MeetingBooking b) =>
+        MeetingBookingDto.From(b, MeetingCalendar.StartsAt(b.Date, b.Time), _crm.Describe(b));
 
     private static object SettingsDto(MeetingSettings s) => new
     {
@@ -177,13 +182,14 @@ public class AdminMeetingsController : ControllerBase
         // Upcoming first, soonest at the top; then the past, most recent first.
         var upcoming = rows.Where(r => r.Instant >= now).OrderBy(r => r.Instant);
         var past = rows.Where(r => r.Instant < now).OrderByDescending(r => r.Instant);
-        var ordered = upcoming.Concat(past).Select(r => MeetingBookingDto.From(r.Booking, r.StartsAt)).ToList();
+        var ordered = upcoming.Concat(past).Select(r => BookingDto(r.Booking)).ToList();
 
         return Ok(new
         {
             bookings = ordered,
             total = ordered.Count,
             upcoming = rows.Count(r => r.Instant >= now && r.Booking.IsBooked()),
+            notInCrm = ordered.Count(b => b.Crm.Pending),
         });
     }
 
@@ -199,8 +205,24 @@ public class AdminMeetingsController : ControllerBase
         _logger.LogInformation("meetings.cancel booking={Booking} by={Admin}", r.Booking.Id, HttpContext.GetAdmin()?.MemberId);
         return Ok(new
         {
-            booking = MeetingBookingDto.From(r.Booking, MeetingCalendar.StartsAt(r.Booking.Date, r.Booking.Time)),
+            booking = BookingDto(r.Booking),
             emailed = r.Emailed,
         });
+    }
+
+    /// <summary>
+    /// "Send again": one attempt now to bring CadenceE up to date with this
+    /// booking, even after the CRM refused it (once the cause is fixed).
+    /// </summary>
+    [HttpPost("bookings/{id}/resend")]
+    public async Task<IActionResult> Resend(string id, CancellationToken ct)
+    {
+        var existing = await _store.GetBookingAsync(id, ct);
+        if (existing is null) return NotFound(Error("Booking not found.", "not_found"));
+        var booking = await _crm.SyncNowAsync(existing.Id, ct);
+        if (booking is null) return NotFound(Error("Booking not found.", "not_found"));
+        var dto = BookingDto(booking);
+        _logger.LogInformation("meetings.crm.resend booking={Booking} pending={Pending} by={Admin}", booking.Id, dto.Crm.Pending, HttpContext.GetAdmin()?.MemberId);
+        return Ok(new { booking = dto, synced = !dto.Crm.Pending });
     }
 }

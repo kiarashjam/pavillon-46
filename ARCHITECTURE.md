@@ -81,8 +81,10 @@ pavillon-46/
    and books with `POST /api/meetings/bookings`, which checks and saves under a lock (`409` when the
    slot was just taken). Then `MeetingEmailService` emails the team and the person, and
    `MeetingCrmNotifier` tells the CRM in the background: a signed `POST {crm}/api/public/meetings`
-   for an invited lead (and again on cancellation), or a new lead through the leads webhook. Admins
-   set days open, full or closed, the hours and rules, and cancel bookings in `/admin/meetings`.
+   for an invited lead or, with `CADENCE_ORGANIZATION_ID`/`CADENCE_CRM_URL`, a walk-in (again on
+   cancellation), else a new lead through the leads webhook. What the CRM acknowledged is stored
+   on the booking, and a sweep resends the rest for 7 days, across restarts. Admins set days open,
+   full or closed, the hours and rules, cancel bookings and "Send again" in `/admin/meetings`.
 9. **Daily report.** `.github/workflows/activity-daily-report.yml` calls
    `POST /api/activity/daily-report` once a day, which emails an activity summary.
 

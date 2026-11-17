@@ -57,7 +57,9 @@ In **Azure Portal → App Service → pavillon46-api → Configuration → Appli
 - `ACTIVITY_REPORT_KEY`, `ACTIVITY_IP_SALT`, `ACTIVITY_DAILY_REPORT_TO`
 - `MEETINGS_NOTIFY_EMAILS` (optional) — who is told about each meeting booking until an admin
   saves the list in the console; defaults to `info@pavillon46.ch`. Meeting invitations from
-  CadenceE need `CADENCE_ONBOARDING_SECRET`.
+  CadenceE need `CADENCE_ONBOARDING_SECRET`; with `CADENCE_ORGANIZATION_ID` and `CADENCE_CRM_URL`
+  too, bookings made without an invitation reach the CRM with their time (otherwise they go to the
+  leads webhook, which needs `LEADS_WEBHOOK_API_KEY`).
 
 `AZURE_STORAGE_CONNECTION_STRING` and CORS origins are set automatically by Bicep.
 

@@ -53,7 +53,7 @@ All routes are declared in `src/App.tsx`.
 | `/admin/activity` | `AdminActivitySection` | Visitor analytics |
 | `/admin/newsletters` | `AdminNewslettersSection` | Newsletter list |
 | `/admin/newsletters/:id` | `AdminNewsletterEditor` | Write, AI-draft, publish and send a newsletter |
-| `/admin/meetings` | `AdminMeetingsSection` | Meetings: a month calendar (each day open, full or closed in one click), the bookings (cancel), weekly hours and booking rules. `?tab=calendar\|bookings\|rules` |
+| `/admin/meetings` | `AdminMeetingsSection` | Meetings: a month calendar (each day open, full or closed in one click), the bookings (cancel; "Send again" for one not yet in CadenceE), weekly hours and booking rules. `?tab=calendar\|bookings\|rules` |
 
 `Booking` and `AdminMeetingsSection` are lazy-loaded (`React.lazy` in `App.tsx`).
 

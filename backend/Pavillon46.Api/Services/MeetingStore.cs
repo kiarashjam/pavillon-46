@@ -16,6 +16,14 @@ public interface IMeetingStore
     Task<List<MeetingBooking>> ListBookingsAsync(CancellationToken ct = default);
     Task<MeetingBooking?> GetBookingAsync(string id, CancellationToken ct = default);
     Task SaveBookingAsync(MeetingBooking booking, CancellationToken ct = default);
+
+    /// <summary>
+    /// Re-reads a booking and saves it if <paramref name="change"/> returns true,
+    /// under one lock, so a cancellation and a CRM sync result written at the same
+    /// moment do not overwrite each other. Returns the booking as saved (or as
+    /// found, when nothing changed); null when there is none.
+    /// </summary>
+    Task<MeetingBooking?> UpdateBookingAsync(string id, Func<MeetingBooking, bool> change, CancellationToken ct = default);
 }
 
 /// <summary>
@@ -72,6 +80,25 @@ public class MeetingStore : IMeetingStore
     public Task<MeetingBooking?> GetBookingAsync(string id, CancellationToken ct = default) => _bookings.GetByIdAsync(id, ct);
 
     public Task SaveBookingAsync(MeetingBooking booking, CancellationToken ct = default) => _bookings.UpsertAsync(booking, ct);
+
+    // In-process: the API runs as one instance (see MeetingService).
+    private readonly SemaphoreSlim _bookingWrites = new(1, 1);
+
+    public async Task<MeetingBooking?> UpdateBookingAsync(string id, Func<MeetingBooking, bool> change, CancellationToken ct = default)
+    {
+        await _bookingWrites.WaitAsync(ct);
+        try
+        {
+            var booking = await _bookings.GetByIdAsync(id, ct);
+            if (booking is null) return null;
+            if (change(booking)) await _bookings.UpsertAsync(booking, ct);
+            return booking;
+        }
+        finally
+        {
+            _bookingWrites.Release();
+        }
+    }
 
     private sealed class SettingsStore : JsonTableStore<MeetingSettings>
     {

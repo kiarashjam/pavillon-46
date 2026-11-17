@@ -1065,6 +1065,22 @@ export interface MeetingBookingDto {
   status: 'booked' | 'cancelled'
   createdAt: string
   cancelledAt?: string
+  crm: MeetingCrmStateDto
+}
+
+/** Where a booking goes in CadenceE, and whether it got there. */
+export interface MeetingCrmStateDto {
+  /** `invitation`: posted to the CRM that sent the invitation; `cadence`: a
+   *  walk-in posted to the CRM; `leads-webhook`: a walk-in sent as a new lead;
+   *  `none`: nothing to send. */
+  channel: 'invitation' | 'cadence' | 'leads-webhook' | 'none'
+  /** CadenceE does not have the booking's current status yet. */
+  pending: boolean
+  /** CadenceE refused it: no automatic resend until "Send again". */
+  halted: boolean
+  syncedAt?: string
+  lastError?: string
+  nextAttemptAt?: string
 }
 
 export interface AdminMeetingBookingsResponse {
@@ -1072,6 +1088,8 @@ export interface AdminMeetingBookingsResponse {
   bookings: MeetingBookingDto[]
   total: number
   upcoming: number
+  /** Bookings CadenceE does not have up to date yet. */
+  notInCrm: number
 }
 
 export async function adminGetMeetingSettings(token: string): Promise<MeetingSettingsDto> {
@@ -1123,6 +1141,19 @@ export async function adminListMeetingBookings(
   if (params.status) search.set('status', params.status)
   const qs = search.toString()
   return jsonRequest<AdminMeetingBookingsResponse>(`/api/admin/meetings/bookings${qs ? `?${qs}` : ''}`, {
+    headers: bearer(token),
+  })
+}
+
+/** "Send again": one attempt now to bring CadenceE up to date with a booking,
+ *  even after a refusal. `synced` says whether it worked; the booking's `crm`
+ *  carries the reason when it did not. */
+export async function adminResendMeetingBooking(
+  token: string,
+  id: string,
+): Promise<{ booking: MeetingBookingDto; synced: boolean }> {
+  return jsonRequest(`/api/admin/meetings/bookings/${encodeURIComponent(id)}/resend`, {
+    method: 'POST',
     headers: bearer(token),
   })
 }

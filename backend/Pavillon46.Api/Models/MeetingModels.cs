@@ -82,6 +82,20 @@ public class MeetingBooking
     public string CreatedAt { get; set; } = "";
     public string CancelledAt { get; set; } = "";
 
+    // ---- CadenceE sync (MeetingCrmNotifier) ----
+    // The status the CRM last acknowledged ("booked" | "cancelled"); the booking
+    // is in sync when it equals Status. Kept on the row so a restart, or a CRM
+    // that is down for hours, loses nothing: the sweep resends what is not.
+    public string CrmSyncedStatus { get; set; } = "";
+    public string CrmSyncedAt { get; set; } = "";
+    public string CrmLastError { get; set; } = "";
+    // Set when the CRM refused the post (400, 401, 404, …): resending as it is
+    // would only repeat the refusal, so only an admin's "Send again" does.
+    public bool CrmHalted { get; set; }
+    // Failed delivery rounds so far, and when the sweep may try again.
+    public int CrmFailedRounds { get; set; }
+    public string CrmNextAttemptAt { get; set; } = "";
+
     public bool IsBooked() => string.Equals(Status, "booked", StringComparison.OrdinalIgnoreCase);
     public bool FromInvitation() => !string.IsNullOrWhiteSpace(CrmLeadId);
 }
@@ -137,10 +151,25 @@ public record MeetingBookingDto(
     string Code,
     string Status,
     string CreatedAt,
-    string? CancelledAt)
+    string? CancelledAt,
+    MeetingCrmState Crm)
 {
-    public static MeetingBookingDto From(MeetingBooking b, string startsAt) => new(
+    public static MeetingBookingDto From(MeetingBooking b, string startsAt, MeetingCrmState crm) => new(
         b.Id, b.Date, b.Time, b.DurationMinutes, startsAt, b.FirstName, b.LastName, b.Email, b.Phone,
         b.Message, b.Language, b.CrmLeadId, b.CrmOrganizationId, b.Code, b.Status, b.CreatedAt,
-        string.IsNullOrEmpty(b.CancelledAt) ? null : b.CancelledAt);
+        string.IsNullOrEmpty(b.CancelledAt) ? null : b.CancelledAt, crm);
 }
+
+/// <summary>
+/// Where a booking goes in CadenceE and whether it got there. Channel:
+/// "invitation" (posted to the CRM that sent the invitation), "cadence" (a
+/// walk-in posted to CADENCE_CRM_URL), "leads-webhook" (a walk-in sent as a
+/// lead) or "none" (nothing to send, e.g. a cancelled walk-in with no CRM URL).
+/// </summary>
+public record MeetingCrmState(
+    string Channel,
+    bool Pending,
+    bool Halted,
+    string? SyncedAt,
+    string? LastError,
+    string? NextAttemptAt);

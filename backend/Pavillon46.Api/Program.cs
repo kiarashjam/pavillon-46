@@ -330,5 +330,7 @@ static void MapLegacyEnvVars(IConfigurationManager config)
 
     // Meeting booking (MeetingsController, AdminMeetingsController).
     Map("MEETINGS_NOTIFY_EMAILS", "Meetings:NotifyEmails");
+    Map("CADENCE_ORGANIZATION_ID", "Cadence:OrganizationId");
+    Map("CADENCE_CRM_URL", "Cadence:CrmUrl");
     Map("AZURE_STORAGE_MEETINGS_TABLE", "AzureStorage:MeetingsTableName");
 }
