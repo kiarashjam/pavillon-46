@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { Route, Routes } from 'react-router-dom'
 import { LanguageProvider } from './contexts/LanguageContext'
 import { AuthProvider } from './contexts/AuthContext'
@@ -29,6 +30,11 @@ import MyReferrals from './pages/dashboard/MyReferrals'
 import Profile from './pages/dashboard/Profile'
 import Newsletters from './pages/dashboard/Newsletters'
 
+// Loaded on demand: most visitors never open the booking page or the admin
+// Meetings section, so their code stays out of the main bundle.
+const Booking = lazy(() => import('./pages/Booking'))
+const AdminMeetingsSection = lazy(() => import('./pages/admin/AdminMeetingsSection'))
+
 export default function App() {
   return (
     <LanguageProvider>
@@ -45,6 +51,8 @@ export default function App() {
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/legal" element={<LegalOrPrivacy section="legal" />} />
             <Route path="/privacy" element={<LegalOrPrivacy section="privacy" />} />
+            <Route path="/rendez-vous" element={<Suspense fallback={null}><Booking lang="fr" /></Suspense>} />
+            <Route path="/en/meeting" element={<Suspense fallback={null}><Booking lang="en" /></Suspense>} />
 
             <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/admin/set-password" element={<AdminSetPassword />} />
@@ -58,6 +66,7 @@ export default function App() {
               <Route path="activity" element={<AdminActivitySection />} />
               <Route path="newsletters" element={<AdminNewslettersSection />} />
               <Route path="newsletters/:id" element={<AdminNewsletterEditor />} />
+              <Route path="meetings" element={<Suspense fallback={null}><AdminMeetingsSection /></Suspense>} />
             </Route>
 
             <Route

@@ -11,6 +11,7 @@ import './styles/dashboard.css'
 import './styles/waitlist-premium.css'
 import './styles/auth.css'
 import './styles/admin.css'
+import './styles/booking.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

@@ -56,6 +56,17 @@ builder.Services.AddSingleton<CadenceReporter>();
 builder.Services.AddSingleton<ICadenceReporter>(sp => sp.GetRequiredService<CadenceReporter>());
 builder.Services.AddHostedService(sp => sp.GetRequiredService<CadenceReporter>());
 builder.Services.AddSingleton<ICadenceOnboardingService, CadenceOnboardingService>();
+// Meeting booking: settings, days and bookings; the invitation-token check;
+// the emails; and the background queue that tells the CRM about each booking.
+builder.Services.Configure<MeetingOptions>(builder.Configuration.GetSection("Meetings"));
+builder.Services.AddSingleton<IMeetingStore, MeetingStore>();
+builder.Services.AddSingleton<IMeetingInviteService, MeetingInviteService>();
+builder.Services.AddSingleton<IMeetingEmailService, MeetingEmailService>();
+builder.Services.AddHttpClient(MeetingCrmNotifier.HttpClientName, client => client.Timeout = TimeSpan.FromSeconds(15));
+builder.Services.AddSingleton<MeetingCrmNotifier>();
+builder.Services.AddSingleton<IMeetingCrmNotifier>(sp => sp.GetRequiredService<MeetingCrmNotifier>());
+builder.Services.AddHostedService(sp => sp.GetRequiredService<MeetingCrmNotifier>());
+builder.Services.AddSingleton<IMeetingService, MeetingService>();
 
 builder.Services.AddControllers()
     .AddJsonOptions(opts =>
@@ -317,4 +328,10 @@ static void MapLegacyEnvVars(IConfigurationManager config)
     var welcomeTtl = Environment.GetEnvironmentVariable("CADENCE_WELCOME_LINK_TTL_HOURS");
     if (int.TryParse(welcomeTtl, out var welcomeTtlHours)) config["Cadence:WelcomeLinkTtlHours"] = welcomeTtlHours.ToString();
     Map("AZURE_STORAGE_CADENCE_EVENTS_TABLE", "AzureStorage:CadenceEventsTableName");
+
+    // Meeting booking (MeetingsController, AdminMeetingsController).
+    Map("MEETINGS_NOTIFY_EMAILS", "Meetings:NotifyEmails");
+    Map("CADENCE_ORGANIZATION_ID", "Cadence:OrganizationId");
+    Map("CADENCE_CRM_URL", "Cadence:CrmUrl");
+    Map("AZURE_STORAGE_MEETINGS_TABLE", "AzureStorage:MeetingsTableName");
 }

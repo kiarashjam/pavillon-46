@@ -23,7 +23,7 @@ pavillon-46/
 │   └── src/
 │       ├── main.tsx                  # Entry point; loads every stylesheet
 │       ├── App.tsx                   # All routes
-│       ├── pages/                    # Public pages: home, waitlist, sign-in, password, legal
+│       ├── pages/                    # Public pages: home, waitlist, meeting booking, sign-in, password, legal
 │       │   ├── dashboard/            # Member portal
 │       │   └── admin/                # Admin console
 │       ├── components/               # Shared layout, route guard, activity tracker
@@ -74,7 +74,18 @@ pavillon-46/
    `password_set` once the member chooses their password on `/reset-password?welcome=1`). The
    member sees their start on the portal's overview; admins see it, with a "via CadenceE" tag, in
    the members list.
-8. **Daily report.** `.github/workflows/activity-daily-report.yml` calls
+8. **Meetings.** A prospect opens `/rendez-vous` (or `/en/meeting`), often from a CadenceE email
+   whose link carries a signed `?invite=` token (`GET /api/meetings/invite` checks it with
+   `CADENCE_ONBOARDING_SECRET`). The page reads free slots from `GET /api/meetings/availability`
+   (Europe/Zurich; weekly hours, day overrides, bookings, notice and horizon — `MeetingCalendar`)
+   and books with `POST /api/meetings/bookings`, which checks and saves under a lock (`409` when the
+   slot was just taken). Then `MeetingEmailService` emails the team and the person, and
+   `MeetingCrmNotifier` tells the CRM in the background: a signed `POST {crm}/api/public/meetings`
+   for an invited lead or, with `CADENCE_ORGANIZATION_ID`/`CADENCE_CRM_URL`, a walk-in (again on
+   cancellation), else a new lead through the leads webhook. What the CRM acknowledged is stored
+   on the booking, and a sweep resends the rest for 7 days, across restarts. Admins set days open,
+   full or closed, the hours and rules, cancel bookings and "Send again" in `/admin/meetings`.
+9. **Daily report.** `.github/workflows/activity-daily-report.yml` calls
    `POST /api/activity/daily-report` once a day, which emails an activity summary.
 
 ## Data
@@ -90,6 +101,7 @@ Every record is stored as JSON in Azure Table Storage, one table per kind:
 | `PasswordResetTokens` | Hashed, single-use reset tokens |
 | `Newsletters` | Newsletters, their send history and failed recipients |
 | `CadenceEvents` | CadenceE handoff events already processed (kept 30 days), so a retry acts once |
+| `Meetings` | Meeting settings, day overrides and bookings (one partition each) |
 
 Without `AZURE_STORAGE_CONNECTION_STRING` each store falls back to a JSONL file, then to memory —
 for development only.

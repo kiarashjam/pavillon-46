@@ -67,6 +67,8 @@ public class AzureStorageOptions
     public string PasswordResetTokensTableName { get; set; } = "PasswordResetTokens";
     public string NewslettersTableName { get; set; } = "Newsletters";
     public string CadenceEventsTableName { get; set; } = "CadenceEvents";
+    // Meeting settings, day overrides and bookings, one partition each.
+    public string MeetingsTableName { get; set; } = "Meetings";
 }
 
 /// <summary>
@@ -74,7 +76,9 @@ public class AzureStorageOptions
 /// deal is won there, the CRM posts the new member here, signed with a secret
 /// both sides share. Populated from <c>CADENCE_ONBOARDING_SECRET</c>,
 /// <c>CADENCE_SIGNATURE_TOLERANCE_SECONDS</c> and
-/// <c>CADENCE_WELCOME_LINK_TTL_HOURS</c> in <c>Program.MapLegacyEnvVars</c>.
+/// <c>CADENCE_WELCOME_LINK_TTL_HOURS</c> in <c>Program.MapLegacyEnvVars</c>; the
+/// meeting booking also uses the secret, and <c>CADENCE_ORGANIZATION_ID</c> and
+/// <c>CADENCE_CRM_URL</c> (MeetingCrmNotifier).
 /// </summary>
 public class CadenceOptions
 {
@@ -97,6 +101,13 @@ public class CadenceOptions
     public const int MinimumSecretLength = 32;
 
     public bool IsConfigured() => (OnboardingSecret ?? "").Trim().Length >= MinimumSecretLength;
+
+    // Meeting bookings without an invitation (walk-ins): with both set, they are
+    // reported to {CrmUrl}/api/public/meetings like invited ones, under this
+    // workspace id, so the CRM keeps their time and message. Without them they
+    // go to the leads webhook. CrmUrl is the CRM's base URL without /api.
+    public string OrganizationId { get; set; } = "";
+    public string CrmUrl { get; set; } = "";
 }
 
 /// <summary>
@@ -220,4 +231,22 @@ public class AuthOptions
     // configured. Empty => ~/.pavillon46/.
     public string FilePath { get; set; } = "";
     public bool DisableFileStorage { get; set; }
+}
+
+/// <summary>
+/// Meeting booking (MeetingsController). Populated from
+/// <c>MEETINGS_NOTIFY_EMAILS</c> in <c>Program.MapLegacyEnvVars</c>.
+/// </summary>
+public class MeetingOptions
+{
+    // Who is told about each booking until an admin saves the meeting settings,
+    // which then hold their own list. Comma- or semicolon-separated.
+    public string NotifyEmails { get; set; } = "info@pavillon46.ch";
+
+    public List<string> DefaultNotifyEmails() =>
+        (NotifyEmails ?? "")
+            .Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Where(e => e.Contains('@'))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
 }

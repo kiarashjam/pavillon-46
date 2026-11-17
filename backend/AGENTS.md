@@ -20,7 +20,7 @@ Swagger UI is served at `/swagger` in Development. `/healthz` answers
 | Path | What lives there |
 | --- | --- |
 | `Program.cs` | Service registration, middleware order, CORS, `MapLegacyEnvVars` (env var → config), admin seeding at boot. |
-| `Controllers/` | One controller per area: `Auth` (member sign-in and password reset), `Members` (member portal), `AdminAuth`, `AdminMembers` (members and waitlist applicants), `AdminAdmins`, `AdminNewsletters`, `Newsletters` (public unsubscribe), `Activity`, `Verification` (SMS), `Email` (waitlist submission). |
+| `Controllers/` | One controller per area: `Auth` (member sign-in and password reset), `Members` (member portal), `AdminAuth`, `AdminMembers` (members and waitlist applicants), `AdminAdmins`, `AdminNewsletters`, `Newsletters` (public unsubscribe), `Activity`, `Verification` (SMS), `Email` (waitlist submission), `Meetings` (public booking), `AdminMeetings`. |
 | `Services/` | Stores, email, SMS, AI drafting, newsletter rendering and sending. |
 | `Security/` | `TokenService`, the `[MemberAuthorize]` / `[AdminAuthorize]` filters, `PasswordHasher`, `ResetTokenGenerator`. |
 | `Models/` | DTOs and records (`Dtos.cs`, `MemberModels.cs`, `NewsletterModels.cs`), `Options.cs` (all settings), `SiteFacts.cs`. |

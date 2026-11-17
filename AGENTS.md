@@ -29,11 +29,12 @@ La Croix-sur-Lutry, above Lake Geneva near Lausanne (Switzerland), opening in
 Three product areas:
 
 - **Public site** — landing page, a 3-step waitlist (details; how you heard of
-  us; mobile number + SMS code),
+  us; mobile number + SMS code), meeting booking (`/rendez-vous`, `/en/meeting`),
   legal and privacy pages.
 - **Member portal** (`/dashboard`) — profile, referrals, newsletters.
 - **Admin console** (`/admin`) — people (admins, members, waitlist
-  submitters), visitor analytics, and newsletters: write or AI-draft them,
+  submitters), visitor analytics, meetings (which days are open, the hours,
+  the bookings), and newsletters: write or AI-draft them,
   publish them to the portal, email them to members.
 
 Production: the SPA is on Azure Static Web Apps, which forwards `/api/*` to the
@@ -241,8 +242,9 @@ fixed yet. Check an item against the current code before starting it.
 
 ### Maintenance
 
-15. **Main JS bundle is 676 kB** (Vite warns above 500 kB). Lazy-load the
-    `/admin` and `/dashboard` route trees with `React.lazy`.
+15. **Main JS bundle is 690 kB** (Vite warns above 500 kB). Lazy-load the
+    `/admin` and `/dashboard` route trees with `React.lazy`, as `App.tsx`
+    already does for the booking page and the admin Meetings section.
 16. **Four ESLint warnings:** `react-refresh/only-export-components` in
     `contexts/AdminAuthContext.tsx`, `contexts/AuthContext.tsx` and
     `contexts/LanguageContext.tsx` (each exports its hook beside its provider),

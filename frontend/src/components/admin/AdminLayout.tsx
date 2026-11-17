@@ -32,6 +32,13 @@ const icons: Record<string, Icon> = {
       <path d="M3 13h3l2.5-7 4 14L18 8l1.5 5H22" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   ),
+  meetings: (p) => (
+    <svg viewBox="0 0 24 24" fill="none" className={p.className} aria-hidden="true">
+      <rect x="3.5" y="5" width="17" height="15" rx="2.5" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M3.5 9.5h17M8 3v4M16 3v4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M8.5 14.5l2.2 2.2 4.8-4.7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  ),
   newsletter: (p) => (
     <svg viewBox="0 0 24 24" fill="none" className={p.className} aria-hidden="true">
       <path d="M4 6h16v12H4z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
@@ -48,6 +55,7 @@ const SECTIONS: Record<string, { title: string; sub: string }> = {
   '/admin/referrals': { title: 'People', sub: 'Admins, members and submitters' },
   '/admin/activity': { title: 'Activity', sub: 'Site analytics & engagement' },
   '/admin/newsletters': { title: 'Newsletters', sub: 'Write, publish, send.' },
+  '/admin/meetings': { title: 'Meetings', sub: 'Who is coming, and when' },
 }
 
 export default function AdminLayout() {
@@ -93,6 +101,7 @@ export default function AdminLayout() {
   const navItems: { to: string; label: string; icon: Icon; end: boolean; also?: string[] }[] = [
     { to: '/admin', label: 'Overview', icon: icons.overview, end: true },
     { to: '/admin/people', label: 'People', icon: icons.members, end: false, also: ['/admin/members', '/admin/referrals'] },
+    { to: '/admin/meetings', label: 'Meetings', icon: icons.meetings, end: false },
     { to: '/admin/newsletters', label: 'Newsletters', icon: icons.newsletter, end: false },
     { to: '/admin/activity', label: 'Activity', icon: icons.activity, end: false },
   ]
