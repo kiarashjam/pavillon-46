@@ -121,11 +121,13 @@ public class AdminMeetingsController : ControllerBase
         if (!MeetingsController.TryRange(from, to, out var start, out var end))
             return BadRequest(Error($"Give from and to as yyyy-MM-dd, at most {MeetingsController.MaxRangeDays} days apart.", "invalid_range"));
 
-        var (_, days) = await _meetings.PlanAsync(start, end, ct);
+        var (settings, days) = await _meetings.PlanAsync(start, end, ct);
+        var today = MeetingCalendar.TodayInZurich(DateTime.UtcNow);
         return Ok(new
         {
             timeZone = MeetingCalendar.TimeZoneId,
-            today = MeetingCalendar.FormatDate(MeetingCalendar.TodayInZurich(DateTime.UtcNow)),
+            today = MeetingCalendar.FormatDate(today),
+            lastDate = MeetingCalendar.FormatDate(today.AddDays(settings.HorizonDays)),
             days = days.Select(DayDto),
         });
     }
