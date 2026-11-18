@@ -57,6 +57,19 @@ public class ActivityOptions
     public bool DisableFileStorage { get; set; }
 }
 
+/// <summary>
+/// Application Insights (Monitoring/MonitoringSetup.cs). Populated from
+/// <c>APPLICATIONINSIGHTS_CONNECTION_STRING</c> in <c>Program.MapLegacyEnvVars</c>,
+/// or the <c>ApplicationInsights:ConnectionString</c> setting. Empty: the SDK is not
+/// registered, so nothing is collected or sent.
+/// </summary>
+public class ApplicationInsightsOptions
+{
+    public string ConnectionString { get; set; } = "";
+
+    public bool IsConfigured() => !string.IsNullOrWhiteSpace(ConnectionString);
+}
+
 public class AzureStorageOptions
 {
     public string ConnectionString { get; set; } = "";

@@ -334,6 +334,39 @@ public abstract class JsonTableStore<T> where T : class
         return _memory.Values.ToList();
     }
 
+    /// <summary>
+    /// For <c>/health</c>: reads at most one row of this store's partition, or
+    /// opens its JSONL file, and names the backend that answered: "azure-table",
+    /// "file" or "memory". Throws when it cannot read. Unlike the reads above it
+    /// never falls back to memory, since a fallback is what it is there to notice.
+    /// </summary>
+    public async Task<string> ProbeAsync(CancellationToken ct = default)
+    {
+        var client = await GetTableClientAsync();
+        if (client is not null)
+        {
+            await foreach (var _ in client.QueryAsync<TableEntity>(
+                e => e.PartitionKey == Partition, maxPerPage: 1, select: new[] { "RowKey" }, cancellationToken: ct))
+            {
+                break;
+            }
+            return "azure-table";
+        }
+
+        if (HasFile)
+        {
+            var path = ResolveFilePath();
+            if (File.Exists(path))
+            {
+                await using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 4096, useAsync: true);
+                _ = await stream.ReadAsync(new byte[1], ct);
+            }
+            return "file";
+        }
+
+        return "memory";
+    }
+
     public async Task<T?> GetByIdAsync(string id, CancellationToken ct = default)
     {
         var all = await ListAsync(ct);

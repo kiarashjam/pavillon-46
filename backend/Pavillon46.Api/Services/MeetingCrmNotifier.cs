@@ -8,6 +8,7 @@ using System.Text.Json;
 using System.Threading.Channels;
 using Microsoft.Extensions.Options;
 using Pavillon46.Api.Models;
+using Pavillon46.Api.Monitoring;
 
 namespace Pavillon46.Api.Services;
 
@@ -28,7 +29,17 @@ public interface IMeetingCrmNotifier
 
     /// <summary>Where this booking goes in CadenceE, and whether it is there.</summary>
     MeetingCrmState Describe(MeetingBooking booking);
+
+    /// <summary>
+    /// For <c>/health</c>: the bookings CadenceE still lacks, last changed more than
+    /// <paramref name="olderThan"/> ago but within the week the sweep resends for,
+    /// and how many of those wait for an admin's "Send again" after a refusal.
+    /// </summary>
+    Task<MeetingCrmBacklog> BacklogAsync(TimeSpan olderThan, CancellationToken ct = default);
 }
+
+/// <summary>Counts only: <c>/health</c> is anonymous.</summary>
+public sealed record MeetingCrmBacklog(int Unsynced, int Halted);
 
 /// <summary>
 /// Tells the CadenceE CRM about bookings so the meeting shows on the lead.
@@ -58,6 +69,12 @@ public interface IMeetingCrmNotifier
 /// an admin presses "Send again". Log lines name the host and the booking id,
 /// never a person.
 /// </para>
+/// <para>
+/// Monitoring: each sweep pass beats <see cref="SweepHeartbeat"/>, which
+/// <c>/health</c> reads. When the sync gives up on a booking — an automatic
+/// attempt refused, or a week of retries run out (<c>meetings.crm.dropped</c>) —
+/// it also raises <see cref="MonitoringSignals.CadenceSyncFailed"/>.
+/// </para>
 /// </remarks>
 public sealed class MeetingCrmNotifier : BackgroundService, IMeetingCrmNotifier
 {
@@ -68,9 +85,12 @@ public sealed class MeetingCrmNotifier : BackgroundService, IMeetingCrmNotifier
     {
         TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(10), TimeSpan.FromMinutes(1),
     };
-    private static readonly TimeSpan SweepEvery = TimeSpan.FromMinutes(3);
+    internal static readonly TimeSpan SweepEvery = TimeSpan.FromMinutes(3);
     private static readonly TimeSpan FirstSweepAfter = TimeSpan.FromSeconds(15);
     private static readonly TimeSpan ResendFor = TimeSpan.FromDays(7);
+    // A booking that has just left the resend window is reported once. After a
+    // restart it is reported again only within this first day, not forever.
+    private static readonly TimeSpan GiveUpNoticeFor = TimeSpan.FromDays(1);
 
     // The CRM verifies the signature over the bytes as sent, so these settle
     // what those bytes are: camelCase, nulls written, accents as themselves.
@@ -91,12 +111,16 @@ public sealed class MeetingCrmNotifier : BackgroundService, IMeetingCrmNotifier
     private readonly ConcurrentDictionary<string, SemaphoreSlim> _locks = new();
     // Bookings with a delivery queued or running, so the sweep does not add more.
     private readonly ConcurrentDictionary<string, int> _active = new();
+    // Bookings the sweep has reported giving up on, since this process started.
+    private readonly ConcurrentDictionary<string, byte> _givenUp = new();
 
     private readonly IHttpClientFactory _http;
     private readonly IServiceScopeFactory _scopes;
     private readonly IMeetingStore _store;
     private readonly CadenceOptions _cadence;
     private readonly IHostEnvironment _environment;
+    private readonly SweepHeartbeat _heartbeat;
+    private readonly IMonitoringAlerts _alerts;
     private readonly ILogger<MeetingCrmNotifier> _logger;
 
     public MeetingCrmNotifier(
@@ -105,6 +129,8 @@ public sealed class MeetingCrmNotifier : BackgroundService, IMeetingCrmNotifier
         IMeetingStore store,
         IOptions<CadenceOptions> cadence,
         IHostEnvironment environment,
+        SweepHeartbeat heartbeat,
+        IMonitoringAlerts alerts,
         ILogger<MeetingCrmNotifier> logger)
     {
         _http = http;
@@ -112,6 +138,8 @@ public sealed class MeetingCrmNotifier : BackgroundService, IMeetingCrmNotifier
         _store = store;
         _cadence = cadence.Value;
         _environment = environment;
+        _heartbeat = heartbeat;
+        _alerts = alerts;
         _logger = logger;
     }
 
@@ -219,21 +247,29 @@ public sealed class MeetingCrmNotifier : BackgroundService, IMeetingCrmNotifier
             await Task.Delay(FirstSweepAfter, ct);
             while (!ct.IsCancellationRequested)
             {
+                var ok = true;
                 try
                 {
                     var now = DateTimeOffset.UtcNow;
                     foreach (var b in await _store.ListBookingsAsync(ct))
                     {
                         if (b.CrmHalted || _active.ContainsKey(b.Id) || !NeedsSync(b)) continue;
-                        if (LastChange(b) is not { } changed || changed < now - ResendFor) continue;
+                        if (LastChange(b) is not { } changed) continue;
+                        if (changed < now - ResendFor)
+                        {
+                            NoteGivenUp(b, changed, now);
+                            continue;
+                        }
                         if (DateTimeOffset.TryParse(b.CrmNextAttemptAt, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var next) && next > now) continue;
                         Enqueue(b.Id);
                     }
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {
+                    ok = false;
                     _logger.LogWarning("meetings.crm.sweep_failed error={Error}", ex.GetType().Name);
                 }
+                _heartbeat.Beat(ok);
                 await Task.Delay(SweepEvery, ct);
             }
         }
@@ -241,6 +277,31 @@ public sealed class MeetingCrmNotifier : BackgroundService, IMeetingCrmNotifier
         {
             // Shutting down.
         }
+    }
+
+    /// <summary>
+    /// A booking CadenceE still lacks has left the resend window, so the sweep
+    /// stops sending it. Said once, while it has only just left.
+    /// </summary>
+    private void NoteGivenUp(MeetingBooking b, DateTimeOffset changed, DateTimeOffset now)
+    {
+        if (changed < now - ResendFor - GiveUpNoticeFor || !_givenUp.TryAdd(b.Id, 0)) return;
+        _logger.LogWarning("meetings.crm.dropped booking={Booking} rounds={Rounds}", b.Id, b.CrmFailedRounds);
+        _alerts.Raise(MonitoringSignals.CadenceSyncFailed, $"booking={b.Id} reason=expired rounds={b.CrmFailedRounds}");
+    }
+
+    public async Task<MeetingCrmBacklog> BacklogAsync(TimeSpan olderThan, CancellationToken ct = default)
+    {
+        var now = DateTimeOffset.UtcNow;
+        int unsynced = 0, halted = 0;
+        foreach (var b in await _store.ListBookingsAsync(ct))
+        {
+            if (!NeedsSync(b) || LastChange(b) is not { } changed) continue;
+            if (changed > now - olderThan || changed < now - ResendFor) continue;
+            unsynced++;
+            if (b.CrmHalted) halted++;
+        }
+        return new MeetingCrmBacklog(unsynced, halted);
     }
 
     private static DateTimeOffset? LastChange(MeetingBooking b)
@@ -345,6 +406,12 @@ public sealed class MeetingCrmNotifier : BackgroundService, IMeetingCrmNotifier
                 }
                 return true;
             }, ct);
+            if (outcome == Outcome.Refused && !manual)
+            {
+                // Automatic resends stop here until an admin presses "Send again".
+                // (A refused "Send again" is on the admin's screen already.)
+                _alerts.Raise(MonitoringSignals.CadenceSyncFailed, $"booking={id} reason=refused route={route.ToString().ToLowerInvariant()}");
+            }
             return (outcome, saved);
         }
         finally

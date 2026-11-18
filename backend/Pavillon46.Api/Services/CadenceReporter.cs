@@ -2,6 +2,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Channels;
+using Pavillon46.Api.Monitoring;
 
 namespace Pavillon46.Api.Services;
 
@@ -30,7 +31,9 @@ public interface ICadenceReporter
 /// The callback token authorises reports on that one handoff. It travels only in
 /// the Authorization header and is never logged; log lines name the host alone.
 /// A report that cannot be delivered is dropped after the last retry: the CRM
-/// still shows the handoff as delivered, and its team can resend it.
+/// still shows the handoff as delivered, and its team can resend it. A report
+/// the CRM refuses outright also raises
+/// <see cref="MonitoringSignals.CadenceHandoffRefused"/> for the alert rule.
 /// </remarks>
 public sealed class CadenceReporter : BackgroundService, ICadenceReporter
 {
@@ -50,12 +53,14 @@ public sealed class CadenceReporter : BackgroundService, ICadenceReporter
     private readonly SemaphoreSlim _inFlight = new(4, 4);
     private readonly IHttpClientFactory _http;
     private readonly IHostEnvironment _environment;
+    private readonly IMonitoringAlerts _alerts;
     private readonly ILogger<CadenceReporter> _logger;
 
-    public CadenceReporter(IHttpClientFactory http, IHostEnvironment environment, ILogger<CadenceReporter> logger)
+    public CadenceReporter(IHttpClientFactory http, IHostEnvironment environment, IMonitoringAlerts alerts, ILogger<CadenceReporter> logger)
     {
         _http = http;
         _environment = environment;
+        _alerts = alerts;
         _logger = logger;
     }
 
@@ -159,7 +164,10 @@ public sealed class CadenceReporter : BackgroundService, ICadenceReporter
             // 401 means the CRM no longer knows this token (its secret was
             // changed); 400 that it will never take this report. Retrying
             // either would only repeat the refusal.
-            return status is 408 or 429 or >= 500 ? Outcome.Retry : Outcome.GiveUp;
+            if (status is 408 or 429 or >= 500) return Outcome.Retry;
+            var account = string.IsNullOrEmpty(report.AccountId) ? "" : $" account={report.AccountId}";
+            _alerts.Raise(MonitoringSignals.CadenceHandoffRefused, $"event={report.Event} status={status}{account}");
+            return Outcome.GiveUp;
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {

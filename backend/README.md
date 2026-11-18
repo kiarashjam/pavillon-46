@@ -19,7 +19,8 @@ Conventions for adding endpoints are in [`AGENTS.md`](./AGENTS.md).
 | `POST` | `/api/activity/log` | public | Page views and clicks from the activity tracker (rate-limited; IP hashed) |
 | `GET` | `/api/activity/report` | admin or report key | Activity report. Accepts an admin token, or the `x-report-key` header matching `ACTIVITY_REPORT_KEY` |
 | `GET` `POST` | `/api/activity/daily-report` | admin or report key | Email the daily activity summary (called by the cron workflow) |
-| `GET` | `/healthz` | public | Health check |
+| `GET` | `/health` | public | Health report: storage, the CadenceE meetings sync, missing settings. `200` when Healthy or Degraded, `503` when Unhealthy. `/healthz` answers the same. See [Monitoring](#monitoring) |
+| `POST` | `/api/client-errors` | public | The site's browser error reports → a `monitoring.browser.error` warning. `204`; 30 per minute per IP |
 
 ### Member sign-in
 
@@ -254,6 +255,76 @@ those need a fix, not a retry. The admin console marks such bookings "Not yet in
 | `POST` | `/api/admin/newsletters/{id}/send` | admin | Email it to every active, opted-in member — or only to `testEmails` when given. A list with no valid address is refused |
 | `POST` | `/api/admin/newsletters/{id}/resend-failed` | admin | Retry only the recipients the last real send recorded as failed |
 
+## Monitoring
+
+Code in `Pavillon46.Api/Monitoring/`, wired by `builder.AddMonitoring()` and `app.MapHealth()`
+in `Program.cs`.
+
+**Application Insights** is on only when `APPLICATIONINSIGHTS_CONNECTION_STRING` (or
+`ApplicationInsights:ConnectionString`) is set; without it the SDK is not registered and nothing
+is sent. With it:
+
+- Requests, dependencies and exceptions are collected, with cloud role name `pavillon46-api`.
+  Successful `/health` probes are dropped (App Service calls it every minute).
+- Logs: the app logs through `ILogger` only, and the SDK's logger provider sends **Warning and
+  up** (`Logging:ApplicationInsights:LogLevel` changes that). Never sent: the `AdminSeed` category
+  (its Development-only line carries a generated password), and the health checks' own log below
+  Error.
+- Adaptive sampling (5 items per second) applies to requests and dependencies only: exceptions and
+  traces, and with them every `monitoring.*` line, are never sampled out.
+- `TelemetryRedactionInitializer` runs on every item. Query values are replaced by `redacted`
+  unless the parameter is a harmless filter (`lang`, `from`, `to`, `type`, `status`, `limit`,
+  `day`, `sendEmail`), which covers `/api/newsletters/unsubscribe?t=`, `/api/meetings/invite?token=`
+  and `/api/activity/report?key=`, and a SAS signature on a storage call. Path segments that look
+  like a token (40 characters or more, or a signed `a.b` token) or an email address are redacted,
+  in URLs and in operation names. Log messages, exception messages and properties lose email
+  addresses, phone numbers, bearer and signed tokens and `token=`-style pairs; properties named
+  like a password, secret or token are dropped whole. The client IP is zeroed. Request bodies are
+  never collected.
+
+**`GET /health`** (also `/healthz`), anonymous:
+
+```json
+{ "status": "Degraded", "totalDurationMs": 4.2,
+  "checks": [ { "name": "storage", "status": "Healthy", "description": "…", "durationMs": 1.3, "data": { "backend": "azure-table" } },
+              { "name": "cadence-sync", "status": "Degraded", "description": "…", "durationMs": 2.1,
+                "data": { "sweepIntervalSeconds": 180, "lastSweepAt": "…", "lastSweepAgeSeconds": 42, "lastSweepOk": true, "unsyncedOver1h": 1, "halted": 1 } },
+              { "name": "configuration", "status": "Degraded", "description": "Not set: LEADS_WEBHOOK_API_KEY.", "durationMs": 0.1,
+                "data": { "missing": ["LEADS_WEBHOOK_API_KEY"] } } ] }
+```
+
+`200` for Healthy or Degraded, `503` for Unhealthy; the worst check wins. Names, counts and
+durations only: never a setting's value, a connection string, an exception message or a person.
+
+| Check | Healthy | Degraded | Unhealthy |
+| --- | --- | --- | --- |
+| `storage` | One member row (or the JSONL file) can be read; `data.backend` is `azure-table`, `file` or `memory` | In memory outside Development | The read fails or takes over 10 s |
+| `cadence-sync` | The meetings CRM sweep ran within 3 intervals (9 min) and every booking is in CadenceE | Bookings changed over an hour ago (and within the 7-day resend window) still not in CadenceE; `halted` counts those refused and waiting for "Send again" | The sweep has not run for 3 intervals |
+| `configuration` | All set | Any of `CADENCE_ONBOARDING_SECRET` (or shorter than 32), `SENDGRID_API_KEY`, `FROM_EMAIL`, `LEADS_WEBHOOK_API_KEY` missing; `data.missing` lists the names | — |
+
+**Alert signals.** A Warning with the template `monitoring.alert {Signal} {Count} {Detail}`, at
+most once an hour per signal (per instance); `{Count}` is how many times it happened since the
+previous line, this one included. `{Detail}` is ids and counts only.
+
+| Signal | When | Detail |
+| --- | --- | --- |
+| `cadence.sync.failed` | The meetings sync gives up on a booking: an automatic attempt refused (`meetings.crm.refused`, a missing secret or leads key, an address it may not post to; automatic resends stop until "Send again"), or a booking still not in CadenceE leaves the 7-day resend window (`meetings.crm.dropped`) | `booking={id} reason=refused route={invitation\|cadence\|leadswebhook\|unreachable}` or `booking={id} reason=expired rounds={n}` |
+| `cadence.handoff.refused` | CadenceE refuses a report on a handoff's callback with a 4xx other than 408/429 (`cadence.report.refused`) | `event={event} status={http status} account={member id}` |
+
+**Browser errors.** `frontend/src/lib/errorReporter.ts` reports `error` and `unhandledrejection`
+events (deduplicated, at most 10 per page load, never throwing) to `POST /api/client-errors`:
+
+- Body `{ message, stack?, url?, componentStack?, userAgent? }`, at most 16 KB (`413 too_large`);
+  without a message, or not that JSON, `400 invalid_body`. 30 per minute per IP and 600 per minute
+  in all (`429`). Fields are cut to 500, 4000, 500, 4000 and 300 characters.
+- Logged as a Warning `monitoring.browser.error {Message} at {Url}`, with `Stack`,
+  `ComponentStack` and `UserAgent` as scope properties. The URL loses its query string and
+  fragment and any token-like path segment; message and stacks are scrubbed as above. Answers
+  `204`.
+
+**After a deploy** `.github/workflows/azure-backend-app-service.yml` polls `/health` for up to 3
+minutes and fails unless it answers `200`, printing the report.
+
 ## Configuration
 
 Place a `.env.local` at the **repo root** (same as the old Next.js app). `dotnet run` loads
@@ -294,6 +365,12 @@ Optional:
 | `AZURE_STORAGE_MEETINGS_TABLE` | No | Defaults to `Meetings` (settings, day overrides and bookings, one partition each) |
 
 Emails need SendGrid; without it the booking still succeeds and the missing emails are logged.
+
+### Monitoring
+
+| Variable | Required | Notes |
+| --- | --- | --- |
+| `APPLICATIONINSIGHTS_CONNECTION_STRING` | No | The Application Insights connection string (also read as `ApplicationInsights:ConnectionString`). Unset: Application Insights is off and nothing is sent. See [Monitoring](#monitoring) |
 
 ### Newsletters
 

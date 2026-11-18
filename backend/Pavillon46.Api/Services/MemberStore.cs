@@ -11,6 +11,9 @@ public interface IMemberStore
     Task<Member?> GetByReferralCodeAsync(string code, CancellationToken ct = default);
     Task<List<Member>> ListAsync(CancellationToken ct = default);
     Task DeleteAsync(string id, CancellationToken ct = default);
+
+    /// <summary>Reads one row to prove the store answers; returns the backend's name. For <c>/health</c>.</summary>
+    Task<string> ProbeAsync(CancellationToken ct = default);
 }
 
 public class MemberStore : IMemberStore
@@ -55,6 +58,8 @@ public class MemberStore : IMemberStore
     public Task<List<Member>> ListAsync(CancellationToken ct = default) => _inner.ListAsync(ct);
 
     public Task DeleteAsync(string id, CancellationToken ct = default) => _inner.DeleteAsync(id, ct);
+
+    public Task<string> ProbeAsync(CancellationToken ct = default) => _inner.ProbeAsync(ct);
 
     private sealed class InnerStore : JsonTableStore<Member>
     {
