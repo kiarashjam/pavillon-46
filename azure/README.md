@@ -61,7 +61,25 @@ In **Azure Portal → App Service → pavillon46-api → Configuration → Appli
   too, bookings made without an invitation reach the CRM with their time (otherwise they go to the
   leads webhook, which needs `LEADS_WEBHOOK_API_KEY`).
 
+- `APPLICATIONINSIGHTS_CONNECTION_STRING` (optional) — the Application Insights resource's
+  connection string. Turns on telemetry (cloud role `pavillon46-api`) and the log lines the alert
+  rules watch (`monitoring.alert …`); unset, nothing is sent. See `backend/README.md`, Monitoring.
+
 `AZURE_STORAGE_CONNECTION_STRING` and CORS origins are set automatically by Bicep.
+
+### Health check
+
+The API answers `GET /health` (`200` when Healthy or Degraded, `503` when Unhealthy). Point App
+Service's health check at it once — **Portal → App Service → Monitoring → Health check → Enable,
+path `/health`**, or:
+
+```bash
+az webapp config set --resource-group rg-pavillon46 --name pavillon46-api \
+  --generic-configurations '{"healthCheckPath": "/health"}'
+```
+
+The deploy workflow can't do this itself: it deploys with a publish profile and never signs in to
+Azure. It does poll `/health` after every deploy and fails the run unless it answers `200`.
 
 ## 3. GitHub Actions secrets
 
@@ -81,7 +99,7 @@ Add at https://github.com/kiarashjam/pavillon-46/settings/secrets/actions:
 | --- | --- | --- |
 | `build.yml` | Push / PR | CI build only (frontend + backend) |
 | `azure-static-web-app.yml` | Push to `main`/`master` | Vite SPA + `staticwebapp.config.json` API proxy |
-| `azure-backend-app-service.yml` | Push to `main`/`master` | .NET 8 API to App Service |
+| `azure-backend-app-service.yml` | Push to `main`/`master` | .NET 8 API to App Service, then polls `/health` (up to 3 min) |
 | `activity-daily-report.yml` | Daily cron + manual | Calls `POST /api/activity/daily-report` |
 
 The frontend workflow generates `staticwebapp.config.json` so:
