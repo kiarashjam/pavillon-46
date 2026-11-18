@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import { MotionConfig } from 'framer-motion'
 import App from './App'
+import { installErrorReporter } from './lib/errorReporter'
 import './styles/globals.css'
 import './styles/desktop.css'
 import './styles/tablet.css'
@@ -12,6 +13,8 @@ import './styles/waitlist-premium.css'
 import './styles/auth.css'
 import './styles/admin.css'
 import './styles/booking.css'
+
+installErrorReporter()
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
