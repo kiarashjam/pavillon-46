@@ -12,8 +12,9 @@ dotnet run --project Pavillon46.Api                        # http://localhost:52
 dotnet build Pavillon46.Api/Pavillon46.Api.csproj -c Release   # must stay at 0 warnings
 ```
 
-Swagger UI is served at `/swagger` in Development. `/healthz` answers
-`{ ok: true }`.
+Swagger UI is served at `/swagger` in Development. `/health` (and the older
+`/healthz`) answers the health report described in `backend/README.md`,
+Monitoring.
 
 ## Where things are (`Pavillon46.Api/`)
 
@@ -27,6 +28,7 @@ Swagger UI is served at `/swagger` in Development. `/healthz` answers
 | `Localization/EmailTranslations.cs` | French and English email copy. |
 | `Configuration/DotEnvLoader.cs` | Loads the repo-root `.env` / `.env.local`. |
 | `Privacy/` | Strips personal data (referrers, click text, user agents) from visitor-activity events before they are stored. |
+| `Monitoring/` | `/health` and its checks, Application Insights (on only with a connection string) and its redaction, the `monitoring.alert` signals, the meetings sweep heartbeat. |
 
 ## Writing an endpoint
 
@@ -157,6 +159,22 @@ real bug:
   (`WebUtility.HtmlEncode`).
 - Never put a password or a raw token in an email, except a reset link and
   the credentials an admin chose to send.
+
+## Monitoring
+
+- **`/health` is anonymous.** A check reports names, counts and durations —
+  never a setting's value, a connection string, an exception message or a
+  person. Don't add a check whose answer would help an attacker (say, that
+  `AUTH_TOKEN_SECRET` is still the default).
+- Application Insights receives Warning-and-up log lines.
+  `TelemetryRedactionInitializer` scrubs tokens, emails and phone numbers as a
+  safety net; still follow security rule 8 and log ids, not people.
+- A new alert goes through `IMonitoringAlerts.Raise(signal, detail)`, which
+  logs `monitoring.alert {Signal} {Count} {Detail}` at most once an hour per
+  signal. The signal names are a contract with the CRM side's alert rule:
+  add to `MonitoringSignals`, don't rename. `{Detail}` is ids and counts only.
+- A new background loop that must not stop silently can beat a
+  `SweepHeartbeat` and get a check, as `MeetingCrmNotifier` does.
 
 ## Configuration rules
 

@@ -27,6 +27,7 @@ npm run build    # tsc -b && vite build — this is the typecheck, run it
 | `src/lib/translations.ts` | All French and English copy, plus `OPENING_YEAR`. |
 | `src/lib/motion.ts` | Typed easing curves for framer-motion. |
 | `src/lib/booking.ts` | Pure date, calendar-grid and `.ics` helpers for meetings (Zurich `YYYY-MM-DD` strings, no time-zone drift). |
+| `src/lib/errorReporter.ts` | Reports uncaught errors and unhandled rejections to `POST /api/client-errors`; installed in `main.tsx`. |
 | `src/lib/constants.ts` | App name, default language (`fr`), image paths, shared animation variants. |
 | `public/` | Fonts, images, favicons. |
 
@@ -145,3 +146,9 @@ Existing patterns to follow:
   Don't send personal data in its payloads.
 - `getEvents` in `api.ts` exists but nothing calls it yet (root `AGENTS.md`,
   open work).
+- `errorReporter.ts` sends uncaught errors to `/api/client-errors`: deduped,
+  at most 10 per page load, the page URL without its query string (tokens
+  live there). Like `ActivityTracker`, it calls `fetch` itself, with
+  `keepalive`, because it must never throw. There is no React error boundary
+  yet; one should call `reportClientError(error, info.componentStack)`.
+  Error messages reach the logs, so don't put personal data in them.

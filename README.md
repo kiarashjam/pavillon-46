@@ -46,7 +46,8 @@ See [`ARCHITECTURE.md`](./ARCHITECTURE.md).
 - `.github/workflows/build.yml` — CI build on every push and PR.
 - `.github/workflows/azure-static-web-app.yml` — deploys the Vite SPA to Azure Static Web Apps
   (with `/api/*` proxy to the backend).
-- `.github/workflows/azure-backend-app-service.yml` — deploys the .NET 8 API to Azure App Service.
+- `.github/workflows/azure-backend-app-service.yml` — deploys the .NET 8 API to Azure App Service,
+  then polls `GET /health` for up to 3 minutes and fails unless it answers `200`.
 - `.github/workflows/activity-daily-report.yml` — daily cron hitting
   `POST /api/activity/daily-report`.
 

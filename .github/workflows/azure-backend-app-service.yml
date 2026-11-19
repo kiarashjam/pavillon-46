@@ -65,24 +65,49 @@ jobs:
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
           package: backend/publish
 
-      - name: Health check
+      # Polls /health for up to 3 minutes while the new build starts, prints the
+      # report, and fails the job unless it answers 200 (Healthy or Degraded;
+      # 503 means Unhealthy). The host is API_BASE_URL when set, else the App
+      # Service's default host.
+      #
+      # App Service's own health check (Configuration → Health check, path
+      # /health) is set once by hand, not here: this workflow deploys with a
+      # publish profile and never signs in to Azure, so it has no `az` session to
+      # run `az webapp config set --generic-configurations '{"healthCheckPath": "/health"}'`.
+      # See azure/README.md.
+      - name: Smoke test /health
         env:
           API_BASE_URL: ${{ secrets.API_BASE_URL }}
+          WEBAPP_NAME: ${{ secrets.AZURE_WEBAPP_NAME }}
         run: |
-          if [ -z "$API_BASE_URL" ]; then
-            echo "::warning::API_BASE_URL not set — skipping post-deploy health check"
-            exit 0
+          base="${API_BASE_URL%/}"
+          if [ -z "$base" ]; then
+            base="https://${WEBAPP_NAME:-pavillon46-api}.azurewebsites.net"
           fi
-          API_BASE_URL="${API_BASE_URL%/}"
-          echo "Checking ${API_BASE_URL}/healthz"
-          for attempt in 1 2 3 4 5; do
-            if curl --fail --silent --show-error "${API_BASE_URL}/healthz"; then
-              echo ""
-              echo "Health check passed"
-              exit 0
+          url="${base}/health"
+          report="${RUNNER_TEMP}/health.json"
+          deadline=$((SECONDS + 180))
+          echo "Polling ${url} for up to 3 minutes"
+          while :; do
+            rm -f "$report"
+            code=$(curl --silent --show-error --max-time 20 --output "$report" --write-out '%{http_code}' "$url") || true
+            code="${code:-000}"
+            if [ "$code" = "200" ] || [ "$SECONDS" -ge "$deadline" ]; then
+              break
             fi
-            echo "Attempt ${attempt}/5 failed, retrying in 15s..."
-            sleep 15
+            echo "HTTP ${code}; retrying in 10s..."
+            sleep 10
           done
-          echo "::error::Health check failed after deploy"
-          exit 1
+          echo "HTTP ${code} from ${url}"
+          if [ -s "$report" ]; then
+            jq . "$report" 2>/dev/null || cat "$report"
+            echo ""
+          fi
+          if [ "$code" != "200" ]; then
+            echo "::error::/health answered HTTP ${code} after deploy (expected 200)."
+            exit 1
+          fi
+          if jq -e '.status == "Degraded"' "$report" >/dev/null 2>&1; then
+            echo "::warning::/health is Degraded: $(jq -r '[.checks[] | select(.status != "Healthy") | "\(.name): \(.description)"] | join(" ")' "$report")"
+          fi
+          echo "Health check passed"

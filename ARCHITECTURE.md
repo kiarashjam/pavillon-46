@@ -87,6 +87,11 @@ pavillon-46/
    full or closed, the hours and rules, cancel bookings and "Send again" in `/admin/meetings`.
 9. **Daily report.** `.github/workflows/activity-daily-report.yml` calls
    `POST /api/activity/daily-report` once a day, which emails an activity summary.
+10. **Monitoring.** `GET /health` reports storage, the meetings CRM sweep (alive, and bookings
+    not yet in CadenceE) and missing settings; App Service's health check and the deploy workflow
+    poll it. With `APPLICATIONINSIGHTS_CONNECTION_STRING`, requests, dependencies, exceptions and
+    warning logs go to Application Insights, redacted, and `monitoring.alert` lines feed its alert
+    rules. The SPA's `errorReporter.ts` posts uncaught errors to `POST /api/client-errors`.
 
 ## Data
 

@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Options;
 using Pavillon46.Api.Configuration;
 using Pavillon46.Api.Models;
+using Pavillon46.Api.Monitoring;
 using Pavillon46.Api.Security;
 using Pavillon46.Api.Services;
 
@@ -67,6 +68,10 @@ builder.Services.AddSingleton<MeetingCrmNotifier>();
 builder.Services.AddSingleton<IMeetingCrmNotifier>(sp => sp.GetRequiredService<MeetingCrmNotifier>());
 builder.Services.AddHostedService(sp => sp.GetRequiredService<MeetingCrmNotifier>());
 builder.Services.AddSingleton<IMeetingService, MeetingService>();
+// Monitoring: the /health checks, the heartbeat of the meetings CRM sweep, the
+// de-duplicated alert lines, and Application Insights when
+// APPLICATIONINSIGHTS_CONNECTION_STRING is set (Monitoring/MonitoringSetup.cs).
+builder.AddMonitoring();
 
 builder.Services.AddControllers()
     .AddJsonOptions(opts =>
@@ -127,7 +132,7 @@ if (app.Environment.IsDevelopment())
 app.UseCors();
 app.UseRouting();
 app.MapControllers();
-app.MapGet("/healthz", () => Results.Ok(new { ok = true }));
+app.MapHealth();
 
 var sendgridOpts = app.Services.GetRequiredService<IOptions<SendGridOptions>>().Value;
 if (!sendgridOpts.IsConfigured())
@@ -334,4 +339,7 @@ static void MapLegacyEnvVars(IConfigurationManager config)
     Map("CADENCE_ORGANIZATION_ID", "Cadence:OrganizationId");
     Map("CADENCE_CRM_URL", "Cadence:CrmUrl");
     Map("AZURE_STORAGE_MEETINGS_TABLE", "AzureStorage:MeetingsTableName");
+
+    // Monitoring (Monitoring/MonitoringSetup.cs). Unset: Application Insights is off.
+    Map("APPLICATIONINSIGHTS_CONNECTION_STRING", "ApplicationInsights:ConnectionString");
 }
